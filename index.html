@@ -1551,6 +1551,27 @@ function showToast(msg) {
 }
 function showLoading(msg) { document.getElementById('loadingText').textContent=msg; document.getElementById('loadingOverlay').classList.add('show'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
-</script>
+</script> function fazerLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginPass').value.trim();
+  const erroDiv = document.getElementById('loginErr');
+
+  // Aqui você define o seu e-mail e senha de acesso
+  // (Exemplo simples para teste)
+  if (email === "admin" && senha === "123456") {
+    erroDiv.style.display = "none"; // Esconde o erro
+    
+    // Mostra a tela inicial e o cabeçalho
+    showScreen('screenStart');
+    document.getElementById('appHeader').style.display = 'block';
+    
+    showToast("Login realizado com sucesso!");
+  } else {
+    // Exibe o erro caso os dados estejam incorretos
+    erroDiv.style.display = "block";
+    showToast("E-mail ou senha incorretos.");
+  }
+}
+  
 </body>
 </html>
