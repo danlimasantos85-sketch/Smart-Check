@@ -1,0 +1,19 @@
+{
+  "name": "smart-check",
+  "version": "1.0.0",
+  "description": "Smart Check — Avaliação Operacional de Restaurantes",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "Daniel Lima Santos",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "sharp": "^0.34.5"
+  }
+}
