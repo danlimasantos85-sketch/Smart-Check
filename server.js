@@ -637,6 +637,24 @@ app.put('/api/users/:id/foto', async (req, res) => {
   }
 });
 
+// Troca de senha
+app.put('/api/users/:id/senha', async (req, res) => {
+  try {
+    const { senha } = req.body || {};
+    if (!senha || senha.length < 6) return res.status(400).json({ error: 'senha_fraca' });
+    const hash = await bcrypt.hash(senha, 10);
+    const { rows } = await pool.query(
+      `UPDATE vo_users SET senha=$1 WHERE id=$2 RETURNING id`,
+      [hash, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
 // ──────────────────────────────────────────────────────────────────────────
 // AVISOS (mural de comunicados Admin → Usuários)
 // ──────────────────────────────────────────────────────────────────────────

@@ -286,7 +286,19 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 .header-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
 .header-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .header-text-wrap{display:flex;flex-direction:column;min-width:0}
-/* Tela de Perfil */
+/* ── TROCA DE SENHA ── */
+.modal-senha{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-senha.show{display:flex}
+.modal-senha-box{background:var(--surface);border-radius:20px;padding:28px 22px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-senha-icon{font-size:36px;text-align:center;margin-bottom:10px}
+.modal-senha-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--dark);text-align:center;margin-bottom:6px}
+.modal-senha-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px;line-height:1.5}
+.modal-senha-err{color:#c62828;font-size:12px;margin-top:6px;display:none}
+.aviso-primeira-vez{background:linear-gradient(135deg,rgba(232,82,42,.1),rgba(232,82,42,.05));border:1.5px solid rgba(232,82,42,.3);border-radius:12px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;cursor:pointer}
+.aviso-primeira-vez .aviso-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.aviso-primeira-vez .aviso-txt{flex:1}
+.aviso-primeira-vez .aviso-txt b{font-size:13px;font-weight:700;color:var(--accent);display:block;margin-bottom:2px}
+.aviso-primeira-vez .aviso-txt span{font-size:11px;color:var(--muted);line-height:1.4}
 .perfil-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:16px;text-align:center;box-shadow:var(--shadow)}
 .perfil-avatar{width:120px;height:120px;border-radius:50%;background:var(--surface2);border:3px solid var(--accent);overflow:hidden;margin:0 auto 16px;position:relative;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif}
 .perfil-avatar img{width:100%;height:100%;object-fit:cover;display:block}
@@ -475,12 +487,35 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="perfil-meta" id="perfilMeta">–</div>
     <div class="perfil-actions">
       <button class="btn-perfil btn-perfil-primary" onclick="document.getElementById('inputFotoPerfil').click()">📷 Trocar foto</button>
+      <button class="btn-perfil" onclick="abrirModalSenha(false)">🔑 Alterar senha</button>
       <button class="btn-perfil btn-perfil-danger" id="btnRemFoto" onclick="removerFoto()" style="display:none">Remover foto</button>
     </div>
   </div>
 </div>
 
-<!-- AVISOS (mural de comunicados) -->
+<!-- MODAL TROCA DE SENHA -->
+<div class="modal-senha" id="modalTrocaSenha">
+  <div class="modal-senha-box">
+    <div class="modal-senha-icon">🔐</div>
+    <div class="modal-senha-title" id="modalSenhaTitulo">Crie sua senha</div>
+    <div class="modal-senha-sub" id="modalSenhaSub">Por segurança, defina uma senha pessoal antes de continuar.</div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Nova senha</label>
+      <input type="password" id="novaSenha1" placeholder="Mínimo 6 caracteres"/>
+    </div>
+    <div class="form-group" style="margin-bottom:6px">
+      <label>Confirmar senha</label>
+      <input type="password" id="novaSenha2" placeholder="Repita a senha"/>
+    </div>
+    <div class="modal-senha-err" id="modalSenhaErr">As senhas não coincidem</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn-perfil" id="btnCancelarSenha" onclick="fecharModalSenha()" style="flex:1">Depois</button>
+      <button class="btn-perfil btn-perfil-primary" onclick="salvarNovaSenha()" style="flex:2">Salvar senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- AVISOS -->
 <div class="screen" id="screenAvisos">
   <button class="btn-back" onclick="voltarDeAvisos()">← Voltar</button>
   <div class="page">
@@ -743,6 +778,16 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 <!-- START VISTORIA -->
 <div class="screen" id="screenStart">
   <div class="page">
+    <div id="avisoPrimeiraSenha" style="display:none">
+      <div class="aviso-primeira-vez" onclick="abrirModalSenha(true)">
+        <div class="aviso-icon">🔐</div>
+        <div class="aviso-txt">
+          <b>Troque sua senha!</b>
+          <span>Você está usando a senha padrão. Toque aqui para criar uma senha pessoal e proteger sua conta.</span>
+        </div>
+        <span style="color:var(--accent);font-size:18px;align-self:center">›</span>
+      </div>
+    </div>
     <div class="section-title">Nova Avaliação</div>
     <div id="lembretesWrap" style="display:none;margin-bottom:14px"></div>
     <div class="card">
@@ -1687,6 +1732,8 @@ function entrarApp() {
   startNotificationLoop();
   if (currentUser.role==='admin') { showScreen('screenAdmin'); carregarAdmin(); }
   else { populateTipoSelector(); renderLembretes(); showScreen('screenStart'); }
+  // Verificar se é primeiro login
+  verificarPrimeiroLogin();
 }
 
 // ══════════════════════════════════════════
@@ -3406,6 +3453,70 @@ function marcarTodasLidas() {
   renderNotifsSuperior();
   renderBadgeNotifSuperior();
   showToast('✅ Todas marcadas como lidas');
+}
+
+// ══════════════════════════════════════════
+// TROCA DE SENHA — PRIMEIRO LOGIN
+// ══════════════════════════════════════════
+function verificarPrimeiroLogin() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const key = `vo_senha_trocada_${currentUser.id}`;
+  const jaTrocou = LS.get(key);
+  if (!jaTrocou) {
+    // Mostrar aviso na tela e abrir modal automaticamente após 1s
+    renderAvisoPrimeiraSenha(true);
+    setTimeout(() => abrirModalSenha(true), 1000);
+  }
+}
+
+function renderAvisoPrimeiraSenha(show) {
+  const container = document.getElementById('avisoPrimeiraSenha');
+  if (!container) return;
+  container.style.display = show ? 'block' : 'none';
+}
+
+function abrirModalSenha(primeiraVez) {
+  const modal = document.getElementById('modalTrocaSenha');
+  const titulo = document.getElementById('modalSenhaTitulo');
+  const sub = document.getElementById('modalSenhaSub');
+  const btnCancelar = document.getElementById('btnCancelarSenha');
+  document.getElementById('novaSenha1').value = '';
+  document.getElementById('novaSenha2').value = '';
+  document.getElementById('modalSenhaErr').style.display = 'none';
+  if (primeiraVez) {
+    titulo.textContent = 'Crie sua senha pessoal';
+    sub.textContent = 'Você está acessando com a senha padrão. Por segurança, defina uma senha pessoal antes de continuar.';
+    btnCancelar.textContent = 'Depois';
+  } else {
+    titulo.textContent = 'Alterar senha';
+    sub.textContent = 'Defina uma nova senha para sua conta.';
+    btnCancelar.textContent = 'Cancelar';
+  }
+  modal.classList.add('show');
+}
+
+function fecharModalSenha() {
+  document.getElementById('modalTrocaSenha').classList.remove('show');
+}
+
+async function salvarNovaSenha() {
+  const s1 = document.getElementById('novaSenha1').value;
+  const s2 = document.getElementById('novaSenha2').value;
+  const errEl = document.getElementById('modalSenhaErr');
+  errEl.style.display = 'none';
+  if (s1.length < 6) { errEl.textContent = 'A senha deve ter no mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (s1 !== s2) { errEl.textContent = 'As senhas não coincidem'; errEl.style.display = 'block'; return; }
+  try {
+    await api(`/api/users/${currentUser.id}/senha`, { method: 'PUT', body: { senha: s1 } });
+    const key = `vo_senha_trocada_${currentUser.id}`;
+    LS.set(key, true);
+    renderAvisoPrimeiraSenha(false);
+    fecharModalSenha();
+    showToast('✅ Senha alterada com sucesso!');
+  } catch(e) {
+    errEl.textContent = 'Erro ao salvar senha. Tente novamente.';
+    errEl.style.display = 'block';
+  }
 }
 
 // ══════════════════════════════════════════
