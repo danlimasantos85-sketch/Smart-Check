@@ -33,10 +33,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 /* LOGIN */
 #screenLogin{min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--dark)}
 #screenLogin.active{display:flex}
-.login-logo{text-align:center;margin-bottom:40px}
+.login-logo{text-align:center;margin-bottom:40px;display:flex;flex-direction:column;align-items:center;gap:10px}
 .login-logo h1{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff}
-.login-logo h1 span{color:var(--accent)}
+.login-logo h1 span{color:#c4a050}
 .login-logo p{font-size:13px;color:rgba(255,255,255,.4);margin-top:4px}
+.logo-shield{filter:drop-shadow(0 6px 24px rgba(196,160,80,.45));width:72px;height:80px}
+/* ── SPLASH SCREEN ── */
+#splashScreen{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;transition:opacity .6s ease}
+#splashScreen.hide{opacity:0;pointer-events:none}
+.splash-logo{display:flex;flex-direction:column;align-items:center;gap:12px}
+.splash-name{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#fff;letter-spacing:1px}
+.splash-name span{color:#c4a050}
+.splash-tagline{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif}
+.splash-stars{display:flex;gap:10px;justify-content:center}
+.sstar{font-size:28px;opacity:0;transform:scale(.3) translateY(8px);filter:grayscale(1) brightness(.2)}
+.sstar.pop{animation:sPop .45s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes sPop{0%{opacity:0;transform:scale(.3) translateY(8px);filter:grayscale(1) brightness(.2)}60%{transform:scale(1.3) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0);filter:none}}
+.splash-bar-wrap{width:220px;display:flex;flex-direction:column;gap:6px}
+.splash-bar-track{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.splash-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#8a6820,#c4a050,#e8d090);border-radius:99px;transition:width .08s linear}
+.splash-bar-bottom{display:flex;justify-content:space-between}
+.splash-msg{font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.5px;font-family:'DM Sans',sans-serif}
+.splash-pct{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:#c4a050}
+.header-shield{width:28px;height:31px;filter:drop-shadow(0 2px 6px rgba(196,160,80,.3));flex-shrink:0}
 .login-box{background:#23232f;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:16px}
 .login-box label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
 .login-box input{background:#2e2e3e;border:1.5px solid #3a3a4e;border-radius:10px;padding:13px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;width:100%;transition:border-color .2s}
@@ -362,9 +381,54 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 </head>
 <body>
 
+<!-- SVG DEFS (reutilizável) -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="shieldGold" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c4a050"/>
+      <stop offset="50%" stop-color="#e8d090"/>
+      <stop offset="100%" stop-color="#8a6820"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- SPLASH SCREEN -->
+<div id="splashScreen">
+  <div class="splash-logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:80px;height:90px;filter:drop-shadow(0 8px 28px rgba(196,160,80,.5))">
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+      <path d="M34 8L60 17V36C60 51 48 64 34 69C20 64 8 51 8 36V17L34 8Z" fill="none" stroke="rgba(196,160,80,.2)" stroke-width=".5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="splash-name">Smart<span>Check</span></div>
+    <div class="splash-tagline">Avaliação Operacional</div>
+  </div>
+  <div class="splash-stars">
+    <span class="sstar" id="ss0">⭐</span>
+    <span class="sstar" id="ss1">⭐</span>
+    <span class="sstar" id="ss2">⭐</span>
+    <span class="sstar" id="ss3">⭐</span>
+    <span class="sstar" id="ss4">⭐</span>
+  </div>
+  <div class="splash-bar-wrap">
+    <div class="splash-bar-track">
+      <div class="splash-bar-fill" id="splashBarFill"></div>
+    </div>
+    <div class="splash-bar-bottom">
+      <span class="splash-msg" id="splashMsg">Iniciando...</span>
+      <span class="splash-pct" id="splashPct">0%</span>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div class="screen active" id="screenLogin">
   <div class="login-logo">
+    <svg viewBox="0 0 68 76" fill="none" class="logo-shield">
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+      <path d="M34 8L60 17V36C60 51 48 64 34 69C20 64 8 51 8 36V17L34 8Z" fill="none" stroke="rgba(196,160,80,.2)" stroke-width=".5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <h1>Smart<span>Check</span></h1>
     <p>Avaliação Operacional de Restaurantes</p>
   </div>
@@ -382,9 +446,10 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 <div id="appHeader" style="display:none">
   <div class="app-header">
     <div class="app-header-left" id="hdrLeft" onclick="onHeaderClick()" title="Perfil">
+    <div class="app-header-left" id="hdrLeft" onclick="onHeaderClick()" title="Perfil">
       <div class="header-avatar" id="headerAvatar">SC</div>
       <div class="header-text-wrap">
-        <h1>Smart<span>Check</span></h1>
+        <h1><svg viewBox="0 0 68 76" fill="none" class="header-shield"><path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/><path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Smart<span>Check</span></h1>
         <p id="headerUserInfo">–</p>
       </div>
     </div>
@@ -3344,7 +3409,25 @@ function marcarTodasLidas() {
 }
 
 // ══════════════════════════════════════════
-// GOOGLE SHEETS
+// SPLASH SCREEN
+// ══════════════════════════════════════════
+(function(){
+  const msgs = ['Iniciando...','Verificando dados...','Carregando checklist...','Preparando avaliação...','Quase lá...','Pronto!'];
+  const bar  = document.getElementById('splashBarFill');
+  const pct  = document.getElementById('splashPct');
+  const msg  = document.getElementById('splashMsg');
+  const stars= [0,1,2,3,4].map(i=>document.getElementById('ss'+i));
+  const starAt=[0,20,40,60,80];
+  let p=0, si=0;
+  const iv = setInterval(()=>{
+    p++;
+    if(p>100){clearInterval(iv);setTimeout(()=>{document.getElementById('splashScreen').classList.add('hide');setTimeout(()=>{document.getElementById('splashScreen').style.display='none';},650);},400);return;}
+    while(si<5&&p>=starAt[si]){stars[si].classList.add('pop');si++;}
+    bar.style.width=p+'%';
+    pct.textContent=p+'%';
+    msg.textContent=msgs[Math.min(Math.floor(p/20),msgs.length-1)];
+  },28);
+})();
 // ══════════════════════════════════════════
 async function enviarParaSheet(dados) {
   const url=LS.get('vo_sheetURL'); if (!url) return;
