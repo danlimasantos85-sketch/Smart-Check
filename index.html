@@ -395,6 +395,20 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 .aviso-section-h{font-size:13px;font-weight:700;color:var(--muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.5px;font-family:'Syne',sans-serif}
 .btn-relatar{background:#fff;border:1.5px dashed var(--accent);color:var(--dark);border-radius:11px;padding:14px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;width:100%;cursor:pointer;margin-bottom:14px}
 .btn-relatar:active{opacity:.85}
+
+.manual-hero,.quiz-hero{background:var(--dark);color:#fff;border-radius:16px;padding:18px;margin-bottom:14px}
+.manual-hero h2,.quiz-hero h2{font-family:'Syne',sans-serif;font-size:22px;margin:0 0 6px}
+.manual-hero p,.quiz-hero p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.75);margin:0}
+.manual-step{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.manual-step:last-child{border-bottom:none}.manual-shot{width:74px;height:74px;border-radius:12px;background:linear-gradient(135deg,#f7efe2,#e8d2aa);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;border:1px solid var(--border)}
+.manual-step b{font-family:'Syne',sans-serif;color:var(--dark);font-size:14px}.manual-step p{font-size:13px;color:var(--muted);line-height:1.5;margin-top:4px}
+.user-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.modal-box-scroll{max-height:88vh;overflow:auto}
+.quiz-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:12px}.quiz-timer{font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:18px;text-align:right}
+.quiz-question{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--dark);line-height:1.35;margin:10px 0 14px}.quiz-option{width:100%;text-align:left;border:1.5px solid var(--border);background:var(--surface);border-radius:12px;padding:13px;margin-bottom:9px;font-family:'DM Sans',sans-serif;color:var(--text);font-weight:600}.quiz-option.selected{border-color:var(--accent);background:rgba(232,82,42,.08)}
+.quiz-rank-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}.quiz-rank-row:last-child{border-bottom:none}.quiz-pos{font-family:'Syne',sans-serif;font-weight:800;color:var(--dark);width:28px}.quiz-move{font-size:18px;width:22px;text-align:center}.quiz-move.up{color:var(--ok)}.quiz-move.down{color:var(--nok)}.quiz-move.same{color:var(--muted)}
+.quiz-editor-item{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:var(--surface)}.quiz-editor-item textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;margin-bottom:8px}.quiz-editor-item input{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-family:inherit}.quiz-editor-grid{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;margin-bottom:7px}
+.header-mini-btn{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:8px 9px;font-size:13px;cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -471,6 +485,8 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       </div>
     </div>
     <div class="header-actions">
+      <button class="header-mini-btn" onclick="abrirManual()" title="Manual" aria-label="Manual">📘</button>
+      <button class="header-mini-btn" onclick="abrirQuizHome()" title="Quiz" aria-label="Quiz">🎮</button>
       <button class="btn-bell" id="btnBell" onclick="abrirAvisos()" title="Avisos" aria-label="Avisos">
         🔔<span class="bell-badge" id="bellBadge">0</span>
       </button>
@@ -576,6 +592,25 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
   </div>
 </div>
 
+
+
+<!-- MODAL: Editar usuário -->
+<div class="modal-bg" id="modalEditUser">
+  <div class="modal-box modal-box-scroll">
+    <div class="modal-title">Editar usuário</div>
+    <div class="modal-sub">Altere os dados e salve. Preencha a senha apenas se quiser trocar.</div>
+    <input type="hidden" id="editUserId">
+    <div class="form-group"><label>Nome</label><input type="text" id="editUserName"></div>
+    <div class="form-group"><label>Cargo</label><input type="text" id="editUserCargo"></div>
+    <div class="form-group"><label>E-mail</label><input type="email" id="editUserEmail"></div>
+    <div class="form-group"><label>Nova senha</label><input type="password" id="editUserPass" placeholder="Deixe em branco para manter"></div>
+    <div class="form-group"><label>Superior imediato</label><select id="editUserSuperior"><option value="">Nenhum</option></select></div>
+    <div class="form-group"><label>Perfil</label><select id="editUserRole"><option value="user">Avaliador</option><option value="admin">Administrador</option></select></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0"><input type="checkbox" id="editUserAtivo"> Usuário ativo</label>
+    <div class="modal-actions"><button class="btn-perfil" onclick="fecharEditarUsuario()">Cancelar</button><button class="btn-perfil btn-perfil-primary" onclick="salvarEditarUsuario()">Salvar</button></div>
+  </div>
+</div>
+
 <!-- ADMIN -->
 <div class="screen" id="screenAdmin">
   <div class="tab-bar">
@@ -583,6 +618,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="tab-item" onclick="switchTab('tabHistory')" id="tabBtnHistory"><span class="tab-icon">📋</span><span class="tab-label">Histórico</span></div>
     <div class="tab-item" onclick="switchTab('tabUsers')" id="tabBtnUsers"><span class="tab-icon">👥</span><span class="tab-label">Usuários</span></div>
     <div class="tab-item" onclick="switchTab('tabQuestions')" id="tabBtnQuestions"><span class="tab-icon">✏️</span><span class="tab-label">Questões</span></div>
+    <div class="tab-item" onclick="switchTab('tabQuizAdmin')" id="tabBtnQuizAdmin"><span class="tab-icon">🎮</span><span class="tab-label">Quiz</span></div>
     <div class="tab-item" onclick="switchTab('tabTypes')" id="tabBtnTypes"><span class="tab-icon">🗂️</span><span class="tab-label">Tipos</span></div>
     <div class="tab-item" onclick="switchTab('tabAvisos')" id="tabBtnAvisos"><span class="tab-icon">📢</span><span class="tab-label">Avisos</span></div>
     <div class="tab-item" onclick="switchTab('tabRelatos')" id="tabBtnRelatos"><span class="tab-icon">🐛</span><span class="tab-label">Relatos</span></div>
@@ -667,6 +703,16 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="section-sub">Toque em uma questão para editar.</div>
     <div id="questionsEditor"></div>
     <button class="btn-primary" onclick="salvarQuestoes()">💾 Salvar Questões</button>
+  </div>
+
+
+
+  <!-- QUIZ ADMIN -->
+  <div class="tab-content page" id="tabQuizAdmin">
+    <div class="section-title">Quiz Operacional</div>
+    <div class="section-sub">Cadastre perguntas de procedimentos operacionais. Os usuários jogam com ordem aleatória.</div>
+    <div class="card"><div class="card-title">Perguntas do Quiz</div><div id="quizAdminEditor"></div><button class="btn-sm" onclick="addQuizQuestion()" style="width:100%;margin-bottom:8px">+ Adicionar pergunta</button><button class="btn-primary" onclick="saveQuizQuestionsAdmin()">💾 Salvar quiz</button></div>
+    <div class="card"><div class="card-title">Ranking atual</div><div id="quizAdminRanking"></div></div>
   </div>
 
   <!-- TIPOS DE AVALIAÇÃO -->
@@ -778,6 +824,26 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 <div class="screen" id="screenDetail">
   <div class="detail-back" onclick="voltarAdmin()">← Voltar ao Histórico</div>
   <div class="page" id="detailContent"></div>
+</div>
+
+
+
+<!-- MANUAL -->
+<div class="screen" id="screenManual">
+  <button class="btn-back" onclick="voltarDoManual()">← Voltar</button>
+  <div class="page">
+    <div class="manual-hero"><h2>Manual Smart Check</h2><p>Guia rápido para usar a plataforma no celular ou computador.</p></div>
+    <div class="card"><div class="card-title">Como utilizar</div><div id="manualContent"></div></div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="screenQuiz">
+  <button class="btn-back" onclick="voltarDoQuiz()">← Voltar</button>
+  <div class="page">
+    <div class="quiz-hero"><h2>Quiz Operacional</h2><p>Responda perguntas de procedimentos operacionais. O resultado aparece apenas ao final.</p></div>
+    <div id="quizArea"></div>
+  </div>
 </div>
 
 <!-- START VISTORIA -->
@@ -1779,13 +1845,14 @@ function switchTab(id) {
   // Lazy-load conteúdo dinâmico das abas novas
   if (id === 'tabAvisos') carregarAvisosAdmin();
   if (id === 'tabRelatos') carregarRelatosAdmin();
+  if (id === 'tabQuizAdmin') loadQuizAdmin();
   if (id === 'tabNotifsSuperior') { renderNotifsSuperior(); renderBadgeNotifSuperior(); }
 }
 
 async function carregarAdmin() {
   await loadUsers();
   await loadTipos();
-  renderAdminDash(); renderUsersList(); renderQuestionsEditor(); renderCargos(); renderTiposEditor();
+  renderAdminDash(); renderUsersList(); renderQuestionsEditor(); renderCargos(); renderTiposEditor(); loadQuizAdmin();
   renderCargosAvisoBox();
   renderNotifsSuperior();
   renderBadgeNotifSuperior();
@@ -2077,24 +2144,63 @@ async function removerUsuario(id) {
 
 function renderUsersList() {
   const users = usersCache;
-  // Popular o select de superior imediato (só avaliadores, exceto o próprio)
   const selSup = document.getElementById('newUserSuperior');
   if (selSup) {
     selSup.innerHTML = '<option value="">Nenhum (sem superior)</option>' +
-      users.map(u => `<option value="${u.id}">${u.nome}${u.cargo ? ' · '+u.cargo : ''}</option>`).join('');
+      users.map(u => `<option value="${u.id}">${escHtml(u.nome)}${u.cargo ? ' · '+escHtml(u.cargo) : ''}</option>`).join('');
   }
   document.getElementById('usersList').innerHTML = users.map(u=>{
     const sup = u.superiorId ? users.find(x=>x.id===u.superiorId) : null;
     return `
     <div class="user-item">
       <div>
-        <div class="ui-name"><span class="role-badge ${u.role}">${u.role==='admin'?'Admin':'Avaliador'}</span>${u.nome}</div>
-        <div class="ui-role">${u.email} · ${u.cargo||'–'}</div>
-        ${sup ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">👤 Superior: ${sup.nome}</div>` : ''}
+        <div class="ui-name"><span class="role-badge ${u.role}">${u.role==='admin'?'Admin':'Avaliador'}</span>${escHtml(u.nome)}</div>
+        <div class="ui-role">${escHtml(u.email)} · ${escHtml(u.cargo||'–')} · ${u.ativo===false?'Inativo':'Ativo'}</div>
+        ${sup ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">👤 Superior: ${escHtml(sup.nome)}</div>` : ''}
       </div>
-      ${u.id!=='u1'?`<button class="btn-danger" onclick="removerUsuario('${u.id}')">Remover</button>`:''}
+      <div class="user-actions">
+        <button class="btn-sm" onclick="abrirEditarUsuario('${u.id}')">Editar</button>
+        ${u.id!=='u1'?`<button class="btn-danger" onclick="removerUsuario('${u.id}')">Remover</button>`:''}
+      </div>
     </div>`;
   }).join('');
+}
+
+function abrirEditarUsuario(id) {
+  const u = usersCache.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('editUserId').value = u.id;
+  document.getElementById('editUserName').value = u.nome || '';
+  document.getElementById('editUserCargo').value = u.cargo || '';
+  document.getElementById('editUserEmail').value = u.email || '';
+  document.getElementById('editUserPass').value = '';
+  document.getElementById('editUserRole').value = u.role || 'user';
+  document.getElementById('editUserAtivo').checked = u.ativo !== false;
+  const sel = document.getElementById('editUserSuperior');
+  sel.innerHTML = '<option value="">Nenhum</option>' + usersCache.filter(x=>x.id!==id).map(x=>`<option value="${x.id}">${escHtml(x.nome)}${x.cargo ? ' · '+escHtml(x.cargo) : ''}</option>`).join('');
+  sel.value = u.superiorId || '';
+  document.getElementById('modalEditUser').classList.add('show');
+}
+function fecharEditarUsuario() { document.getElementById('modalEditUser').classList.remove('show'); }
+async function salvarEditarUsuario() {
+  const id = document.getElementById('editUserId').value;
+  const body = {
+    nome: document.getElementById('editUserName').value.trim(),
+    cargo: document.getElementById('editUserCargo').value.trim(),
+    email: document.getElementById('editUserEmail').value.trim(),
+    role: document.getElementById('editUserRole').value,
+    ativo: document.getElementById('editUserAtivo').checked,
+    superiorId: document.getElementById('editUserSuperior').value || null
+  };
+  const senha = document.getElementById('editUserPass').value;
+  if (senha) body.senha = senha;
+  if (!body.nome || !body.email) { showToast('⚠️ Nome e e-mail são obrigatórios'); return; }
+  try {
+    await api('/api/users/' + encodeURIComponent(id), { method:'PUT', body });
+    await loadUsers(); renderUsersList(); renderAdminDash(); fecharEditarUsuario(); showToast('✅ Usuário atualizado');
+  } catch(e) {
+    if (e.status === 409) showToast('⚠️ E-mail já cadastrado'); else showToast('⚠️ Falha ao salvar usuário');
+  }
 }
 
 // ── QUESTIONS ──
@@ -3107,9 +3213,82 @@ function finalizarVistoria() {
   gerarPlanoIA(false);
 }
 
+
+
+// ══════════════════════════════════════════
+// MANUAL DO USUÁRIO
+// ══════════════════════════════════════════
+function abrirManual() {
+  const steps = [
+    ['🔐','Entrar na plataforma','Informe e-mail e senha. No primeiro acesso, troque a senha padrão para proteger sua conta.'],
+    ['📱','Instalar no celular','Na tela de login, toque em “Instalar app”. No iPhone, use Compartilhar → Adicionar à Tela de Início.'],
+    ['📍','Iniciar avaliação','Escolha a unidade e o tipo de avaliação, capture o GPS obrigatório e toque em Iniciar Avaliação.'],
+    ['✅','Responder checklist','Marque cada item como conforme, não conforme ou não avaliado. Quando necessário, inclua observações e fotos.'],
+    ['🤖','Plano de ação','Ao finalizar, a plataforma gera uma sugestão de plano de ação baseada nos pontos não atingidos.'],
+    ['📄','Relatório','Baixe o PDF ou compartilhe o relatório pelos botões disponíveis na tela de resultado.'],
+    ['🔔','Avisos e relatos','Use o sino para ler comunicados. Usuários também podem relatar erro, dúvida ou sugestão ao administrador.'],
+    ['🎮','Quiz operacional','Acesse o quiz pelo botão 🎮 no topo, responda no menor tempo possível e acompanhe o ranking.']
+  ];
+  document.getElementById('manualContent').innerHTML = steps.map(s=>`<div class="manual-step"><div class="manual-shot">${s[0]}</div><div><b>${s[1]}</b><p>${s[2]}</p></div></div>`).join('');
+  showScreen('screenManual');
+}
+function voltarDoManual() { if (currentUser && currentUser.role === 'admin') showScreen('screenAdmin'); else showScreen('screenStart'); }
+
+// ══════════════════════════════════════════
+// QUIZ OPERACIONAL
+// ══════════════════════════════════════════
+let quizQuestionsCache = [], quizRun = null, quizTimer = null;
+function shuffleArray(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function fmtTempo(seg){ const m=String(Math.floor(seg/60)).padStart(2,'0'); const s=String(seg%60).padStart(2,'0'); return `${m}:${s}`; }
+async function loadQuizQuestions(admin=false){ try{ quizQuestionsCache = await api('/api/quiz/questions'+(admin?'?admin=1':'')); }catch(e){ quizQuestionsCache=[]; } return quizQuestionsCache; }
+async function loadQuizRanking(){ try{return await api('/api/quiz/ranking');}catch(e){return [];} }
+async function abrirQuizHome(){ await loadQuizQuestions(false); const ranking=await loadQuizRanking(); renderQuizHome(ranking); showScreen('screenQuiz'); }
+function voltarDoQuiz(){ if (quizTimer) clearInterval(quizTimer); quizTimer=null; if (currentUser && currentUser.role==='admin') showScreen('screenAdmin'); else showScreen('screenStart'); }
+function renderQuizHome(ranking){
+  const area=document.getElementById('quizArea');
+  area.innerHTML=`<div class="quiz-card"><div class="card-title">Começar desafio</div><p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px">${quizQuestionsCache.length} pergunta(s) disponível(is). As perguntas serão sorteadas e o gabarito só aparece no final.</p><button class="btn-primary" onclick="startQuiz()" ${quizQuestionsCache.length?'':'disabled'}>▶ Iniciar quiz</button></div><div class="quiz-card"><div class="card-title">Ranking</div><div id="quizRankingBox">${renderRankingHtml(ranking)}</div></div>`;
+}
+function renderRankingHtml(ranking){ if(!ranking.length) return '<div class="empty-state"><span class="ei">🏁</span>Ninguém jogou ainda</div>'; return ranking.map(r=>{ const mv=Number(r.movement)||0; const cls=mv>0?'up':(mv<0?'down':'same'); const icon=mv>0?'⬆️':(mv<0?'⬇️':'→'); return `<div class="quiz-rank-row"><div class="quiz-pos">${r.position}º</div><div class="quiz-move ${cls}">${icon}</div><div style="flex:1"><b>${escHtml(r.user_nome)}</b><div style="font-size:12px;color:var(--muted)">${escHtml(r.cargo||'')} · ${r.score}/${r.total} · ${fmtTempo(Number(r.tempo_seg)||0)}</div></div></div>`; }).join(''); }
+function startQuiz(){
+  const qs=shuffleArray(quizQuestionsCache).slice(0, Math.min(10, quizQuestionsCache.length));
+  quizRun={questions:qs, idx:0, answers:{}, elapsed:0, done:false};
+  if(quizTimer) clearInterval(quizTimer);
+  quizTimer=setInterval(()=>{ if(!quizRun||quizRun.done)return; quizRun.elapsed++; const el=document.getElementById('quizTimer'); if(el) el.textContent=fmtTempo(quizRun.elapsed); },1000);
+  renderQuizQuestion();
+}
+function renderQuizQuestion(){
+  const q=quizRun.questions[quizRun.idx]; const chosen=quizRun.answers[q.id];
+  document.getElementById('quizArea').innerHTML=`<div class="quiz-card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title">Pergunta ${quizRun.idx+1}/${quizRun.questions.length}</div><div class="quiz-timer" id="quizTimer">${fmtTempo(quizRun.elapsed)}</div></div><div class="quiz-question">${escHtml(q.pergunta)}</div>${(q.opcoes||[]).map((op,i)=>`<button class="quiz-option ${chosen===i?'selected':''}" onclick="selectQuizAnswer(${q.id},${i})">${escHtml(op)}</button>`).join('')}<button class="btn-primary" onclick="nextQuizQuestion()" ${chosen==null?'disabled':''}>${quizRun.idx+1===quizRun.questions.length?'Finalizar':'Próxima'}</button></div>`;
+}
+function selectQuizAnswer(qid,i){ quizRun.answers[qid]=i; renderQuizQuestion(); }
+async function nextQuizQuestion(){ if(quizRun.idx+1<quizRun.questions.length){ quizRun.idx++; renderQuizQuestion(); return; } await finishQuiz(); }
+async function finishQuiz(){
+  quizRun.done=true; if(quizTimer) clearInterval(quizTimer); quizTimer=null;
+  let score=0; const respostas=quizRun.questions.map(q=>{ const marcado=quizRun.answers[q.id]; const ok=marcado===q.correta; if(ok) score++; return { pergunta:q.pergunta, opcoes:q.opcoes, correta:q.correta, marcado, ok }; });
+  let ranking=[]; try{ const data=await api('/api/quiz/results',{method:'POST',body:{userId:currentUser.id,userNome:currentUser.nome,cargo:currentUser.cargo||currentUser.role,score,total:quizRun.questions.length,tempoSeg:quizRun.elapsed,respostas}}); ranking=data.ranking||[]; }catch(e){ ranking=await loadQuizRanking(); }
+  document.getElementById('quizArea').innerHTML=`<div class="quiz-card"><div class="card-title">Resultado</div><div class="score-num" style="color:var(--dark)">${score}/${quizRun.questions.length}</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px">Tempo: ${fmtTempo(quizRun.elapsed)}</div><button class="btn-primary" onclick="abrirQuizHome()">Jogar novamente</button></div><div class="quiz-card"><div class="card-title">Erros e acertos</div>${respostas.map((r,i)=>`<div class="nc-item"><b>${i+1}. ${escHtml(r.pergunta)}</b><div style="font-size:13px;margin-top:4px;color:${r.ok?'var(--ok)':'var(--nok)'}">${r.ok?'✅ Acertou':'❌ Errou'}</div>${!r.ok?`<div style="font-size:13px;color:var(--muted);margin-top:3px">Resposta correta: <b>${escHtml(r.opcoes[r.correta]||'')}</b></div>`:''}</div>`).join('')}</div><div class="quiz-card"><div class="card-title">Ranking</div>${renderRankingHtml(ranking)}</div>`;
+}
+async function loadQuizAdmin(){ await loadQuizQuestions(true); renderQuizAdminEditor(); const ranking=await loadQuizRanking(); const box=document.getElementById('quizAdminRanking'); if(box) box.innerHTML=renderRankingHtml(ranking); }
+function renderQuizAdminEditor(){ const box=document.getElementById('quizAdminEditor'); if(!box)return; box.innerHTML=(quizQuestionsCache||[]).map((q,idx)=>`<div class="quiz-editor-item"><textarea rows="2" onchange="quizQuestionsCache[${idx}].pergunta=this.value">${escHtml(q.pergunta||'')}</textarea>${[0,1,2,3].map(i=>`<div class="quiz-editor-grid"><input value="${escHtml((q.opcoes||[])[i]||'')}" placeholder="Alternativa ${i+1}" onchange="quizQuestionsCache[${idx}].opcoes[${i}]=this.value"><label style="font-size:12px"><input type="radio" name="qcor${idx}" ${q.correta===i?'checked':''} onchange="quizQuestionsCache[${idx}].correta=${i}"> correta</label></div>`).join('')}<label style="font-size:12px"><input type="checkbox" ${q.ativo!==false?'checked':''} onchange="quizQuestionsCache[${idx}].ativo=this.checked"> Ativa</label><button class="btn-ghost" style="float:right" onclick="delQuizQuestion(${idx})">Excluir</button><div style="clear:both"></div></div>`).join('') || '<div class="empty-state"><span class="ei">🎮</span>Nenhuma pergunta cadastrada</div>'; }
+function addQuizQuestion(){ quizQuestionsCache.push({pergunta:'Nova pergunta',opcoes:['Alternativa A','Alternativa B','Alternativa C','Alternativa D'],correta:0,ativo:true}); renderQuizAdminEditor(); }
+function delQuizQuestion(idx){ quizQuestionsCache.splice(idx,1); renderQuizAdminEditor(); }
+async function saveQuizQuestionsAdmin(){ try{ quizQuestionsCache=await api('/api/quiz/questions',{method:'PUT',body:quizQuestionsCache}); renderQuizAdminEditor(); showToast('✅ Quiz salvo'); }catch(e){ showToast('⚠️ Falha ao salvar quiz'); } }
+
 // ══════════════════════════════════════════
 // PLANO DE AÇÃO (IA)
 // ══════════════════════════════════════════
+
+function gerarPlanoFallback() {
+  const nc = VS.planoNcSnapshot || [];
+  const na = VS.planoNaSnapshot || [];
+  if (!nc.length && !na.length) return 'Vistoria sem pontos não conformes nem itens não avaliados. Manter rotinas atuais e reforçar acompanhamento periódico.';
+  const linhas = ['Resumo: foram identificados pontos que exigem correção e/ou verificação para reduzir riscos operacionais e manter o padrão da unidade.'];
+  nc.slice(0,6).forEach((x,i)=>linhas.push(`- PRIORIDADE Alta | PRAZO 7 dias: Corrigir ${x.item} (${x.categoria}). Responsável deve registrar evidência da correção.${x.observacao ? ' Observação: '+x.observacao : ''}`));
+  na.slice(0,4).forEach(x=>linhas.push(`- PRIORIDADE Média | PRAZO 7 dias: Viabilizar a verificação de ${x.item} (${x.categoria}). Motivo informado: ${x.motivo || 'não informado'}.`));
+  linhas.push('- PRIORIDADE Baixa | PRAZO 30 dias: Reforçar treinamento da equipe e acompanhar reincidências na próxima avaliação.');
+  return linhas.join('\n');
+}
+
 async function gerarPlanoIA(forceRegen) {
   const card = document.getElementById('rPlanoCard');
   const status = document.getElementById('rPlanoStatus');
@@ -3135,12 +3314,15 @@ async function gerarPlanoIA(forceRegen) {
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
       if (err.error === 'ai_not_configured') {
-        status.textContent = '⚠️ IA não configurada no servidor.';
+        VS.planoIA = gerarPlanoFallback();
+        status.textContent = 'Plano automático gerado sem IA externa.';
+        text.textContent = VS.planoIA;
       } else {
         status.textContent = '⚠️ Não foi possível gerar o plano agora. Tente novamente.';
+        btnRegen.style.display = 'inline-flex';
+        return;
       }
       btnRegen.style.display = 'inline-flex';
-      return;
     }
     const data = await resp.json();
     VS.planoIA = data.plano || '';
@@ -3737,7 +3919,7 @@ window.addEventListener('appinstalled', () => {
 });
 
 async function installPwa() {
-  if (!_deferredInstallPrompt) return;
+  if (!_deferredInstallPrompt) { const hint=document.getElementById('installHint'); if(hint) hint.style.display='block'; showToast('Use o menu do navegador para adicionar à tela inicial.'); return; }
   _deferredInstallPrompt.prompt();
   try { await _deferredInstallPrompt.userChoice; } catch (_) {}
   _deferredInstallPrompt = null;
@@ -3750,9 +3932,15 @@ async function installPwa() {
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
   const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  if (!isStandalone) {
+    const btn = document.getElementById('btnInstall');
+    if (btn && !isIOS) btn.style.display = 'block';
+  }
   if (isIOS && !isStandalone) {
     const hint = document.getElementById('installHint');
+    const btn = document.getElementById('btnInstall');
     if (hint) hint.style.display = 'block';
+    if (btn) btn.style.display = 'block';
   }
 })();
 </script>

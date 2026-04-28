@@ -205,6 +205,7 @@ async function ensureSchema() {
       created_at TIMESTAMP DEFAULT NOW()
     );
     ALTER TABLE vo_users ADD COLUMN IF NOT EXISTS foto TEXT;
+    ALTER TABLE vo_users ADD COLUMN IF NOT EXISTS superior_id TEXT;
     CREATE TABLE IF NOT EXISTS vo_cats (
       id TEXT PRIMARY KEY,
       nome TEXT NOT NULL,
@@ -250,6 +251,32 @@ async function ensureSchema() {
     );
     CREATE INDEX IF NOT EXISTS vo_relatos_status_idx ON vo_relatos (status, criado_em DESC);
     CREATE INDEX IF NOT EXISTS vo_relatos_usuario_idx ON vo_relatos (usuario_id, criado_em DESC);
+    CREATE TABLE IF NOT EXISTS vo_quiz_questions (
+      id SERIAL PRIMARY KEY,
+      pergunta TEXT NOT NULL,
+      opcoes JSONB NOT NULL DEFAULT '[]'::jsonb,
+      correta INTEGER NOT NULL DEFAULT 0,
+      ativo BOOLEAN NOT NULL DEFAULT TRUE,
+      position INTEGER NOT NULL DEFAULT 0,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS vo_quiz_results (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_nome TEXT NOT NULL,
+      cargo TEXT,
+      score INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      tempo_seg INTEGER NOT NULL,
+      respostas JSONB NOT NULL DEFAULT '[]'::jsonb,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS vo_quiz_positions (
+      user_id TEXT PRIMARY KEY,
+      last_position INTEGER,
+      last_movement INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
   const adminHash = await bcrypt.hash('admin123', 10);
   await pool.query(
@@ -344,6 +371,7 @@ function publicUser(u) {
     role: u.role,
     ativo: u.ativo,
     foto: u.foto || null,
+    superiorId: u.superior_id || u.superiorId || null,
   };
 }
 
@@ -352,7 +380,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/users', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, nome, cargo, email, role, ativo, foto FROM vo_users ORDER BY created_at ASC'
+      'SELECT id, nome, cargo, email, role, ativo, foto, superior_id AS \"superiorId\" FROM vo_users ORDER BY created_at ASC'
     );
     res.json(rows);
   } catch (e) {
@@ -371,16 +399,50 @@ app.post('/api/users', async (req, res) => {
     const hash = await bcrypt.hash(senha, 10);
     try {
       const { rows } = await pool.query(
-        `INSERT INTO vo_users (id, nome, cargo, email, senha, role, ativo)
-         VALUES ($1,$2,$3,$4,$5,$6,TRUE)
-         RETURNING id, nome, cargo, email, role, ativo`,
-        [id, nome, cargo || null, email.toLowerCase(), hash, role || 'user']
+        `INSERT INTO vo_users (id, nome, cargo, email, senha, role, ativo, superior_id)
+         VALUES ($1,$2,$3,$4,$5,$6,TRUE,$7)
+         RETURNING id, nome, cargo, email, role, ativo, superior_id AS \"superiorId\"`,
+        [id, nome, cargo || null, email.toLowerCase(), hash, role || 'user', (req.body && req.body.superiorId) || null]
       );
       res.json(rows[0]);
     } catch (err) {
       if (err.code === '23505') {
         return res.status(409).json({ error: 'email_exists' });
       }
+      throw err;
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { nome, cargo, email, role, ativo, senha, superiorId } = req.body || {};
+    const n = (nome || '').toString().trim();
+    const e = (email || '').toString().trim().toLowerCase();
+    if (!n || !e) return res.status(400).json({ error: 'invalid_input' });
+    const r = role === 'admin' ? 'admin' : 'user';
+    const a = ativo !== false;
+    let query, params;
+    if (senha) {
+      if (senha.length < 6) return res.status(400).json({ error: 'senha_fraca' });
+      const hash = await bcrypt.hash(senha, 10);
+      query = `UPDATE vo_users SET nome=$1, cargo=$2, email=$3, role=$4, ativo=$5, superior_id=$6, senha=$7 WHERE id=$8 RETURNING id, nome, cargo, email, role, ativo, foto, superior_id AS "superiorId"`;
+      params = [n, cargo || null, e, r, a, superiorId || null, hash, id];
+    } else {
+      query = `UPDATE vo_users SET nome=$1, cargo=$2, email=$3, role=$4, ativo=$5, superior_id=$6 WHERE id=$7 RETURNING id, nome, cargo, email, role, ativo, foto, superior_id AS "superiorId"`;
+      params = [n, cargo || null, e, r, a, superiorId || null, id];
+    }
+    try {
+      const { rows } = await pool.query(query, params);
+      if (!rows[0]) return res.status(404).json({ error: 'not_found' });
+      res.json(rows[0]);
+    } catch (err) {
+      if (err.code === '23505') return res.status(409).json({ error: 'email_exists' });
       throw err;
     }
   } catch (e) {
@@ -600,7 +662,7 @@ Formato da resposta:
 app.get('/api/users/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, nome, cargo, email, role, ativo, foto FROM vo_users WHERE id=$1',
+      'SELECT id, nome, cargo, email, role, ativo, foto, superior_id AS \"superiorId\" FROM vo_users WHERE id=$1',
       [req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'not_found' });
@@ -721,6 +783,102 @@ app.put('/api/intranet/:id/lido', async (req, res) => {
     await pool.query('UPDATE vo_intranet SET lido=true WHERE id=$1', [req.params.id]);
     res.json({ ok:true });
   } catch(e) { res.status(500).json({ error: 'db_error' }); }
+});
+
+
+async function getQuizRanking() {
+  const { rows } = await pool.query(`
+    WITH best AS (
+      SELECT DISTINCT ON (user_id)
+        user_id, user_nome, cargo, score, total, tempo_seg, criado_em
+      FROM vo_quiz_results
+      ORDER BY user_id, score DESC, tempo_seg ASC, criado_em ASC
+    ), ranked AS (
+      SELECT *, ROW_NUMBER() OVER (ORDER BY score DESC, tempo_seg ASC, criado_em ASC) AS position
+      FROM best
+    )
+    SELECT r.*, COALESCE(p.last_movement,0) AS movement
+      FROM ranked r
+      LEFT JOIN vo_quiz_positions p ON p.user_id = r.user_id
+     ORDER BY position ASC
+     LIMIT 100`);
+  return rows;
+}
+
+async function refreshQuizPositions(previousPositions) {
+  const ranking = await getQuizRanking();
+  for (const r of ranking) {
+    const prev = previousPositions && previousPositions.has(r.user_id) ? previousPositions.get(r.user_id) : null;
+    const movement = prev ? (prev - Number(r.position)) : 0;
+    await pool.query(
+      `INSERT INTO vo_quiz_positions (user_id, last_position, last_movement, updated_at)
+       VALUES ($1,$2,$3,NOW())
+       ON CONFLICT (user_id) DO UPDATE SET last_position=$2, last_movement=$3, updated_at=NOW()`,
+      [r.user_id, Number(r.position), movement]
+    );
+  }
+  return getQuizRanking();
+}
+
+app.get('/api/quiz/questions', async (req, res) => {
+  try {
+    const admin = (req.query.admin || '') === '1';
+    const { rows } = await pool.query(
+      `SELECT id, pergunta, opcoes, correta, ativo FROM vo_quiz_questions ${admin ? '' : 'WHERE ativo=TRUE'} ORDER BY position ASC, id ASC`
+    );
+    res.json(rows.map(r => ({ id:r.id, pergunta:r.pergunta, opcoes:r.opcoes || [], correta:r.correta, ativo:r.ativo })));
+  } catch (e) { console.error(e); res.status(500).json({ error:'db_error' }); }
+});
+
+app.put('/api/quiz/questions', async (req, res) => {
+  const questions = req.body;
+  if (!Array.isArray(questions)) return res.status(400).json({ error:'invalid_input' });
+  for (const q of questions) {
+    if (!q || !q.pergunta || !Array.isArray(q.opcoes) || q.opcoes.length < 2) return res.status(400).json({ error:'invalid_input' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const ids = questions.filter(q => q.id).map(q => Number(q.id)).filter(Number.isFinite);
+    if (ids.length) await client.query('DELETE FROM vo_quiz_questions WHERE id <> ALL($1::int[])', [ids]);
+    else await client.query('DELETE FROM vo_quiz_questions');
+    for (let i=0;i<questions.length;i++) {
+      const q = questions[i];
+      const opcoes = q.opcoes.map(x => String(x || '').trim()).filter(Boolean).slice(0,4);
+      const correta = Math.max(0, Math.min(opcoes.length - 1, Number(q.correta) || 0));
+      if (q.id) {
+        await client.query(`UPDATE vo_quiz_questions SET pergunta=$1, opcoes=$2, correta=$3, ativo=$4, position=$5 WHERE id=$6`,
+          [String(q.pergunta).trim(), JSON.stringify(opcoes), correta, q.ativo !== false, i, q.id]);
+      } else {
+        await client.query(`INSERT INTO vo_quiz_questions (pergunta, opcoes, correta, ativo, position) VALUES ($1,$2,$3,$4,$5)`,
+          [String(q.pergunta).trim(), JSON.stringify(opcoes), correta, q.ativo !== false, i]);
+      }
+    }
+    await client.query('COMMIT');
+    const { rows } = await pool.query('SELECT id, pergunta, opcoes, correta, ativo FROM vo_quiz_questions ORDER BY position ASC, id ASC');
+    res.json(rows.map(r => ({ id:r.id, pergunta:r.pergunta, opcoes:r.opcoes || [], correta:r.correta, ativo:r.ativo })));
+  } catch(e) { await client.query('ROLLBACK').catch(()=>{}); console.error(e); res.status(500).json({ error:'db_error' }); }
+  finally { client.release(); }
+});
+
+app.get('/api/quiz/ranking', async (_req, res) => {
+  try { res.json(await getQuizRanking()); }
+  catch(e) { console.error(e); res.status(500).json({ error:'db_error' }); }
+});
+
+app.post('/api/quiz/results', async (req, res) => {
+  try {
+    const { userId, userNome, cargo, score, total, tempoSeg, respostas } = req.body || {};
+    if (!userId || !userNome || !Number.isFinite(Number(score)) || !Number.isFinite(Number(total))) return res.status(400).json({ error:'invalid_input' });
+    const before = await getQuizRanking();
+    const prev = new Map(before.map(r => [r.user_id, Number(r.position)]));
+    await pool.query(
+      `INSERT INTO vo_quiz_results (user_id, user_nome, cargo, score, total, tempo_seg, respostas) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [String(userId), String(userNome).slice(0,120), cargo || null, Number(score), Number(total), Math.max(0, Number(tempoSeg)||0), JSON.stringify(Array.isArray(respostas)?respostas:[])]
+    );
+    const ranking = await refreshQuizPositions(prev);
+    res.json({ ok:true, ranking });
+  } catch(e) { console.error(e); res.status(500).json({ error:'db_error' }); }
 });
 
 // ──────────────────────────────────────────────────────────────────────────

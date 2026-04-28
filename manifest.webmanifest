@@ -1,15 +1,14 @@
 {
   "name": "Smart Check",
   "short_name": "SmartCheck",
-  "description": "Avaliação Operacional de Restaurantes",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#181820",
-  "theme_color": "#181820",
-  "orientation": "portrait",
+  "background_color": "#F6F1E8",
+  "theme_color": "#15110B",
+  "description": "Plataforma de avaliação operacional para restaurantes",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    {"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }

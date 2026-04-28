@@ -1,0 +1,24 @@
+SMART CHECK - atualização
+
+Como usar:
+1. Extraia este ZIP.
+2. Substitua estes arquivos no seu repositório GitHub:
+   - index.html
+   - server.js
+   - manifest.webmanifest
+   - sw.js
+   - icon-192.png
+   - icon-512.png
+3. Faça commit/push no GitHub.
+4. O Render deve iniciar o deploy automático.
+
+O que foi incluído:
+- Admin pode editar usuários existentes.
+- Plano de ação tem fallback automático caso a IA/GEMINI_API_KEY não responda.
+- Botão/dica para instalar o app no celular.
+- Manual de uso acessível pelo botão 📘 no topo.
+- Quiz operacional para usuários, com perguntas cadastradas pelo admin.
+- Ranking por melhor nota e menor tempo, com setas de subida/queda.
+
+Observação:
+Para o plano de IA completo funcionar, mantenha a variável GEMINI_API_KEY configurada no Render.
