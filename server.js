@@ -656,6 +656,74 @@ app.put('/api/users/:id/senha', async (req, res) => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────
+// INTRANET (mensagens automáticas ao superior)
+// ──────────────────────────────────────────────────────────────────────────
+app.post('/api/intranet', async (req, res) => {
+  try {
+    const { para, paraNome, de, cargo, assunto, corpo, ts } = req.body || {};
+    if (!para || !assunto || !corpo) return res.status(400).json({ error: 'missing_fields' });
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS vo_intranet (
+         id SERIAL PRIMARY KEY,
+         para_id TEXT NOT NULL,
+         para_nome TEXT,
+         de_nome TEXT,
+         cargo TEXT,
+         assunto TEXT,
+         corpo TEXT,
+         lido BOOLEAN DEFAULT false,
+         criado_em TIMESTAMPTZ DEFAULT NOW()
+       )`
+    );
+    const { rows } = await pool.query(
+      `INSERT INTO vo_intranet (para_id, para_nome, de_nome, cargo, assunto, corpo)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [para.toString(), paraNome||'', de||'', cargo||'', assunto, corpo]
+    );
+    res.json({ ok:true, id: rows[0].id });
+  } catch(e) {
+    console.error('POST /api/intranet:', e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+app.get('/api/intranet', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'missing_userId' });
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS vo_intranet (
+         id SERIAL PRIMARY KEY,
+         para_id TEXT NOT NULL,
+         para_nome TEXT,
+         de_nome TEXT,
+         cargo TEXT,
+         assunto TEXT,
+         corpo TEXT,
+         lido BOOLEAN DEFAULT false,
+         criado_em TIMESTAMPTZ DEFAULT NOW()
+       )`
+    );
+    const { rows } = await pool.query(
+      `SELECT id, de_nome, cargo, assunto, corpo, lido, criado_em
+         FROM vo_intranet WHERE para_id=$1 ORDER BY criado_em DESC LIMIT 100`,
+      [userId.toString()]
+    );
+    res.json(rows);
+  } catch(e) {
+    console.error('GET /api/intranet:', e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+app.put('/api/intranet/:id/lido', async (req, res) => {
+  try {
+    await pool.query('UPDATE vo_intranet SET lido=true WHERE id=$1', [req.params.id]);
+    res.json({ ok:true });
+  } catch(e) { res.status(500).json({ error: 'db_error' }); }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
 // AVISOS (mural de comunicados Admin → Usuários)
 // ──────────────────────────────────────────────────────────────────────────
 const CATEGORIAS_AVISO = new Set(['comunicado','atualizacao','aviso','dica']);

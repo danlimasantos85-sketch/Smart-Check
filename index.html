@@ -142,6 +142,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .check-btn.nok.selected{background:rgba(192,57,43,.08);border-color:var(--nok);color:var(--nok)}
 .check-btn.na.selected{background:rgba(176,125,32,.1);border-color:var(--warn);color:var(--warn)}
 
+/* Botão acompanhamento */
+.check-btn-acomp{width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-size:18px;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.check-btn-acomp.checked{background:rgba(42,125,82,.12);border-color:var(--ok);color:var(--ok);font-size:20px}
+.area-acomp{display:none}
+.area-acomp.visible{display:block}
+
 /* RESPONSE AREAS */
 .resp-area{border-top:1px solid var(--border);padding:11px 14px;display:none;flex-direction:column;gap:9px}
 .resp-area.visible{display:flex}
@@ -458,10 +464,9 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 <div id="appHeader" style="display:none">
   <div class="app-header">
     <div class="app-header-left" id="hdrLeft" onclick="onHeaderClick()" title="Perfil">
-    <div class="app-header-left" id="hdrLeft" onclick="onHeaderClick()" title="Perfil">
-      <div class="header-avatar" id="headerAvatar">SC</div>
+      <svg viewBox="0 0 68 76" fill="none" class="header-shield" style="width:34px;height:38px"><path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/><path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div class="header-text-wrap">
-        <h1><svg viewBox="0 0 68 76" fill="none" class="header-shield"><path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/><path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Smart<span>Check</span></h1>
+        <h1>Smart<span>Check</span></h1>
         <p id="headerUserInfo">–</p>
       </div>
     </div>
@@ -798,12 +803,12 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
           <label>📋 Tipo de Avaliação</label>
           <select id="tipoAvaliacao"><option value="">Carregando…</option></select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="wrapLojaEmail" style="display:none">
           <label>✉️ E-mail oficial da loja</label>
           <input type="email" id="lojaEmail" placeholder="loja@empresa.com.br"/>
           <p style="font-size:11px;color:var(--muted);margin-top:6px">Ao finalizar, o relatório poderá ser enviado para este endereço.</p>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="wrapFrentePhoto" style="display:none">
           <label>📸 Foto da Frente da Loja</label>
           <div class="frente-upload" id="frenteUploadArea" onclick="document.getElementById('frenteFile').click()">
             <span class="frente-icon">🏪</span>
@@ -870,14 +875,9 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     </div>
     <div class="card">
       <div class="card-title">📤 Compartilhar Relatório</div>
-      <div class="form-group" style="margin-bottom:14px">
-        <label>E-mail do destinatário (opcional)</label>
-        <input type="email" id="emailInput" placeholder="destinatario@email.com"/>
-      </div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn-primary" style="background:#4a90e2" onclick="enviarParaLoja()">🏪 Enviar para loja</button>
+        <button class="btn-primary" style="background:#4a90e2" id="btnEnviarLoja" onclick="enviarParaLoja()">🏪 Enviar para loja</button>
         <button class="btn-primary" onclick="gerarECompartilhar('download')">📥 Baixar PDF</button>
-        <button class="btn-share-email" onclick="gerarECompartilhar('email')">✉️ Enviar por E-mail</button>
         <button class="btn-share-whats" onclick="gerarECompartilhar('whatsapp')">💬 Compartilhar no WhatsApp</button>
         <button class="btn-share-native" id="btnNativeShare" onclick="gerarECompartilhar('native')" style="display:none">📲 Compartilhar...</button>
       </div>
@@ -1005,7 +1005,40 @@ const CARGOS_AVALIACAO_TOTAL = ['Franqueado','Consultor','Supervisor'];
 const TIPO_RESTRITO_ID = 'geral';
 const TIPO_RESTRITO_NOME = 'Avaliação Geral';
 
-// Cargos que veem APENAS a Avaliação Geral
+// Cargos que veem e-mail da loja
+const CARGOS_EMAIL_LOJA = ['Consultor','Franqueado','Supervisor'];
+// Tipos que pedem foto da frente
+const TIPOS_FOTO_FRENTE = ['semanal','geral'];
+// Tipos de acompanhamento (apenas check, sem 3 opções)
+const TIPOS_ACOMPANHAMENTO = ['abertura','passagem','fechamento'];
+
+function isAcompanhamento(tipo) {
+  if (!tipo) return false;
+  const id = (tipo.id||'').toLowerCase();
+  const nome = (tipo.nome||'').toLowerCase();
+  return TIPOS_ACOMPANHAMENTO.some(t => id.includes(t) || nome.includes(t));
+}
+
+function isFotoFrente(tipo) {
+  if (!tipo) return false;
+  const id = (tipo.id||'').toLowerCase();
+  const nome = (tipo.nome||'').toLowerCase();
+  return TIPOS_FOTO_FRENTE.some(t => id.includes(t) || nome.includes(t));
+}
+
+function atualizarCamposStart() {
+  const tipoId = document.getElementById('tipoAvaliacao').value;
+  const tipo = (tiposCache||[]).find(t => t.id === tipoId);
+  const cargo = currentUser ? (currentUser.cargo||'') : '';
+
+  // Email da loja: só para Consultor, Franqueado e Supervisor
+  const wrapEmail = document.getElementById('wrapLojaEmail');
+  if (wrapEmail) wrapEmail.style.display = CARGOS_EMAIL_LOJA.includes(cargo) ? 'block' : 'none';
+
+  // Foto da frente: só para semanal e geral
+  const wrapFoto = document.getElementById('wrapFrentePhoto');
+  if (wrapFoto) wrapFoto.style.display = isFotoFrente(tipo) ? 'block' : 'none';
+}
 const CARGOS_APENAS_GERAL = ['Consultor', 'Franqueado'];
 // Cargos que NÃO veem a Avaliação Geral, apenas operacionais (Semanal, Abertura, Passagem, Fechamento)
 const CARGOS_APENAS_OPERACIONAL = ['Gerente'];
@@ -1283,10 +1316,8 @@ function _setAvatarImg(container, dataUrl) {
 }
 
 function updateHeaderAvatar() {
-  const av = document.getElementById('headerAvatar');
-  if (!av || !currentUser) return;
-  if (currentUser.foto) _setAvatarImg(av, currentUser.foto);
-  else { av.innerHTML = ''; av.textContent = getInitials(currentUser.nome); }
+  // O header agora usa o escudo dourado fixo — sem avatar dinâmico
+  // Mantido para compatibilidade com chamadas existentes
 }
 
 function onHeaderClick() {
@@ -1836,6 +1867,10 @@ function populateTipoSelector() {
   const prev = sel.value;
   sel.innerHTML = tipos.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
   if (prev && tipos.some(t => t.id === prev)) sel.value = prev;
+  // Adicionar listener de mudança
+  sel.onchange = atualizarCamposStart;
+  // Atualizar campos agora
+  atualizarCamposStart();
 }
 
 function renderAdminDash() {
@@ -2731,6 +2766,8 @@ function avancarCat() {
 function renderChecklist() {
   const cats = getCatsAtivas();
   const cat = cats[VS.catAtual];
+  const modoAcomp = isAcompanhamento({id: VS.tipoId, nome: VS.tipoNome});
+
   document.getElementById('checklistWrap').innerHTML =
     `<div class="cat-title">${cat.emoji} ${cat.nome}</div><div class="cat-subtitle">${cat.sub}</div>` +
     cat.itens.map((item,idx) => {
@@ -2740,14 +2777,34 @@ function renderChecklist() {
       const motivoTxt = VS.motivos[key]||'';
       const fotos = VS.fotos[key]||[];
       const isSim = resp==='sim', isNok=resp==='nao', isNa=resp==='na';
+      const fileId = `file_${key}`;
 
+      if (modoAcomp) {
+        // MODO ACOMPANHAMENTO: apenas check ✔️ + foto opcional + observação opcional
+        const checked = resp === 'sim';
+        return `<div class="check-item ${checked ? 'conform' : ''}" id="item_${key}">
+          <div class="check-header" style="flex-direction:row;align-items:center;gap:12px">
+            <button class="check-btn-acomp ${checked ? 'checked' : ''}" onclick="responderAcomp('${key}')" title="${checked ? 'Marcar como não verificado' : 'Marcar como verificado'}">
+              ${checked ? '✔' : '○'}
+            </button>
+            <div class="check-question" style="flex:1;margin:0">${item}</div>
+          </div>
+          <div class="resp-area area-acomp ${checked ? 'visible' : ''}" id="area_acomp_${key}">
+            <textarea placeholder="Observação (opcional)..." style="margin-bottom:8px" onchange="VS.notas['${key}']=this.value">${notaTxt}</textarea>
+            <div class="photo-grid" id="pg_acomp_${key}">
+              ${fotos.map((f,fi)=>`<div class="photo-thumb-wrap"><img src="${f}"/><button class="remove-photo" onclick="removerFotoAcomp('${key}',${fi})">×</button></div>`).join('')}
+              <button class="photo-trigger" onclick="triggerFile('${fileId}_acomp')"><span class="ti">📷</span><span>Foto</span></button>
+            </div>
+            <input class="hidden-file" id="${fileId}_acomp" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'acomp')"/>
+          </div>
+        </div>`;
+      }
+
+      // MODO NORMAL: 3 opções
       let cls = 'check-item';
       if (isSim) cls+=' conform';
       else if (isNok) cls+=' nao-conform';
       else if (isNa) cls+=' nao-avaliado';
-
-      // Build unique file input id
-      const fileId = `file_${key}`;
 
       return `<div class="${cls}" id="item_${key}">
         <div class="check-header">
@@ -2758,8 +2815,6 @@ function renderChecklist() {
             <button class="check-btn na ${isNa?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
           </div>
         </div>
-
-        <!-- CONFORME: foto opcional -->
         <div class="resp-area area-sim ${isSim?'visible':''}" id="area_sim_${key}">
           <span class="area-label">📷 Foto (opcional)</span>
           <div class="photo-grid" id="pg_sim_${key}">
@@ -2768,8 +2823,6 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_sim" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'sim')"/>
         </div>
-
-        <!-- NÃO CONFORME: foto obrigatória -->
         <div class="resp-area area-nok ${isNok?'visible':''}" id="area_nok_${key}">
           <textarea placeholder="Descreva a não conformidade (opcional)..." onchange="VS.notas['${key}']=this.value">${notaTxt}</textarea>
           <span class="area-label">📷 Foto obrigatória</span>
@@ -2782,8 +2835,6 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_nok" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'nok')"/>
         </div>
-
-        <!-- NÃO AVALIADO: motivo obrigatório -->
         <div class="resp-area area-na ${isNa?'visible':''}" id="area_na_${key}">
           <span class="area-label">⚠️ Motivo obrigatório</span>
           ${isNa && !motivoTxt ? `<div class="obrig-alert motivo" id="motivo_alert_${key}">Informe o motivo de não ter avaliado este item</div>` : ''}
@@ -2801,6 +2852,37 @@ function renderChecklist() {
 function triggerFile(inputId) {
   const inp = document.getElementById(inputId);
   if (inp) inp.click();
+}
+
+function responderAcomp(key) {
+  const atual = VS.respostas[key];
+  const novoValor = (atual === 'sim') ? null : 'sim';
+  if (novoValor) VS.respostas[key] = novoValor;
+  else delete VS.respostas[key];
+  const itemEl = document.getElementById(`item_${key}`);
+  const btn = itemEl.querySelector('.check-btn-acomp');
+  const area = document.getElementById(`area_acomp_${key}`);
+  if (novoValor === 'sim') {
+    itemEl.classList.add('conform');
+    btn.classList.add('checked');
+    btn.textContent = '✔';
+    if (area) area.classList.add('visible');
+  } else {
+    itemEl.classList.remove('conform');
+    btn.classList.remove('checked');
+    btn.textContent = '○';
+    if (area) area.classList.remove('visible');
+    delete VS.notas[key]; delete VS.fotos[key];
+  }
+  updateProgress(); renderNav();
+}
+
+function removerFotoAcomp(key, idx) {
+  if (VS.fotos[key]) {
+    VS.fotos[key].splice(idx, 1);
+    if (VS.fotos[key].length === 0) delete VS.fotos[key];
+  }
+  renderChecklist();
 }
 
 function responder(key, valor) {
@@ -2952,6 +3034,11 @@ function finalizarVistoria() {
 
   // Notificar o superior imediato (se houver)
   notificarSuperior(registro, 'finalizada');
+
+  // Envio automático de email intranet ao superior (para cargos não-Consultor/Franqueado/Supervisor)
+  if (!CARGOS_EMAIL_LOJA.includes(currentUser.cargo||'')) {
+    enviarEmailIntranetSuperior(registro);
+  }
 
   // Render result
   document.getElementById('starsDisplay').innerHTML = [1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('');
@@ -3453,6 +3540,60 @@ function marcarTodasLidas() {
   renderNotifsSuperior();
   renderBadgeNotifSuperior();
   showToast('✅ Todas marcadas como lidas');
+}
+
+async function enviarEmailIntranetSuperior(registro) {
+  if (!currentUser || !currentUser.superiorId) return;
+  // Aguardar plano de IA (se houver não conformes)
+  let plano = '';
+  if ((registro.naoConformes||0) > 0) {
+    try {
+      const resp = await fetch('/api/plano', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          restaurante: registro.restaurante,
+          tipoNome: registro.tipoNome||'',
+          nota: registro.nota||0,
+          naoConformes: VS.planoNcSnapshot||[],
+          naoAvaliados: VS.planoNaSnapshot||[],
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        plano = data.plano || '';
+        // Salvar no VS também
+        VS.planoIA = plano;
+        document.getElementById('rPlanoStatus').textContent = '';
+        document.getElementById('rPlanoText').textContent = plano;
+        document.getElementById('btnRegenPlano').style.display = 'inline-flex';
+      }
+    } catch(e) { console.error('Plano IA falhou no envio intranet', e); }
+  }
+  // Montar e enviar mensagem intranet
+  const superior = usersCache.find(u => u.id === currentUser.superiorId);
+  if (!superior) return;
+  const ncs = (VS.planoNcSnapshot||[]).map((x,i)=>`${i+1}. [${x.categoria}] ${x.item}${x.observacao ? ' — '+x.observacao : ''}`).join('\n') || '(nenhuma)';
+  const msg = {
+    para: superior.id,
+    paraNome: superior.nome,
+    de: currentUser.nome,
+    cargo: currentUser.cargo||'',
+    assunto: `Avaliação finalizada: ${registro.tipoNome} — ${registro.restaurante}`,
+    corpo: `Avaliador: ${currentUser.nome} (${currentUser.cargo||''})\nRestaurante: ${registro.restaurante}\nTipo: ${registro.tipoNome}\nNota: ${(registro.nota||0).toFixed(1)}/5.0\nData: ${registro.dataFim}\n\nNÃO CONFORMIDADES:\n${ncs}\n\nPLANO DE AÇÃO (IA):\n${plano||'(não disponível — configure a chave GEMINI_API_KEY no servidor)'}`,
+    ts: Date.now()
+  };
+  // Salvar na caixa de entrada do superior (localStorage compartilhado via API)
+  try {
+    await api('/api/intranet', { method:'POST', body: msg });
+    showToast('📨 Relatório enviado ao superior');
+  } catch(e) {
+    // Fallback: salvar localmente se API não existir ainda
+    const inbox = LS.get('vo_intranet_inbox') || [];
+    inbox.push(msg);
+    LS.set('vo_intranet_inbox', inbox);
+    showToast('📨 Relatório enviado ao superior (intranet)');
+  }
 }
 
 // ══════════════════════════════════════════
