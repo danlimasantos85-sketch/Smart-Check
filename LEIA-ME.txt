@@ -1,24 +1,45 @@
-SMART CHECK - atualização
+Smart Check — Atualização: Engenharia de Alimentos (v2)
 
-Como usar:
-1. Extraia este ZIP.
-2. Substitua estes arquivos no seu repositório GitHub:
-   - index.html
-   - server.js
-   - manifest.webmanifest
-   - sw.js
-   - icon-192.png
-   - icon-512.png
-3. Faça commit/push no GitHub.
-4. O Render deve iniciar o deploy automático.
+ARQUIVOS NESTE ZIP
+- index.html               (substitui o atual)
+- server.js                (substitui o atual)
+- sw.js                    (mantém o já enviado)
+- manifest.webmanifest     (mantém o já enviado)
+- icon-192.png / icon-512.png (mantém)
 
-O que foi incluído:
-- Admin pode editar usuários existentes.
-- Plano de ação tem fallback automático caso a IA/GEMINI_API_KEY não responda.
-- Botão/dica para instalar o app no celular.
-- Manual de uso acessível pelo botão 📘 no topo.
-- Quiz operacional para usuários, com perguntas cadastradas pelo admin.
-- Ranking por melhor nota e menor tempo, com setas de subida/queda.
+O QUE FOI ADICIONADO
+1) Nova aba "🍱 Engenharia de Alimentos" — visível apenas para
+   Admin, Consultor, Supervisor e Franqueado.
+   - Botão aparece na tela inicial e na tela de Resultado.
+2) Painel Admin → seção "Engenharia de Alimentos":
+   - Cadastro de Lojas/Unidades.
+   - Cadastro de Insumos (com unidade).
+   - Cadastro de Pratos com sua composição (insumo + qtd).
+   - Vínculo de cada Consultor/Supervisor/Franqueado a uma loja.
+3) Para o usuário operacional:
+   - Lançar VENDAS (manual ou importar CSV: prato,qtd,data).
+   - Registrar COMPRAS de insumos.
+   - Atualizar ESTOQUE atual.
+   - Calcular SUGESTÃO DE COMPRA por dia / semana / quinzena /
+     mês / período personalizado (até 30 dias).
+   - Fórmula: (Média de uso/dia × dias de cobertura) × (1 + margem%) − estoque.
+   - Margem de segurança configurável por loja.
+4) Exportação: gera PDF da sugestão e abre WhatsApp ou E-mail
+   com texto resumido (o PDF é salvo no dispositivo para anexar).
 
-Observação:
-Para o plano de IA completo funcionar, mantenha a variável GEMINI_API_KEY configurada no Render.
+COMO PUBLICAR NO RENDER
+1. Extraia o ZIP.
+2. No GitHub, substitua os arquivos do repositório pelos desta pasta.
+3. Faça commit. O Render fará o deploy automático.
+4. Na primeira execução, as novas tabelas (vo_eng_*) são criadas
+   automaticamente no Postgres.
+
+PERMISSÕES
+- Cadastrar pratos/insumos/lojas/vínculo: APENAS admin.
+- Lançar vendas/compras/estoque, ver sugestão: admin + Consultor +
+  Supervisor + Franqueado (limitado à loja vinculada).
+
+OBSERVAÇÃO
+- O app usa o cabeçalho X-User-Id (já enviado pelo frontend) para
+  identificar quem está fazendo cada requisição na nova aba.
+- Período personalizado limitado a 30 dias conforme solicitado.

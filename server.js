@@ -1159,7 +1159,379 @@ app.delete('/api/relatos/:id', async (req, res) => {
   }
 });
 
+// === Engenharia de Alimentos (módulo plugado) ===
+
+// ═══════════════════════════════════════════════════════════════════
+// ENGENHARIA DE ALIMENTOS — schema + rotas
+// Compartilhado por unidade/loja. Acesso: Admin, Consultor, Supervisor, Franqueado.
+// ═══════════════════════════════════════════════════════════════════
+async function ensureSchemaEng() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vo_eng_lojas (
+      id SERIAL PRIMARY KEY,
+      nome TEXT NOT NULL UNIQUE,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_user_loja (
+      user_id TEXT PRIMARY KEY,
+      loja_id INT REFERENCES vo_eng_lojas(id) ON DELETE SET NULL
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_insumos (
+      id SERIAL PRIMARY KEY,
+      nome TEXT NOT NULL,
+      unidade TEXT NOT NULL DEFAULT 'g',
+      ativo BOOLEAN NOT NULL DEFAULT TRUE,
+      UNIQUE(nome)
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_pratos (
+      id SERIAL PRIMARY KEY,
+      nome TEXT NOT NULL,
+      ativo BOOLEAN NOT NULL DEFAULT TRUE,
+      criado_em TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(nome)
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_composicao (
+      id SERIAL PRIMARY KEY,
+      prato_id INT NOT NULL REFERENCES vo_eng_pratos(id) ON DELETE CASCADE,
+      insumo_id INT NOT NULL REFERENCES vo_eng_insumos(id) ON DELETE RESTRICT,
+      qtd NUMERIC NOT NULL,
+      UNIQUE(prato_id, insumo_id)
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_vendas (
+      id SERIAL PRIMARY KEY,
+      loja_id INT NOT NULL REFERENCES vo_eng_lojas(id) ON DELETE CASCADE,
+      prato_id INT NOT NULL REFERENCES vo_eng_pratos(id) ON DELETE CASCADE,
+      qtd INT NOT NULL,
+      data DATE NOT NULL,
+      criado_por TEXT,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_eng_vendas_loja_data ON vo_eng_vendas(loja_id, data);
+    CREATE TABLE IF NOT EXISTS vo_eng_compras (
+      id SERIAL PRIMARY KEY,
+      loja_id INT NOT NULL REFERENCES vo_eng_lojas(id) ON DELETE CASCADE,
+      insumo_id INT NOT NULL REFERENCES vo_eng_insumos(id) ON DELETE CASCADE,
+      qtd NUMERIC NOT NULL,
+      data DATE NOT NULL,
+      criado_por TEXT,
+      criado_em TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_eng_compras_loja_data ON vo_eng_compras(loja_id, data);
+    CREATE TABLE IF NOT EXISTS vo_eng_estoque (
+      loja_id INT NOT NULL REFERENCES vo_eng_lojas(id) ON DELETE CASCADE,
+      insumo_id INT NOT NULL REFERENCES vo_eng_insumos(id) ON DELETE CASCADE,
+      qtd NUMERIC NOT NULL DEFAULT 0,
+      atualizado_em TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (loja_id, insumo_id)
+    );
+    CREATE TABLE IF NOT EXISTS vo_eng_config (
+      loja_id INT PRIMARY KEY REFERENCES vo_eng_lojas(id) ON DELETE CASCADE,
+      seguranca_pct NUMERIC NOT NULL DEFAULT 20
+    );
+  `);
+}
+
+const ENG_ROLES = ['admin','Consultor','Supervisor','Franqueado'];
+async function getUserCargo(uid){
+  if(!uid) return null;
+  const { rows } = await pool.query('SELECT cargo, role FROM vo_users WHERE id=$1',[uid]);
+  if(!rows[0]) return null;
+  return rows[0].role==='admin' ? 'admin' : (rows[0].cargo||null);
+}
+function engGuard(req,res,next){
+  // header simples; o front envia X-User-Id (já é o padrão do app)
+  req._uid = req.header('X-User-Id') || req.body?.userId || req.query?.userId || null;
+  if(!req._uid) return res.status(401).json({error:'no_user'});
+  next();
+}
+async function engRequireRole(req,res,next){
+  const c = await getUserCargo(req._uid);
+  if(!c || !ENG_ROLES.includes(c)) return res.status(403).json({error:'forbidden'});
+  req._cargo = c;
+  next();
+}
+async function engRequireAdmin(req,res,next){
+  const c = await getUserCargo(req._uid);
+  if(c!=='admin') return res.status(403).json({error:'admin_only'});
+  next();
+}
+async function getLojaIdForUser(uid){
+  const { rows } = await pool.query('SELECT loja_id FROM vo_eng_user_loja WHERE user_id=$1',[uid]);
+  return rows[0]?.loja_id || null;
+}
+
+// ─── Lojas ───
+app.get('/api/eng/lojas', engGuard, engRequireRole, async (_req,res)=>{
+  const { rows } = await pool.query('SELECT id,nome FROM vo_eng_lojas ORDER BY nome');
+  res.json(rows);
+});
+app.post('/api/eng/lojas', engGuard, engRequireAdmin, async (req,res)=>{
+  const nome = String(req.body?.nome||'').trim();
+  if(!nome) return res.status(400).json({error:'nome_required'});
+  const { rows } = await pool.query(
+    'INSERT INTO vo_eng_lojas(nome) VALUES($1) ON CONFLICT(nome) DO UPDATE SET nome=EXCLUDED.nome RETURNING id,nome',[nome]);
+  res.json(rows[0]);
+});
+app.delete('/api/eng/lojas/:id', engGuard, engRequireAdmin, async (req,res)=>{
+  await pool.query('DELETE FROM vo_eng_lojas WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
+});
+app.get('/api/eng/user-loja/:uid', engGuard, engRequireRole, async (req,res)=>{
+  const lid = await getLojaIdForUser(req.params.uid);
+  res.json({loja_id: lid});
+});
+app.put('/api/eng/user-loja/:uid', engGuard, engRequireAdmin, async (req,res)=>{
+  const loja_id = req.body?.loja_id ? parseInt(req.body.loja_id,10) : null;
+  await pool.query(`INSERT INTO vo_eng_user_loja(user_id,loja_id) VALUES($1,$2)
+    ON CONFLICT(user_id) DO UPDATE SET loja_id=EXCLUDED.loja_id`,[req.params.uid, loja_id]);
+  res.json({ok:true});
+});
+
+// ─── Insumos ───
+app.get('/api/eng/insumos', engGuard, engRequireRole, async (_req,res)=>{
+  const { rows } = await pool.query('SELECT id,nome,unidade,ativo FROM vo_eng_insumos ORDER BY nome');
+  res.json(rows);
+});
+app.post('/api/eng/insumos', engGuard, engRequireAdmin, async (req,res)=>{
+  const nome = String(req.body?.nome||'').trim();
+  const unidade = String(req.body?.unidade||'g').trim();
+  if(!nome) return res.status(400).json({error:'nome_required'});
+  const { rows } = await pool.query(
+    `INSERT INTO vo_eng_insumos(nome,unidade) VALUES($1,$2)
+     ON CONFLICT(nome) DO UPDATE SET unidade=EXCLUDED.unidade, ativo=true RETURNING id,nome,unidade,ativo`,[nome,unidade]);
+  res.json(rows[0]);
+});
+app.put('/api/eng/insumos/:id', engGuard, engRequireAdmin, async (req,res)=>{
+  const { nome, unidade, ativo } = req.body||{};
+  const { rows } = await pool.query(
+    `UPDATE vo_eng_insumos SET nome=COALESCE($2,nome), unidade=COALESCE($3,unidade), ativo=COALESCE($4,ativo)
+     WHERE id=$1 RETURNING id,nome,unidade,ativo`,[req.params.id, nome||null, unidade||null, typeof ativo==='boolean'?ativo:null]);
+  res.json(rows[0]||{});
+});
+app.delete('/api/eng/insumos/:id', engGuard, engRequireAdmin, async (req,res)=>{
+  try{
+    await pool.query('DELETE FROM vo_eng_insumos WHERE id=$1',[req.params.id]);
+    res.json({ok:true});
+  }catch(e){ res.status(409).json({error:'in_use'}); }
+});
+
+// ─── Pratos + composição ───
+app.get('/api/eng/pratos', engGuard, engRequireRole, async (_req,res)=>{
+  const { rows: pratos } = await pool.query('SELECT id,nome,ativo FROM vo_eng_pratos ORDER BY nome');
+  const { rows: comps } = await pool.query(
+    `SELECT c.prato_id, c.insumo_id, c.qtd, i.nome AS insumo_nome, i.unidade
+     FROM vo_eng_composicao c JOIN vo_eng_insumos i ON i.id=c.insumo_id`);
+  const map = {};
+  comps.forEach(c=>{ (map[c.prato_id] ||= []).push(c); });
+  res.json(pratos.map(p=>({ ...p, composicao: map[p.id]||[] })));
+});
+app.post('/api/eng/pratos', engGuard, engRequireAdmin, async (req,res)=>{
+  const nome = String(req.body?.nome||'').trim();
+  const composicao = Array.isArray(req.body?.composicao) ? req.body.composicao : [];
+  if(!nome) return res.status(400).json({error:'nome_required'});
+  const client = await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const r = await client.query(
+      `INSERT INTO vo_eng_pratos(nome) VALUES($1)
+       ON CONFLICT(nome) DO UPDATE SET ativo=true RETURNING id`,[nome]);
+    const pid = r.rows[0].id;
+    await client.query('DELETE FROM vo_eng_composicao WHERE prato_id=$1',[pid]);
+    for(const c of composicao){
+      const iid = parseInt(c.insumo_id,10);
+      const qtd = parseFloat(c.qtd);
+      if(!iid || !(qtd>0)) continue;
+      await client.query(
+        `INSERT INTO vo_eng_composicao(prato_id,insumo_id,qtd) VALUES($1,$2,$3)
+         ON CONFLICT(prato_id,insumo_id) DO UPDATE SET qtd=EXCLUDED.qtd`,[pid,iid,qtd]);
+    }
+    await client.query('COMMIT');
+    res.json({id:pid});
+  }catch(e){ await client.query('ROLLBACK'); console.error(e); res.status(500).json({error:'db_error'}); }
+  finally{ client.release(); }
+});
+app.delete('/api/eng/pratos/:id', engGuard, engRequireAdmin, async (req,res)=>{
+  await pool.query('DELETE FROM vo_eng_pratos WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
+});
+
+// ─── Vendas (lançamento manual + import CSV) ───
+app.post('/api/eng/vendas', engGuard, engRequireRole, async (req,res)=>{
+  const lojaId = parseInt(req.body?.loja_id,10);
+  const itens = Array.isArray(req.body?.itens) ? req.body.itens : [];
+  if(!lojaId || !itens.length) return res.status(400).json({error:'invalid_payload'});
+  for(const v of itens){
+    const pid = parseInt(v.prato_id,10), q = parseInt(v.qtd,10);
+    const data = v.data || new Date().toISOString().slice(0,10);
+    if(!pid || !(q>0)) continue;
+    await pool.query(
+      `INSERT INTO vo_eng_vendas(loja_id,prato_id,qtd,data,criado_por) VALUES($1,$2,$3,$4,$5)`,
+      [lojaId,pid,q,data,req._uid]);
+  }
+  res.json({ok:true});
+});
+app.get('/api/eng/vendas', engGuard, engRequireRole, async (req,res)=>{
+  const { loja_id, ini, fim } = req.query;
+  const { rows } = await pool.query(
+    `SELECT v.id,v.prato_id,p.nome AS prato_nome,v.qtd,v.data
+     FROM vo_eng_vendas v JOIN vo_eng_pratos p ON p.id=v.prato_id
+     WHERE v.loja_id=$1 AND v.data BETWEEN $2 AND $3 ORDER BY v.data DESC, v.id DESC`,
+    [loja_id, ini, fim]);
+  res.json(rows);
+});
+app.delete('/api/eng/vendas/:id', engGuard, engRequireRole, async (req,res)=>{
+  await pool.query('DELETE FROM vo_eng_vendas WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
+});
+
+// ─── Compras ───
+app.post('/api/eng/compras', engGuard, engRequireRole, async (req,res)=>{
+  const lojaId = parseInt(req.body?.loja_id,10);
+  const itens = Array.isArray(req.body?.itens) ? req.body.itens : [];
+  if(!lojaId || !itens.length) return res.status(400).json({error:'invalid_payload'});
+  for(const v of itens){
+    const iid = parseInt(v.insumo_id,10), q = parseFloat(v.qtd);
+    const data = v.data || new Date().toISOString().slice(0,10);
+    if(!iid || !(q>0)) continue;
+    await pool.query(
+      `INSERT INTO vo_eng_compras(loja_id,insumo_id,qtd,data,criado_por) VALUES($1,$2,$3,$4,$5)`,
+      [lojaId,iid,q,data,req._uid]);
+  }
+  res.json({ok:true});
+});
+app.get('/api/eng/compras', engGuard, engRequireRole, async (req,res)=>{
+  const { loja_id, ini, fim } = req.query;
+  const { rows } = await pool.query(
+    `SELECT c.id,c.insumo_id,i.nome AS insumo_nome,i.unidade,c.qtd,c.data
+     FROM vo_eng_compras c JOIN vo_eng_insumos i ON i.id=c.insumo_id
+     WHERE c.loja_id=$1 AND c.data BETWEEN $2 AND $3 ORDER BY c.data DESC, c.id DESC`,
+    [loja_id, ini, fim]);
+  res.json(rows);
+});
+
+// ─── Estoque ───
+app.get('/api/eng/estoque', engGuard, engRequireRole, async (req,res)=>{
+  const { loja_id } = req.query;
+  const { rows } = await pool.query(
+    `SELECT i.id AS insumo_id, i.nome AS insumo_nome, i.unidade,
+            COALESCE(e.qtd,0) AS qtd, e.atualizado_em
+     FROM vo_eng_insumos i
+     LEFT JOIN vo_eng_estoque e ON e.insumo_id=i.id AND e.loja_id=$1
+     WHERE i.ativo=true ORDER BY i.nome`,[loja_id]);
+  res.json(rows);
+});
+app.put('/api/eng/estoque', engGuard, engRequireRole, async (req,res)=>{
+  const lojaId = parseInt(req.body?.loja_id,10);
+  const itens = Array.isArray(req.body?.itens) ? req.body.itens : [];
+  if(!lojaId) return res.status(400).json({error:'invalid_payload'});
+  for(const v of itens){
+    const iid = parseInt(v.insumo_id,10), q = parseFloat(v.qtd);
+    if(!iid || !(q>=0)) continue;
+    await pool.query(
+      `INSERT INTO vo_eng_estoque(loja_id,insumo_id,qtd,atualizado_em) VALUES($1,$2,$3,NOW())
+       ON CONFLICT(loja_id,insumo_id) DO UPDATE SET qtd=EXCLUDED.qtd, atualizado_em=NOW()`,
+      [lojaId,iid,q]);
+  }
+  res.json({ok:true});
+});
+
+// ─── Config (estoque de segurança %) ───
+app.get('/api/eng/config', engGuard, engRequireRole, async (req,res)=>{
+  const { loja_id } = req.query;
+  const { rows } = await pool.query('SELECT seguranca_pct FROM vo_eng_config WHERE loja_id=$1',[loja_id]);
+  res.json({ seguranca_pct: rows[0]?.seguranca_pct ?? 20 });
+});
+app.put('/api/eng/config', engGuard, engRequireRole, async (req,res)=>{
+  const lojaId = parseInt(req.body?.loja_id,10);
+  const pct = parseFloat(req.body?.seguranca_pct);
+  if(!lojaId || !(pct>=0)) return res.status(400).json({error:'invalid'});
+  await pool.query(
+    `INSERT INTO vo_eng_config(loja_id,seguranca_pct) VALUES($1,$2)
+     ON CONFLICT(loja_id) DO UPDATE SET seguranca_pct=EXCLUDED.seguranca_pct`,[lojaId,pct]);
+  res.json({ok:true});
+});
+
+// ─── Relatório/Sugestão de compra ───
+// Calcula uso por insumo no período + média/dia + sugestão = (média * dias_horizonte * (1+seg%)) - estoque
+app.get('/api/eng/relatorio', engGuard, engRequireRole, async (req,res)=>{
+  try{
+    const lojaId = parseInt(req.query.loja_id,10);
+    const ini = req.query.ini, fim = req.query.fim;
+    const horizonte = Math.max(1, parseInt(req.query.horizonte||'7',10));
+    if(!lojaId || !ini || !fim) return res.status(400).json({error:'invalid_query'});
+
+    const { rows: cfg } = await pool.query('SELECT seguranca_pct FROM vo_eng_config WHERE loja_id=$1',[lojaId]);
+    const seg = (cfg[0]?.seguranca_pct ?? 20)/100;
+
+    // dias do período
+    const d1 = new Date(ini+'T00:00:00'), d2 = new Date(fim+'T00:00:00');
+    const dias = Math.max(1, Math.round((d2-d1)/86400000)+1);
+    if(dias>30) return res.status(400).json({error:'periodo_max_30'});
+
+    // Vendas por prato
+    const { rows: vendasRows } = await pool.query(
+      `SELECT prato_id, SUM(qtd)::int AS total FROM vo_eng_vendas
+       WHERE loja_id=$1 AND data BETWEEN $2 AND $3 GROUP BY prato_id`,
+      [lojaId,ini,fim]);
+    const vendasPorPrato = {};
+    vendasRows.forEach(r=>{ vendasPorPrato[r.prato_id]=r.total; });
+
+    // Composição
+    const { rows: comps } = await pool.query(
+      `SELECT c.prato_id, c.insumo_id, c.qtd, i.nome AS insumo_nome, i.unidade, p.nome AS prato_nome
+       FROM vo_eng_composicao c
+       JOIN vo_eng_insumos i ON i.id=c.insumo_id
+       JOIN vo_eng_pratos p ON p.id=c.prato_id`);
+
+    // Uso total por insumo
+    const usoIns = {};
+    comps.forEach(c=>{
+      const v = vendasPorPrato[c.prato_id]||0;
+      const used = v * Number(c.qtd);
+      const k = c.insumo_id;
+      if(!usoIns[k]) usoIns[k]={ insumo_id:k, insumo_nome:c.insumo_nome, unidade:c.unidade, usado:0 };
+      usoIns[k].usado += used;
+    });
+
+    // Compras no período
+    const { rows: compras } = await pool.query(
+      `SELECT insumo_id, SUM(qtd) AS total FROM vo_eng_compras
+       WHERE loja_id=$1 AND data BETWEEN $2 AND $3 GROUP BY insumo_id`,
+      [lojaId,ini,fim]);
+    const compIdx = {}; compras.forEach(r=>compIdx[r.insumo_id]=Number(r.total));
+
+    // Estoque atual
+    const { rows: est } = await pool.query(
+      `SELECT insumo_id, qtd FROM vo_eng_estoque WHERE loja_id=$1`,[lojaId]);
+    const estIdx = {}; est.forEach(r=>estIdx[r.insumo_id]=Number(r.qtd));
+
+    // Inclui também insumos com compras/estoque mas sem uso
+    Object.keys(compIdx).forEach(k=>{
+      if(!usoIns[k]) usoIns[k]={ insumo_id:+k, insumo_nome:'(sem cadastro)', unidade:'', usado:0 };
+    });
+
+    const itens = Object.values(usoIns).map(r=>{
+      const media = r.usado / dias;
+      const necessidade = media * horizonte * (1+seg);
+      const estoque = estIdx[r.insumo_id]||0;
+      const sugestao = Math.max(0, necessidade - estoque);
+      return {
+        insumo_id: r.insumo_id, insumo_nome: r.insumo_nome, unidade: r.unidade,
+        usado: +r.usado.toFixed(2),
+        comprado: +(compIdx[r.insumo_id]||0).toFixed(2),
+        media_dia: +media.toFixed(2),
+        estoque_atual: +estoque.toFixed(2),
+        sugestao_compra: +sugestao.toFixed(2)
+      };
+    }).sort((a,b)=>b.sugestao_compra-a.sugestao_compra);
+
+    res.json({ dias, horizonte, seguranca_pct: seg*100, itens });
+  }catch(e){ console.error(e); res.status(500).json({error:'server_error'}); }
+});
+
+
 ensureSchema()
+  .then(()=>ensureSchemaEng())
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Smart Check server running on http://0.0.0.0:${PORT}`);

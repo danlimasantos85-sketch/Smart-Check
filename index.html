@@ -882,6 +882,45 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-title">🍱 Engenharia de Alimentos</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Disponível para Admin, Consultor, Supervisor e Franqueado.</p>
+
+    <div style="margin-bottom:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px">🏪 Lojas / Unidades</div>
+      <div style="display:flex;gap:6px"><input type="text" id="engAdmLojaNome" placeholder="Nome da loja" style="flex:1"/><button class="btn-ghost" onclick="engAdmAddLoja()">+ Add</button></div>
+      <div id="engAdmLojasList" style="margin-top:8px"></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px">🧂 Insumos</div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="engAdmInsNome" placeholder="Nome (ex: Missô)" style="flex:2"/>
+        <input type="text" id="engAdmInsUni" placeholder="Un" value="g" style="flex:1"/>
+        <button class="btn-ghost" onclick="engAdmAddIns()">+ Add</button>
+      </div>
+      <div id="engAdmInsList" style="margin-top:8px;max-height:220px;overflow:auto"></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px">🍽️ Pratos & composição</div>
+      <input type="text" id="engAdmPratoNome" placeholder="Nome do prato (ex: Missoshiru)" style="width:100%;margin-bottom:6px"/>
+      <div id="engAdmPratoComp"></div>
+      <button class="btn-ghost" onclick="engAdmAddCompRow()" style="margin-top:6px">+ Insumo</button>
+      <button class="btn-primary" onclick="engAdmSavePrato()" style="margin-top:8px">💾 Salvar prato</button>
+      <div id="engAdmPratosList" style="margin-top:10px;max-height:240px;overflow:auto"></div>
+    </div>
+
+    <div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px">👥 Vínculo usuário → loja</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select id="engAdmUserSel" style="flex:1;min-width:140px"></select>
+        <select id="engAdmUserLojaSel" style="flex:1;min-width:140px"></select>
+        <button class="btn-ghost" onclick="engAdmSaveVinculo()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /screenAdmin -->
 
 <!-- MODAL EDITAR PERGUNTA QUIZ -->
@@ -1162,6 +1201,137 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <span class="bqh-icon">📖</span>
       <div><div class="bqh-title">Manual do App</div><div class="bqh-sub">Guia completo de utilização</div></div>
     </button>
+    <button class="btn-quiz-home" id="btnEngHome" style="display:none;border-color:rgba(232,82,42,.4);background:linear-gradient(135deg,#23232f,#181820)" onclick="abrirEng()">
+      <span class="bqh-icon">🍱</span>
+      <div><div class="bqh-title">Engenharia de Alimentos</div><div class="bqh-sub">Pratos, insumos, vendas, estoque e sugestão de compra</div></div>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════ ENGENHARIA DE ALIMENTOS ════════════ -->
+<div class="screen" id="screenEng">
+  <div class="page">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn-ghost" onclick="voltarDeEng()" style="padding:8px 12px">← Voltar</button>
+      <h2 style="font-family:'Syne',sans-serif;font-size:20px;flex:1">🍱 Engenharia de Alimentos</h2>
+    </div>
+    <div class="card" id="engLojaCard">
+      <div class="card-title">🏪 Loja / Unidade</div>
+      <div class="form-group"><label>Selecione a loja</label>
+        <select id="engLojaSel"><option value="">Carregando…</option></select>
+      </div>
+      <p id="engLojaHint" style="font-size:11px;color:var(--muted)">As vendas, estoque e sugestão de compra são por loja.</p>
+    </div>
+
+    <div class="cat-nav" id="engTabs">
+      <button class="cat-btn active" data-tab="vendas" onclick="engGoTab('vendas')">📈 Vendas</button>
+      <button class="cat-btn" data-tab="estoque" onclick="engGoTab('estoque')">📦 Estoque</button>
+      <button class="cat-btn" data-tab="compras" onclick="engGoTab('compras')">🛒 Compras</button>
+      <button class="cat-btn" data-tab="sugestao" onclick="engGoTab('sugestao')">🧾 Sugestão</button>
+    </div>
+
+    <!-- VENDAS -->
+    <div id="engTabVendas" class="eng-tab">
+      <div class="card">
+        <div class="card-title">➕ Lançar venda</div>
+        <div class="form-group"><label>Prato</label><select id="engVendaPrato"></select></div>
+        <div style="display:flex;gap:8px">
+          <div class="form-group" style="flex:1"><label>Quantidade</label><input type="number" min="1" id="engVendaQtd" value="1"/></div>
+          <div class="form-group" style="flex:1"><label>Data</label><input type="date" id="engVendaData"/></div>
+        </div>
+        <button class="btn-primary" onclick="engAddVenda()">Adicionar</button>
+        <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">📥 Importar CSV (prato,qtd,data AAAA-MM-DD)</summary>
+          <input type="file" id="engVendaCsv" accept=".csv,text/csv" style="margin-top:8px" onchange="engImportVendasCsv(this)"/>
+        </details>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Histórico de vendas</span>
+          <span style="font-size:12px;color:var(--muted)" id="engVendasPeriodLbl"></span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <select id="engVendasPeriodo" onchange="engPeriodoChange('vendas')">
+            <option value="dia">Hoje</option><option value="semana" selected>Semana</option>
+            <option value="quinzena">Quinzena</option><option value="mes">Mês</option>
+            <option value="custom">Personalizado (≤30d)</option>
+          </select>
+          <input type="date" id="engVendasIni" style="display:none"/>
+          <input type="date" id="engVendasFim" style="display:none"/>
+          <button class="btn-ghost" onclick="engCarregarVendas()">Atualizar</button>
+        </div>
+        <div id="engVendasLista"></div>
+      </div>
+    </div>
+
+    <!-- ESTOQUE -->
+    <div id="engTabEstoque" class="eng-tab" style="display:none">
+      <div class="card">
+        <div class="card-title">📦 Estoque atual</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Atualize as quantidades disponíveis hoje. Usado para calcular a sugestão de compra.</p>
+        <div id="engEstoqueLista"></div>
+        <button class="btn-primary" onclick="engSalvarEstoque()" style="margin-top:10px">💾 Salvar estoque</button>
+      </div>
+      <div class="card">
+        <div class="card-title">⚙️ Estoque de segurança</div>
+        <div class="form-group"><label>Margem (%) sobre o consumo previsto</label>
+          <input type="number" min="0" max="100" id="engSeguranca" value="20"/></div>
+        <button class="btn-ghost" onclick="engSalvarConfig()">Salvar margem</button>
+      </div>
+    </div>
+
+    <!-- COMPRAS -->
+    <div id="engTabCompras" class="eng-tab" style="display:none">
+      <div class="card">
+        <div class="card-title">🛒 Registrar compra</div>
+        <div class="form-group"><label>Insumo</label><select id="engCompraIns"></select></div>
+        <div style="display:flex;gap:8px">
+          <div class="form-group" style="flex:1"><label>Quantidade</label><input type="number" min="0" step="0.01" id="engCompraQtd"/></div>
+          <div class="form-group" style="flex:1"><label>Data</label><input type="date" id="engCompraData"/></div>
+        </div>
+        <button class="btn-primary" onclick="engAddCompra()">Adicionar</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Histórico de compras</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <select id="engComprasPeriodo" onchange="engPeriodoChange('compras')">
+            <option value="dia">Hoje</option><option value="semana" selected>Semana</option>
+            <option value="quinzena">Quinzena</option><option value="mes">Mês</option>
+            <option value="custom">Personalizado (≤30d)</option>
+          </select>
+          <input type="date" id="engComprasIni" style="display:none"/>
+          <input type="date" id="engComprasFim" style="display:none"/>
+          <button class="btn-ghost" onclick="engCarregarCompras()">Atualizar</button>
+        </div>
+        <div id="engComprasLista"></div>
+      </div>
+    </div>
+
+    <!-- SUGESTÃO -->
+    <div id="engTabSugestao" class="eng-tab" style="display:none">
+      <div class="card">
+        <div class="card-title">🧾 Sugestão de compra</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <select id="engSugPeriodo" onchange="engPeriodoChange('sug')">
+            <option value="dia">Hoje</option><option value="semana" selected>Semana</option>
+            <option value="quinzena">Quinzena</option><option value="mes">Mês</option>
+            <option value="custom">Personalizado (≤30d)</option>
+          </select>
+          <input type="date" id="engSugIni" style="display:none"/>
+          <input type="date" id="engSugFim" style="display:none"/>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:11px">Cobrir próximos (dias)</label>
+            <input type="number" min="1" max="60" id="engSugHorizonte" value="7" style="width:80px"/>
+          </div>
+          <button class="btn-ghost" onclick="engCarregarSugestao()">Calcular</button>
+        </div>
+        <div id="engSugLista"></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+          <button class="btn-primary" onclick="engPdfSugestao('download')">📥 Baixar PDF</button>
+          <button class="btn-share-whats" onclick="engPdfSugestao('whatsapp')">💬 Enviar no WhatsApp</button>
+          <button class="btn-primary" style="background:#4a90e2" onclick="engPdfSugestao('email')">✉️ Enviar por E-mail</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4897,6 +5067,363 @@ async function installPwa() {
     if (hint) hint.style.display = 'block';
   }
 })();
+
+// ═══════════════════════════════════════════════════════════════════
+// 🍱 ENGENHARIA DE ALIMENTOS — Frontend
+// ═══════════════════════════════════════════════════════════════════
+const ENG_CARGOS = ['admin','Consultor','Supervisor','Franqueado'];
+const engState = { lojas:[], lojaId:null, pratos:[], insumos:[], usersList:[] };
+
+function engPodeAcessar(){
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  return ENG_CARGOS.includes(currentUser.cargo);
+}
+function engHeaders(extra){
+  return Object.assign({'Content-Type':'application/json','X-User-Id': currentUser?.id||''}, extra||{});
+}
+async function engFetch(url, opts){
+  opts = opts||{};
+  opts.headers = engHeaders(opts.headers);
+  const r = await fetch(url, opts);
+  if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
+  return r.json();
+}
+function engToggleHomeBtn(){
+  const b = document.getElementById('btnEngHome');
+  if(b) b.style.display = engPodeAcessar() ? 'flex' : 'none';
+}
+// Hook na navegação para start
+const _origShowScreen = showScreen;
+window.showScreen = function(id){
+  _origShowScreen(id);
+  if(id==='screenStart' || id==='screenResult') setTimeout(engToggleHomeBtn, 30);
+};
+
+function abrirEng(){
+  if(!engPodeAcessar()){ showToast('Sem permissão'); return; }
+  showScreen('screenEng');
+  engInit();
+}
+function voltarDeEng(){
+  if(currentUser?.role==='admin') showScreen('screenAdmin');
+  else showScreen('screenStart');
+}
+
+async function engInit(){
+  try{
+    showLoading('Carregando…');
+    const [lojas, pratos, insumos] = await Promise.all([
+      engFetch('/api/eng/lojas'),
+      engFetch('/api/eng/pratos'),
+      engFetch('/api/eng/insumos')
+    ]);
+    engState.lojas = lojas; engState.pratos = pratos; engState.insumos = insumos;
+    const sel = document.getElementById('engLojaSel');
+    sel.innerHTML = '<option value="">— selecione —</option>' +
+      lojas.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+    sel.onchange = ()=>{ engState.lojaId = sel.value? +sel.value : null; engRefreshAll(); };
+    // se não-admin tem vínculo automático
+    if(currentUser.role!=='admin'){
+      const r = await engFetch('/api/eng/user-loja/'+currentUser.id);
+      if(r.loja_id){ sel.value = r.loja_id; engState.lojaId = r.loja_id; }
+    }
+    // popular selects de prato/insumo
+    document.getElementById('engVendaPrato').innerHTML = pratos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+    document.getElementById('engCompraIns').innerHTML = insumos.map(i=>`<option value="${i.id}">${i.nome} (${i.unidade})</option>`).join('');
+    const hoje = new Date().toISOString().slice(0,10);
+    ['engVendaData','engCompraData'].forEach(id=>{ const e=document.getElementById(id); if(e&&!e.value) e.value=hoje; });
+    engGoTab('vendas');
+    if(engState.lojaId) engRefreshAll();
+  }catch(e){ showToast('⚠️ '+e.message); }
+  finally{ hideLoading(); }
+}
+function engRefreshAll(){
+  if(!engState.lojaId) return;
+  engCarregarVendas(); engCarregarEstoque(); engCarregarConfig();
+}
+function engGoTab(t){
+  ['vendas','estoque','compras','sugestao'].forEach(k=>{
+    document.getElementById('engTab'+k.charAt(0).toUpperCase()+k.slice(1)).style.display = (k===t?'block':'none');
+  });
+  document.querySelectorAll('#engTabs .cat-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===t);
+  });
+  if(t==='compras' && engState.lojaId) engCarregarCompras();
+  if(t==='estoque' && engState.lojaId) engCarregarEstoque();
+}
+
+// Períodos
+function engPeriodoRange(kind){
+  const id = kind==='vendas'?'engVendas':kind==='compras'?'engCompras':'engSug';
+  const sel = document.getElementById(id+'Periodo').value;
+  const ini = document.getElementById(id+'Ini'), fim = document.getElementById(id+'Fim');
+  ini.style.display = fim.style.display = (sel==='custom'?'inline-block':'none');
+  const today = new Date(); today.setHours(0,0,0,0);
+  let d1 = new Date(today), d2 = new Date(today);
+  if(sel==='dia'){}
+  else if(sel==='semana'){ d1 = new Date(today); d1.setDate(d1.getDate()-6); }
+  else if(sel==='quinzena'){ d1 = new Date(today); d1.setDate(d1.getDate()-14); }
+  else if(sel==='mes'){ d1 = new Date(today); d1.setDate(d1.getDate()-29); }
+  else if(sel==='custom'){
+    if(!ini.value || !fim.value) return null;
+    d1 = new Date(ini.value+'T00:00:00'); d2 = new Date(fim.value+'T00:00:00');
+    const days = Math.round((d2-d1)/86400000)+1;
+    if(days>30){ showToast('Máximo 30 dias'); return null; }
+  }
+  const f = d => d.toISOString().slice(0,10);
+  return { ini:f(d1), fim:f(d2) };
+}
+function engPeriodoChange(kind){ engPeriodoRange(kind); }
+
+// VENDAS
+async function engAddVenda(){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const prato_id = +document.getElementById('engVendaPrato').value;
+  const qtd = +document.getElementById('engVendaQtd').value;
+  const data = document.getElementById('engVendaData').value;
+  if(!prato_id || !(qtd>0)){ showToast('Dados inválidos'); return; }
+  try{
+    await engFetch('/api/eng/vendas', { method:'POST', body: JSON.stringify({loja_id:engState.lojaId, itens:[{prato_id,qtd,data}]}) });
+    showToast('✅ Venda registrada'); engCarregarVendas();
+  }catch(e){ showToast('⚠️ '+e.message); }
+}
+async function engImportVendasCsv(input){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const file = input.files[0]; if(!file) return;
+  const txt = await file.text();
+  const lines = txt.split(/\r?\n/).filter(l=>l.trim());
+  // espera: prato,qtd,data    (header opcional)
+  const idxByName = {}; engState.pratos.forEach(p=>{ idxByName[p.nome.toLowerCase()] = p.id; });
+  const itens = [];
+  for(const ln of lines){
+    const [n,q,d] = ln.split(/[,;]/).map(s=>(s||'').trim());
+    if(!n || n.toLowerCase()==='prato') continue;
+    const pid = idxByName[n.toLowerCase()]; const qt = parseInt(q,10);
+    if(!pid || !(qt>0)) continue;
+    itens.push({prato_id:pid, qtd:qt, data:d || new Date().toISOString().slice(0,10)});
+  }
+  if(!itens.length){ showToast('Nenhuma linha válida'); return; }
+  try{ await engFetch('/api/eng/vendas',{method:'POST',body:JSON.stringify({loja_id:engState.lojaId, itens})}); showToast('✅ '+itens.length+' vendas'); engCarregarVendas(); input.value=''; }
+  catch(e){ showToast('⚠️ '+e.message); }
+}
+async function engCarregarVendas(){
+  if(!engState.lojaId) return;
+  const r = engPeriodoRange('vendas'); if(!r) return;
+  document.getElementById('engVendasPeriodLbl').textContent = r.ini+' → '+r.fim;
+  try{
+    const rows = await engFetch(`/api/eng/vendas?loja_id=${engState.lojaId}&ini=${r.ini}&fim=${r.fim}`);
+    const el = document.getElementById('engVendasLista');
+    if(!rows.length){ el.innerHTML = '<p style="color:var(--muted);font-size:13px">Nenhuma venda no período.</p>'; return; }
+    el.innerHTML = rows.map(v=>`<div class="stat-row"><span>${v.data} · ${v.prato_nome}</span><span class="val">${v.qtd}× <button class="btn-ghost" style="padding:2px 6px;font-size:11px" onclick="engDelVenda(${v.id})">×</button></span></div>`).join('');
+  }catch(e){ showToast('⚠️ '+e.message); }
+}
+async function engDelVenda(id){
+  if(!confirm('Excluir venda?')) return;
+  await engFetch('/api/eng/vendas/'+id,{method:'DELETE'}); engCarregarVendas();
+}
+
+// COMPRAS
+async function engAddCompra(){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const insumo_id = +document.getElementById('engCompraIns').value;
+  const qtd = +document.getElementById('engCompraQtd').value;
+  const data = document.getElementById('engCompraData').value;
+  if(!insumo_id || !(qtd>0)){ showToast('Dados inválidos'); return; }
+  try{
+    await engFetch('/api/eng/compras',{method:'POST',body:JSON.stringify({loja_id:engState.lojaId, itens:[{insumo_id,qtd,data}]})});
+    showToast('✅ Compra registrada'); engCarregarCompras();
+  }catch(e){ showToast('⚠️ '+e.message); }
+}
+async function engCarregarCompras(){
+  if(!engState.lojaId) return;
+  const r = engPeriodoRange('compras'); if(!r) return;
+  const rows = await engFetch(`/api/eng/compras?loja_id=${engState.lojaId}&ini=${r.ini}&fim=${r.fim}`);
+  const el = document.getElementById('engComprasLista');
+  if(!rows.length){ el.innerHTML='<p style="color:var(--muted);font-size:13px">Nenhuma compra.</p>'; return; }
+  el.innerHTML = rows.map(c=>`<div class="stat-row"><span>${c.data} · ${c.insumo_nome}</span><span class="val">${c.qtd} ${c.unidade}</span></div>`).join('');
+}
+
+// ESTOQUE
+async function engCarregarEstoque(){
+  if(!engState.lojaId) return;
+  const rows = await engFetch('/api/eng/estoque?loja_id='+engState.lojaId);
+  const el = document.getElementById('engEstoqueLista');
+  el.innerHTML = rows.map(r=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px">${r.insumo_nome}</span>
+      <input type="number" min="0" step="0.01" value="${r.qtd}" data-iid="${r.insumo_id}" class="eng-est-inp" style="width:90px"/>
+      <span style="font-size:11px;color:var(--muted);width:30px">${r.unidade||''}</span>
+    </div>`).join('');
+}
+async function engSalvarEstoque(){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const itens = [...document.querySelectorAll('.eng-est-inp')].map(i=>({insumo_id:+i.dataset.iid, qtd:+i.value||0}));
+  await engFetch('/api/eng/estoque',{method:'PUT',body:JSON.stringify({loja_id:engState.lojaId, itens})});
+  showToast('✅ Estoque salvo');
+}
+async function engCarregarConfig(){
+  if(!engState.lojaId) return;
+  const c = await engFetch('/api/eng/config?loja_id='+engState.lojaId);
+  document.getElementById('engSeguranca').value = c.seguranca_pct;
+}
+async function engSalvarConfig(){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const pct = +document.getElementById('engSeguranca').value;
+  await engFetch('/api/eng/config',{method:'PUT',body:JSON.stringify({loja_id:engState.lojaId, seguranca_pct:pct})});
+  showToast('✅ Margem salva');
+}
+
+// SUGESTÃO
+let _engSugCache = null;
+async function engCarregarSugestao(){
+  if(!engState.lojaId){ showToast('Selecione a loja'); return; }
+  const r = engPeriodoRange('sug'); if(!r) return;
+  const horizonte = +document.getElementById('engSugHorizonte').value || 7;
+  try{
+    const data = await engFetch(`/api/eng/relatorio?loja_id=${engState.lojaId}&ini=${r.ini}&fim=${r.fim}&horizonte=${horizonte}`);
+    _engSugCache = { ...data, ini:r.ini, fim:r.fim };
+    const el = document.getElementById('engSugLista');
+    if(!data.itens.length){ el.innerHTML='<p style="color:var(--muted);font-size:13px">Sem dados no período.</p>'; return; }
+    el.innerHTML = `
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Período: ${r.ini} → ${r.fim} (${data.dias}d) · Cobertura: ${horizonte}d · Margem: ${data.seguranca_pct}%</p>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--border)">
+        <th>Insumo</th><th>Usado</th><th>Méd/d</th><th>Estoque</th><th>Comprar</th>
+      </tr></thead><tbody>
+      ${data.itens.map(i=>`<tr style="border-bottom:1px solid var(--border)">
+        <td>${i.insumo_nome}</td>
+        <td>${i.usado} ${i.unidade}</td>
+        <td>${i.media_dia}</td>
+        <td>${i.estoque_atual}</td>
+        <td><b style="color:${i.sugestao_compra>0?'var(--accent)':'var(--ok)'}">${i.sugestao_compra} ${i.unidade}</b></td>
+      </tr>`).join('')}
+      </tbody></table>`;
+  }catch(e){ showToast('⚠️ '+e.message); }
+}
+
+function engBuildPdf(){
+  if(!_engSugCache) { showToast('Calcule a sugestão primeiro'); return null; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const loja = engState.lojas.find(l=>l.id===engState.lojaId)?.nome || '—';
+  doc.setFontSize(16); doc.text('Sugestão de Compra — Smart Check', 14, 18);
+  doc.setFontSize(11); doc.text(`Loja: ${loja}`, 14, 28);
+  doc.text(`Período: ${_engSugCache.ini} → ${_engSugCache.fim} (${_engSugCache.dias} dias)`, 14, 34);
+  doc.text(`Cobertura: ${_engSugCache.horizonte} dias · Margem: ${_engSugCache.seguranca_pct}%`, 14, 40);
+  let y = 52;
+  doc.setFont(undefined,'bold');
+  doc.text('Insumo', 14, y); doc.text('Usado', 90, y); doc.text('Méd/d', 120, y); doc.text('Estoque', 145, y); doc.text('Comprar', 175, y);
+  doc.setFont(undefined,'normal'); y += 6;
+  _engSugCache.itens.forEach(i=>{
+    if(y>280){ doc.addPage(); y=20; }
+    doc.text(String(i.insumo_nome).slice(0,40), 14, y);
+    doc.text(`${i.usado} ${i.unidade}`, 90, y);
+    doc.text(`${i.media_dia}`, 120, y);
+    doc.text(`${i.estoque_atual}`, 145, y);
+    doc.text(`${i.sugestao_compra} ${i.unidade}`, 175, y);
+    y += 6;
+  });
+  return { doc, loja };
+}
+function engPdfSugestao(modo){
+  const r = engBuildPdf(); if(!r) return;
+  const { doc, loja } = r;
+  const fname = `sugestao-compra-${loja}-${_engSugCache.ini}_${_engSugCache.fim}.pdf`.replace(/\s+/g,'_');
+  if(modo==='download'){ doc.save(fname); return; }
+  // Texto resumo
+  let txt = `*Sugestão de Compra — ${loja}*\nPeríodo: ${_engSugCache.ini} → ${_engSugCache.fim}\nCobertura: ${_engSugCache.horizonte}d · Margem: ${_engSugCache.seguranca_pct}%\n\n`;
+  _engSugCache.itens.filter(i=>i.sugestao_compra>0).forEach(i=>{ txt += `• ${i.insumo_nome}: ${i.sugestao_compra} ${i.unidade}\n`; });
+  if(modo==='whatsapp'){
+    doc.save(fname);
+    setTimeout(()=>{ window.open('https://wa.me/?text='+encodeURIComponent(txt+'\n(O PDF foi salvo no seu dispositivo — anexe na conversa.)'),'_blank'); }, 500);
+  } else if(modo==='email'){
+    doc.save(fname);
+    const subj = `Sugestão de compra — ${loja} (${_engSugCache.ini} a ${_engSugCache.fim})`;
+    setTimeout(()=>{ window.location.href = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(txt+'\n(PDF anexo — adicione manualmente o arquivo baixado.)')}`; }, 500);
+  }
+}
+
+// ─── ADMIN: gestão ───
+async function engAdmInit(){
+  if(currentUser?.role!=='admin') return;
+  try{
+    const [lojas, ins, pratos, users] = await Promise.all([
+      engFetch('/api/eng/lojas'), engFetch('/api/eng/insumos'), engFetch('/api/eng/pratos'), fetch('/api/users').then(r=>r.json())
+    ]);
+    engState.lojas=lojas; engState.insumos=ins; engState.pratos=pratos; engState.usersList=users;
+    document.getElementById('engAdmLojasList').innerHTML = lojas.map(l=>`<div class="stat-row"><span>${l.nome}</span><button class="btn-ghost" style="padding:2px 8px" onclick="engAdmDelLoja(${l.id})">×</button></div>`).join('') || '<p style="font-size:12px;color:var(--muted)">Nenhuma loja.</p>';
+    document.getElementById('engAdmInsList').innerHTML = ins.map(i=>`<div class="stat-row"><span>${i.nome} (${i.unidade})</span><button class="btn-ghost" style="padding:2px 8px" onclick="engAdmDelIns(${i.id})">×</button></div>`).join('') || '<p style="font-size:12px;color:var(--muted)">Nenhum insumo.</p>';
+    document.getElementById('engAdmPratosList').innerHTML = pratos.map(p=>`
+      <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b>${p.nome}</b>
+          <span><button class="btn-ghost" style="padding:2px 8px" onclick="engAdmEditPrato(${p.id})">✎</button>
+          <button class="btn-ghost" style="padding:2px 8px" onclick="engAdmDelPrato(${p.id})">×</button></span>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">${p.composicao.map(c=>`${c.qtd}${c.unidade} ${c.insumo_nome}`).join(' + ')||'(sem composição)'}</div>
+      </div>`).join('') || '<p style="font-size:12px;color:var(--muted)">Nenhum prato.</p>';
+    const userOpts = users.filter(u=>ENG_CARGOS.includes(u.cargo)).map(u=>`<option value="${u.id}">${u.nome} (${u.cargo})</option>`).join('');
+    document.getElementById('engAdmUserSel').innerHTML = '<option value="">— usuário —</option>'+userOpts;
+    document.getElementById('engAdmUserLojaSel').innerHTML = '<option value="">— loja —</option>'+lojas.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+    if(!document.querySelector('#engAdmPratoComp .eng-comp-row')) engAdmAddCompRow();
+  }catch(e){ console.warn('engAdmInit',e); }
+}
+async function engAdmAddLoja(){
+  const nome = document.getElementById('engAdmLojaNome').value.trim(); if(!nome) return;
+  await engFetch('/api/eng/lojas',{method:'POST',body:JSON.stringify({nome})}); document.getElementById('engAdmLojaNome').value=''; engAdmInit();
+}
+async function engAdmDelLoja(id){ if(!confirm('Excluir loja e todos seus dados?')) return; await engFetch('/api/eng/lojas/'+id,{method:'DELETE'}); engAdmInit(); }
+async function engAdmAddIns(){
+  const nome=document.getElementById('engAdmInsNome').value.trim(); const unidade=document.getElementById('engAdmInsUni').value.trim()||'g';
+  if(!nome) return;
+  await engFetch('/api/eng/insumos',{method:'POST',body:JSON.stringify({nome,unidade})});
+  document.getElementById('engAdmInsNome').value=''; engAdmInit();
+}
+async function engAdmDelIns(id){ if(!confirm('Excluir insumo?')) return; try{ await engFetch('/api/eng/insumos/'+id,{method:'DELETE'}); engAdmInit(); }catch(e){ showToast('⚠️ Em uso por algum prato'); } }
+function engAdmAddCompRow(c){
+  const wrap = document.getElementById('engAdmPratoComp');
+  const row = document.createElement('div');
+  row.className='eng-comp-row';
+  row.style.cssText='display:flex;gap:6px;margin-bottom:4px';
+  row.innerHTML = `<select style="flex:2">${engState.insumos.map(i=>`<option value="${i.id}" ${c&&c.insumo_id===i.id?'selected':''}>${i.nome} (${i.unidade})</option>`).join('')}</select>
+    <input type="number" min="0" step="0.01" placeholder="Qtd" value="${c?c.qtd:''}" style="flex:1"/>
+    <button class="btn-ghost" type="button" onclick="this.parentNode.remove()">×</button>`;
+  wrap.appendChild(row);
+}
+async function engAdmSavePrato(){
+  const nome = document.getElementById('engAdmPratoNome').value.trim(); if(!nome){ showToast('Nome obrigatório'); return; }
+  const composicao = [...document.querySelectorAll('#engAdmPratoComp .eng-comp-row')].map(r=>{
+    const [sel,inp] = r.querySelectorAll('select,input');
+    return { insumo_id:+sel.value, qtd:+inp.value };
+  }).filter(c=>c.insumo_id && c.qtd>0);
+  await engFetch('/api/eng/pratos',{method:'POST',body:JSON.stringify({nome, composicao})});
+  document.getElementById('engAdmPratoNome').value='';
+  document.getElementById('engAdmPratoComp').innerHTML=''; engAdmAddCompRow();
+  showToast('✅ Prato salvo'); engAdmInit();
+}
+function engAdmEditPrato(id){
+  const p = engState.pratos.find(x=>x.id===id); if(!p) return;
+  document.getElementById('engAdmPratoNome').value = p.nome;
+  document.getElementById('engAdmPratoComp').innerHTML='';
+  if(p.composicao.length) p.composicao.forEach(c=>engAdmAddCompRow(c)); else engAdmAddCompRow();
+  window.scrollTo({top:document.getElementById('engAdmPratoNome').offsetTop-80, behavior:'smooth'});
+}
+async function engAdmDelPrato(id){ if(!confirm('Excluir prato?')) return; await engFetch('/api/eng/pratos/'+id,{method:'DELETE'}); engAdmInit(); }
+async function engAdmSaveVinculo(){
+  const uid = document.getElementById('engAdmUserSel').value;
+  const lid = document.getElementById('engAdmUserLojaSel').value;
+  if(!uid){ showToast('Selecione o usuário'); return; }
+  await engFetch('/api/eng/user-loja/'+uid,{method:'PUT',body:JSON.stringify({loja_id: lid? +lid : null})});
+  showToast('✅ Vínculo salvo');
+}
+
+// Hook: ao carregar admin, popula a Engenharia
+const _origCarregarAdmin = window.carregarAdmin;
+window.carregarAdmin = async function(){
+  if(_origCarregarAdmin) await _origCarregarAdmin();
+  engAdmInit();
+};
 </script>
 </body>
 </html>
