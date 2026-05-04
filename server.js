@@ -670,16 +670,22 @@ Formato da resposta:
 - Use texto simples (sem títulos grandes nem tabelas). Pode usar marcadores "-" e quebras de linha.
 - Limite total: 350 palavras.`;
 
-    const response = await genai.models.generateContent({
+    // Timeout defensivo: se o Gemini demorar mais que 45s, devolve erro em vez de pendurar a conexão
+    const aiPromise = genai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
+    const timeoutPromise = new Promise((_, rej) =>
+      setTimeout(() => rej(new Error('ai_timeout')), 45000)
+    );
+    const response = await Promise.race([aiPromise, timeoutPromise]);
     const plano = (response.text || '').trim();
     if (!plano) return res.status(502).json({ error: 'empty_response' });
     res.json({ plano });
   } catch (e) {
     console.error('AI error:', e);
-    res.status(500).json({ error: 'ai_error', detail: e.message || String(e) });
+    const isTimeout = (e && e.message === 'ai_timeout');
+    res.status(isTimeout ? 504 : 500).json({ error: isTimeout ? 'ai_timeout' : 'ai_error', detail: e.message || String(e) });
   }
 });
 

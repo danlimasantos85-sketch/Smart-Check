@@ -3587,13 +3587,13 @@ function finalizarVistoria() {
   hist.push(registro); LS.set('vo_historico', hist);
   enviarParaSheet({acao:'vistoria_finalizada',...registro,respostas:undefined,fotos:undefined});
 
-  // Notificar o superior imediato (se houver)
-  notificarSuperior(registro, 'finalizada');
+  // Notificar o superior imediato (notificação leve/rápida — sem IA)
+  try { notificarSuperior(registro, 'finalizada'); } catch(e){ console.error('notificarSuperior',e); }
 
-  // Envio automático de email intranet ao superior (para cargos não-Consultor/Franqueado/Supervisor)
-  if (!CARGOS_EMAIL_LOJA.includes(currentUser.cargo||'')) {
-    enviarEmailIntranetSuperior(registro);
-  }
+  // ⚠️ NÃO chamar enviarEmailIntranetSuperior aqui — ele será disparado em background
+  // dentro de gerarPlanoIA(), assim que o plano da IA terminar. Isso evita 2 chamadas
+  // simultâneas a /api/plano (Gemini), que causam timeout e travam a tela final.
+  VS._registroParaEmail = (!CARGOS_EMAIL_LOJA.includes(currentUser.cargo||'')) ? registro : null;
 
   // Render result
   document.getElementById('starsDisplay').innerHTML = [1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('');
@@ -3691,6 +3691,9 @@ async function gerarPlanoIA(forceRegen) {
       const err = await resp.json().catch(() => ({}));
       status.textContent = '⚠️ Não foi possível gerar o plano agora. Tente novamente.';
       btnRegen.style.display = 'inline-flex';
+      VS.planoIA = '';
+      // Mesmo sem plano, dispara o e-mail ao superior (com aviso de plano indisponível)
+      dispararEmailSuperiorBg();
       return;
     }
     const data = await resp.json();
@@ -3704,11 +3707,27 @@ async function gerarPlanoIA(forceRegen) {
       const reg = hist.find(r => r.id === VS.registroId);
       if (reg) { reg.planoIA = VS.planoIA; LS.set('vo_historico', hist); }
     }
+    // Plano pronto — agora dispara o e-mail ao superior em background
+    dispararEmailSuperiorBg();
   } catch (e) {
     console.error(e);
     status.textContent = '⚠️ Erro de rede ao gerar o plano. Verifique a conexão.';
     btnRegen.style.display = 'inline-flex';
+    VS.planoIA = '';
+    // Mesmo com erro, tenta enviar e-mail ao superior (sem plano)
+    dispararEmailSuperiorBg();
   }
+}
+
+// Dispara o envio do e-mail intranet ao superior em background, sem travar a UI.
+// Chamado APÓS gerarPlanoIA() resolver (sucesso ou falha), reutilizando VS.planoIA.
+function dispararEmailSuperiorBg() {
+  const reg = VS._registroParaEmail;
+  if (!reg) return;
+  VS._registroParaEmail = null; // garante envio único
+  // Fire-and-forget: não bloqueia a tela final
+  Promise.resolve().then(() => enviarEmailIntranetSuperior(reg))
+    .catch(e => console.error('enviarEmailIntranetSuperior bg', e));
 }
 
 function voltarInicio() {
@@ -4095,32 +4114,9 @@ function marcarTodasLidas() {
 
 async function enviarEmailIntranetSuperior(registro) {
   if (!currentUser || !currentUser.superiorId) return;
-  // Aguardar plano de IA (se houver não conformes)
-  let plano = '';
-  if ((registro.naoConformes||0) > 0) {
-    try {
-      const resp = await fetch('/api/plano', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          restaurante: registro.restaurante,
-          tipoNome: registro.tipoNome||'',
-          nota: registro.nota||0,
-          naoConformes: VS.planoNcSnapshot||[],
-          naoAvaliados: VS.planoNaSnapshot||[],
-        })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        plano = data.plano || '';
-        // Salvar no VS também
-        VS.planoIA = plano;
-        document.getElementById('rPlanoStatus').textContent = '';
-        document.getElementById('rPlanoText').textContent = plano;
-        document.getElementById('btnRegenPlano').style.display = 'inline-flex';
-      }
-    } catch(e) { console.error('Plano IA falhou no envio intranet', e); }
-  }
+  // Reutiliza o plano já gerado por gerarPlanoIA() — NÃO chama /api/plano de novo.
+  // Isso evita timeout duplo no Gemini e garante que a tela final do avaliador não trave.
+  const plano = (VS.planoIA || '').trim();
   // Montar e enviar mensagem intranet
   const superior = usersCache.find(u => u.id === currentUser.superiorId);
   if (!superior) return;
