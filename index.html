@@ -5066,11 +5066,54 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.rem
 // ══════════════════════════════════════════
 let _deferredInstallPrompt = null;
 
+// Auto-update: registra SW network-first e recarrega quando há nova versão
+let _swReloading = false;
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+
+      // Quando uma nova SW assume o controle, recarrega a página automaticamente
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swReloading) return;
+        _swReloading = true;
+        window.location.reload();
+      });
+
+      // Detecta SW nova esperando para ativar e pede skipWaiting
+      const triggerUpdate = () => {
+        if (reg.waiting) {
+          try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(_) {}
+        }
+      };
+      if (reg.waiting) triggerUpdate();
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) triggerUpdate();
+        });
+      });
+
+      // Verifica atualização ao abrir, ao voltar a ficar visível e a cada 30 min
+      const checkUpdate = () => { try { reg.update(); } catch(_) {} };
+      checkUpdate();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+      setInterval(checkUpdate, 30 * 60 * 1000);
+
+      // Função global para botão manual de "Verificar atualização"
+      window.checkForAppUpdate = async () => {
+        try {
+          showToast('🔄 Verificando atualização...');
+          await reg.update();
+          setTimeout(() => {
+            if (!reg.waiting && !reg.installing) showToast('✅ Você já está na versão mais recente.');
+          }, 1500);
+        } catch (e) { showToast('⚠️ Não foi possível verificar agora.'); }
+      };
+    } catch (err) {
       console.warn('SW register failed:', err);
-    });
+    }
   });
 }
 
