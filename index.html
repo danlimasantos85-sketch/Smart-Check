@@ -819,6 +819,13 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <button class="btn-sm" onclick="salvarConfig()" style="width:100%">Salvar URL</button>
     </div>
     <div class="card">
+      <div class="card-title">🤖 Plano de Ação por IA</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Insira sua chave da API Anthropic para gerar planos de ação automáticos com IA após cada avaliação.</p>
+      <div class="form-group" style="margin-bottom:12px"><label>Chave da API Anthropic</label><input type="password" id="anthropicKeyInput" placeholder="sk-ant-..."/></div>
+      <button class="btn-sm" onclick="salvarAnthropicKey()" style="width:100%">Salvar Chave</button>
+      <p id="anthropicKeyStatus" style="font-size:12px;margin-top:8px;color:var(--ok)"></p>
+    </div>
+    <div class="card">
       <div class="card-title">🔄 Sincronização</div>
       <button class="btn-sm" onclick="sincronizarTudo()" style="width:100%">Sincronizar com Google Sheets</button>
     </div>
@@ -2285,6 +2292,12 @@ async function carregarAdmin() {
   renderQuizAdmin();
   const url = LS.get('vo_sheetURL');
   if (url) document.getElementById('sheetURL').value = url;
+  const savedKey = getAnthropicKey();
+  const keyStatus = document.getElementById('anthropicKeyStatus');
+  if (keyStatus) {
+    keyStatus.textContent = savedKey ? '✅ Chave configurada.' : '⚠️ Nenhuma chave configurada.';
+    keyStatus.style.color = savedKey ? 'var(--ok)' : 'var(--warn)';
+  }
 }
 
 // ── Tipos: editor admin ──
@@ -3552,17 +3565,33 @@ function classificar(nota) {
 }
 
 function finalizarVistoria() {
-  const sf = getNokSemFotoAll();
-  if (sf.length) { showToast(`📷 ${sf.length} não conformidade${sf.length>1?'s':''} sem foto — revise todas as categorias`); return; }
-  const sm = getNaSemMotivoAll();
-  if (sm.length) { showToast(`📝 ${sm.length} item${sm.length>1?'ns':''} "Não avaliado" sem motivo — revise todas as categorias`); return; }
-
   const cats = getCatsAtivas();
   const total = getTotalItens();
+  const pendentes = total - Object.keys(VS.respostas).length;
+  if (pendentes > 0) {
+    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => VS.respostas[`${cat.id}_${idx}`] === undefined));
+    if (catIdx >= 0) irPara(catIdx);
+    showToast(`⚠️ ${pendentes} item${pendentes>1?'ns':''} sem resposta — avalie todos para continuar`);
+    return;
+  }
+  const sf = getNokSemFotoAll();
+  if (sf.length) {
+    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => { const k=`${cat.id}_${idx}`; return VS.respostas[k]==='nao' && !(VS.fotos[k]||[]).length; }));
+    if (catIdx >= 0) irPara(catIdx);
+    showToast(`📷 ${sf.length} não conformidade${sf.length>1?'s':''} sem foto — revise as categorias`);
+    return;
+  }
+  const sm = getNaSemMotivoAll();
+  if (sm.length) {
+    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => { const k=`${cat.id}_${idx}`; return VS.respostas[k]==='na' && !(VS.motivos[k]||'').trim(); }));
+    if (catIdx >= 0) irPara(catIdx);
+    showToast(`📝 ${sm.length} item${sm.length>1?'ns':''} "Não avaliado" sem motivo — revise as categorias`);
+    return;
+  }
+
   const conformes    = Object.values(VS.respostas).filter(v=>v==='sim').length;
   const naoConformes = Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados = Object.values(VS.respostas).filter(v=>v==='na').length;
-  const pendentes    = total - Object.keys(VS.respostas).length;
   const avaliados    = total - naoAvaliados;
   const nota         = avaliados>0 ? (conformes/avaliados)*5 : 0;
   const tsFim = Date.now();
@@ -3675,52 +3704,88 @@ async function gerarPlanoIA(forceRegen) {
   btnRegen.style.display = 'none';
   text.textContent = '';
   status.textContent = '⏳ Gerando plano de ação com IA...';
+
+  const ncs = (VS.planoNcSnapshot || []);
+  const nas = (VS.planoNaSnapshot || []);
+
+  if (!ncs.length && !nas.length) {
+    status.textContent = '';
+    text.textContent = '✅ Nenhuma não conformidade encontrada. Operação dentro dos padrões!';
+    btnRegen.style.display = 'inline-flex';
+    dispararEmailSuperiorBg();
+    return;
+  }
+
+  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' — Obs: '+n.observacao : '')).join('
+');
+  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' — Motivo: '+n.motivo).join('
+');
+
+  const prompt = 'Você é um consultor especializado em operações de restaurantes. Com base nos resultados abaixo, gere um plano de ação objetivo, prático e prioritizado.
+
+Restaurante: '+(VS.restaurante||'')+'
+Tipo de avaliação: '+(VS.tipoNome||'')+'
+Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0
+
+NÃO CONFORMIDADES:
+'+(ncTxt||'(nenhuma)')+'
+
+ITENS NÃO AVALIADOS:
+'+(naTxt||'(nenhum)')+'
+
+Gere um plano de ação com:
+1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)
+2. Prioridade MÉDIA (melhorias importantes a curto prazo)
+3. Prioridade BAIXA (ajustes e melhorias contínuas)
+
+Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.';
+
   try {
-    const resp = await fetch('/api/plano', {
+    const apiKey = 'AIzaSyBtrIyHOP_tQYxiPJlqd_3asKoL3vDLgN4';
+    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        restaurante: VS.restaurante,
-        tipoNome: VS.tipoNome || '',
-        nota: VS.nota || 0,
-        naoConformes: VS.planoNcSnapshot || [],
-        naoAvaliados: VS.planoNaSnapshot || [],
-      }),
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
       status.textContent = '⚠️ Não foi possível gerar o plano agora. Tente novamente.';
       btnRegen.style.display = 'inline-flex';
       VS.planoIA = '';
-      // Mesmo sem plano, dispara o e-mail ao superior (com aviso de plano indisponível)
       dispararEmailSuperiorBg();
       return;
     }
     const data = await resp.json();
-    VS.planoIA = data.plano || '';
+    VS.planoIA = ((data.candidates||[])[0]?.content?.parts||[]).map(function(p){ return p.text||''; }).join('').trim();
     status.textContent = '';
     text.textContent = VS.planoIA;
     btnRegen.style.display = 'inline-flex';
-    // Persiste no histórico
     if (VS.registroId) {
       const hist = LS.get('vo_historico') || [];
-      const reg = hist.find(r => r.id === VS.registroId);
+      const reg = hist.find(function(r){ return r.id === VS.registroId; });
       if (reg) { reg.planoIA = VS.planoIA; LS.set('vo_historico', hist); }
     }
-    // Plano pronto — agora dispara o e-mail ao superior em background
     dispararEmailSuperiorBg();
   } catch (e) {
     console.error(e);
     status.textContent = '⚠️ Erro de rede ao gerar o plano. Verifique a conexão.';
     btnRegen.style.display = 'inline-flex';
     VS.planoIA = '';
-    // Mesmo com erro, tenta enviar e-mail ao superior (sem plano)
     dispararEmailSuperiorBg();
   }
 }
 
 // Dispara o envio do e-mail intranet ao superior em background, sem travar a UI.
 // Chamado APÓS gerarPlanoIA() resolver (sucesso ou falha), reutilizando VS.planoIA.
+function salvarAnthropicKey() {
+  const k = document.getElementById('anthropicKeyInput').value.trim();
+  if (!k) { document.getElementById('anthropicKeyStatus').textContent = '⚠️ Digite uma chave válida.'; document.getElementById('anthropicKeyStatus').style.color='var(--nok)'; return; }
+  localStorage.setItem('anthropic_api_key', k);
+  document.getElementById('anthropicKeyInput').value = '';
+  document.getElementById('anthropicKeyStatus').textContent = '✅ Chave salva com sucesso!';
+  document.getElementById('anthropicKeyStatus').style.color='var(--ok)';
+}
+function getAnthropicKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+
 function dispararEmailSuperiorBg() {
   const reg = VS._registroParaEmail;
   if (!reg) return;
