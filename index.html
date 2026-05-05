@@ -821,7 +821,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card">
       <div class="card-title">🤖 Plano de Ação por IA</div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Insira sua chave da API Anthropic para gerar planos de ação automáticos com IA após cada avaliação.</p>
-      <div class="form-group" style="margin-bottom:12px"><label>Chave da API Gemini</label><input type="password" id="geminiKeyInput" placeholder="AIzaSy..."/></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Chave da API (Groq)</label><input type="password" id="geminiKeyInput" placeholder="gsk_..."/></div>
       <button class="btn-sm" onclick="salvarGeminiKeyAdmin()" style="width:100%">Salvar Chave</button>
       <p id="anthropicKeyStatus" style="font-size:12px;margin-top:8px;color:var(--ok)"></p>
     </div>
@@ -3763,35 +3763,27 @@ async function gerarPlanoIA(forceRegen) {
   ].join('\n');
 
   try {
-    const apiKey = localStorage.getItem('gemini_api_key') || '';
-    if (!apiKey) {
-      status.textContent = '⚠️ Chave da API Gemini não configurada.';
-      const wrap = document.getElementById('rPlanoKeyWrap');
-      if (wrap) wrap.style.display = 'block';
-      btnRegen.style.display = 'none';
-      return;
-    }
-    const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+    const apiKey = localStorage.getItem('gemini_api_key') || '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';
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7
+      }),
     });
     const data = await resp.json();
     if (!resp.ok) {
       const errMsg = data?.error?.message || ('HTTP ' + resp.status);
-      if (resp.status === 403 || resp.status === 400) {
-        status.textContent = '⚠️ Chave inválida ou sem permissão. Verifique a chave Gemini em Admin > Configurações.';
-        const wrap = document.getElementById('rPlanoKeyWrap');
-        if (wrap) wrap.style.display = 'block';
-      } else {
-        status.textContent = '⚠️ Erro ao gerar plano: ' + errMsg;
-      }
+      status.textContent = '⚠️ Erro ao gerar plano: ' + errMsg;
       btnRegen.style.display = 'inline-flex';
       VS.planoIA = '';
       dispararEmailSuperiorBg();
       return;
     }
-    VS.planoIA = ((data.candidates||[])[0]?.content?.parts||[]).map(function(p){ return p.text||''; }).join('').trim();
+    VS.planoIA = ((data.choices||[])[0]?.message?.content || '').trim();
     status.textContent = '';
     text.textContent = VS.planoIA;
     btnRegen.style.display = 'inline-flex';
