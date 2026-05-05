@@ -4019,6 +4019,24 @@ async function buildPDFDoc() {
     y+=5;
   }
 
+  // Plano de Ação por IA
+  const planoTxtPDF = (VS.planoIA || '').trim();
+  if (planoTxtPDF) {
+    if (y>250) { doc.addPage(); y=20; }
+    y+=4;
+    doc.setFillColor(24,24,32); doc.rect(M,y,W-M*2,9,'F');
+    doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('Plano de Acao (sugestao por IA)', M+4, y+6);
+    y+=13;
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    const planoLines = doc.splitTextToSize(planoTxtPDF, W-M*2-4);
+    for (const ln of planoLines) {
+      if (y>278) { doc.addPage(); y=20; }
+      doc.text(ln, M+2, y); y+=4.6;
+    }
+    y+=4;
+  }
+
   // Assinatura
   if (y>255) { doc.addPage(); y=20; }
   y+=10;
