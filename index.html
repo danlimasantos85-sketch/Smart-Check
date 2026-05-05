@@ -821,8 +821,8 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card">
       <div class="card-title">🤖 Plano de Ação por IA</div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Insira sua chave da API Anthropic para gerar planos de ação automáticos com IA após cada avaliação.</p>
-      <div class="form-group" style="margin-bottom:12px"><label>Chave da API Anthropic</label><input type="password" id="anthropicKeyInput" placeholder="sk-ant-..."/></div>
-      <button class="btn-sm" onclick="salvarAnthropicKey()" style="width:100%">Salvar Chave</button>
+      <div class="form-group" style="margin-bottom:12px"><label>Chave da API Gemini</label><input type="password" id="geminiKeyInput" placeholder="AIzaSy..."/></div>
+      <button class="btn-sm" onclick="salvarGeminiKeyAdmin()" style="width:100%">Salvar Chave</button>
       <p id="anthropicKeyStatus" style="font-size:12px;margin-top:8px;color:var(--ok)"></p>
     </div>
     <div class="card">
@@ -1193,6 +1193,11 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <div class="card-title">🤖 Plano de Ação (sugestão por IA)</div>
       <div id="rPlanoStatus" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
       <div id="rPlanoText" style="font-size:13px;line-height:1.55;white-space:pre-wrap"></div>
+      <div id="rPlanoKeyWrap" style="display:none;margin-top:12px">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Insira sua chave Gemini para gerar o plano:</p>
+        <input type="password" id="rPlanoKeyInput" placeholder="AIzaSy..." style="width:100%;margin-bottom:8px"/>
+        <button class="btn-sm" onclick="salvarGeminiKeyEGerar()" style="width:100%">Salvar chave e gerar</button>
+      </div>
       <button class="btn-ghost" id="btnRegenPlano" onclick="gerarPlanoIA(true)" style="margin-top:10px;display:none">↻ Gerar de novo</button>
     </div>
     <div class="card">
@@ -2292,7 +2297,7 @@ async function carregarAdmin() {
   renderQuizAdmin();
   const url = LS.get('vo_sheetURL');
   if (url) document.getElementById('sheetURL').value = url;
-  const savedKey = getAnthropicKey();
+  const savedKey = localStorage.getItem('gemini_api_key') || '';
   const keyStatus = document.getElementById('anthropicKeyStatus');
   if (keyStatus) {
     keyStatus.textContent = savedKey ? '✅ Chave configurada.' : '⚠️ Nenhuma chave configurada.';
@@ -3293,7 +3298,14 @@ function getCatsAtivas() {
   const all = LS.get('vo_cats')||[];
   if (!VS || !VS.tipoCatIds || !VS.tipoCatIds.length) return all;
   const ids = VS.tipoCatIds;
-  return all.filter(c => ids.includes(c.id));
+  let cats = all.filter(c => ids.includes(c.id));
+  // Gerente nao ve categoria de Documentacao na avaliacao semanal
+  const isGerente = currentUser && (currentUser.cargo||'').toLowerCase() === 'gerente';
+  const isSemanal = VS.tipoId === 'semanal' || (VS.tipoNome||'').toLowerCase().includes('semanal');
+  if (isGerente && isSemanal) {
+    cats = cats.filter(c => c.id !== 'qualidade' && !(c.nome||'').toLowerCase().includes('documenta'));
+  }
+  return cats;
 }
 
 // ── NAV ──
@@ -3751,7 +3763,14 @@ async function gerarPlanoIA(forceRegen) {
   ].join('\n');
 
   try {
-    const apiKey = 'AIzaSyBtrIyHOP_tQYxiPJlqd_3asKoL3vDLgN4';
+    const apiKey = localStorage.getItem('gemini_api_key') || '';
+    if (!apiKey) {
+      status.textContent = '⚠️ Chave da API Gemini não configurada.';
+      const wrap = document.getElementById('rPlanoKeyWrap');
+      if (wrap) wrap.style.display = 'block';
+      btnRegen.style.display = 'none';
+      return;
+    }
     const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3786,6 +3805,24 @@ async function gerarPlanoIA(forceRegen) {
 
 // Dispara o envio do e-mail intranet ao superior em background, sem travar a UI.
 // Chamado APÓS gerarPlanoIA() resolver (sucesso ou falha), reutilizando VS.planoIA.
+function salvarGeminiKeyEGerar() {
+  const inp = document.getElementById('rPlanoKeyInput');
+  const k = inp ? inp.value.trim() : '';
+  if (!k) { showToast('⚠️ Digite uma chave válida'); return; }
+  localStorage.setItem('gemini_api_key', k);
+  const wrap = document.getElementById('rPlanoKeyWrap');
+  if (wrap) wrap.style.display = 'none';
+  gerarPlanoIA(true);
+}
+function salvarGeminiKeyAdmin() {
+  const inp = document.getElementById('geminiKeyInput');
+  const k = inp ? inp.value.trim() : '';
+  if (!k) { document.getElementById('anthropicKeyStatus').textContent = '⚠️ Digite uma chave válida.'; document.getElementById('anthropicKeyStatus').style.color='var(--nok)'; return; }
+  localStorage.setItem('gemini_api_key', k);
+  if (inp) inp.value = '';
+  document.getElementById('anthropicKeyStatus').textContent = '✅ Chave Gemini salva!';
+  document.getElementById('anthropicKeyStatus').style.color='var(--ok)';
+}
 function salvarAnthropicKey() {
   const k = document.getElementById('anthropicKeyInput').value.trim();
   if (!k) { document.getElementById('anthropicKeyStatus').textContent = '⚠️ Digite uma chave válida.'; document.getElementById('anthropicKeyStatus').style.color='var(--nok)'; return; }
