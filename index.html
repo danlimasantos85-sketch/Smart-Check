@@ -3776,14 +3776,21 @@ async function gerarPlanoIA(forceRegen) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
+    const data = await resp.json();
     if (!resp.ok) {
-      status.textContent = '⚠️ Não foi possível gerar o plano agora. Tente novamente.';
+      const errMsg = data?.error?.message || ('HTTP ' + resp.status);
+      if (resp.status === 403 || resp.status === 400) {
+        status.textContent = '⚠️ Chave inválida ou sem permissão. Verifique a chave Gemini em Admin > Configurações.';
+        const wrap = document.getElementById('rPlanoKeyWrap');
+        if (wrap) wrap.style.display = 'block';
+      } else {
+        status.textContent = '⚠️ Erro ao gerar plano: ' + errMsg;
+      }
       btnRegen.style.display = 'inline-flex';
       VS.planoIA = '';
       dispararEmailSuperiorBg();
       return;
     }
-    const data = await resp.json();
     VS.planoIA = ((data.candidates||[])[0]?.content?.parts||[]).map(function(p){ return p.text||''; }).join('').trim();
     status.textContent = '';
     text.textContent = VS.planoIA;
@@ -3796,7 +3803,7 @@ async function gerarPlanoIA(forceRegen) {
     dispararEmailSuperiorBg();
   } catch (e) {
     console.error(e);
-    status.textContent = '⚠️ Erro de rede ao gerar o plano. Verifique a conexão.';
+    status.textContent = '⚠️ Erro: ' + (e.message || 'Verifique a conexão e a chave Gemini.');
     btnRegen.style.display = 'inline-flex';
     VS.planoIA = '';
     dispararEmailSuperiorBg();
