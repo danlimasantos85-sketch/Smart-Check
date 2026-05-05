@@ -3589,6 +3589,7 @@ function finalizarVistoria() {
     return;
   }
 
+  try {
   const conformes    = Object.values(VS.respostas).filter(v=>v==='sim').length;
   const naoConformes = Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados = Object.values(VS.respostas).filter(v=>v==='na').length;
@@ -3613,7 +3614,12 @@ function finalizarVistoria() {
     respostas:{...VS.respostas}, notas:{...VS.notas}, fotos:{...VS.fotos}, motivos:{...VS.motivos}
   };
   const hist = LS.get('vo_historico')||[];
-  hist.push(registro); LS.set('vo_historico', hist);
+  const registroSemFotos = {...registro, fotos:{}, frentePhoto:null};
+  hist.push(registroSemFotos);
+  try { LS.set('vo_historico', hist); } catch(e) {
+    // localStorage quota: keep only last 20 entries without fotos
+    try { LS.set('vo_historico', hist.slice(-20)); } catch(e2) { console.warn('historico storage full', e2); }
+  }
   enviarParaSheet({acao:'vistoria_finalizada',...registro,respostas:undefined,fotos:undefined});
 
   // Notificar o superior imediato (notificação leve/rápida — sem IA)
@@ -3689,6 +3695,10 @@ function finalizarVistoria() {
 
   showScreen('screenResult');
   gerarPlanoIA(false);
+  } catch(err) {
+    console.error('finalizarVistoria error:', err);
+    showToast('⚠️ Erro ao finalizar: ' + (err.message||err));
+  }
 }
 
 // ══════════════════════════════════════════
@@ -3716,29 +3726,29 @@ async function gerarPlanoIA(forceRegen) {
     return;
   }
 
-  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' — Obs: '+n.observacao : '')).join('
-');
-  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' — Motivo: '+n.motivo).join('
-');
+  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' - Obs: '+n.observacao : '')).join('\n');
+  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' - Motivo: '+n.motivo).join('\n');
 
-  const prompt = 'Você é um consultor especializado em operações de restaurantes. Com base nos resultados abaixo, gere um plano de ação objetivo, prático e prioritizado.
-
-Restaurante: '+(VS.restaurante||'')+'
-Tipo de avaliação: '+(VS.tipoNome||'')+'
-Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0
-
-NÃO CONFORMIDADES:
-'+(ncTxt||'(nenhuma)')+'
-
-ITENS NÃO AVALIADOS:
-'+(naTxt||'(nenhum)')+'
-
-Gere um plano de ação com:
-1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)
-2. Prioridade MÉDIA (melhorias importantes a curto prazo)
-3. Prioridade BAIXA (ajustes e melhorias contínuas)
-
-Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.';
+  const prompt = [
+    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
+    '',
+    'Restaurante: '+(VS.restaurante||''),
+    'Tipo de avaliação: '+(VS.tipoNome||''),
+    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
+    '',
+    'NÃO CONFORMIDADES:',
+    ncTxt||'(nenhuma)',
+    '',
+    'ITENS NÃO AVALIADOS:',
+    naTxt||'(nenhum)',
+    '',
+    'Gere um plano de ação com:',
+    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
+    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
+    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
+    '',
+    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.'
+  ].join('\n');
 
   try {
     const apiKey = 'AIzaSyBtrIyHOP_tQYxiPJlqd_3asKoL3vDLgN4';
@@ -3892,7 +3902,7 @@ async function buildPDFDoc() {
   doc.text(VS.restaurante, M+5, y+9);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
   doc.text(`Avaliador: ${VS.vistoriador}${VS.cargo?' | '+VS.cargo:''}`, M+5, y+25);
-  const email=document.getElementById('emailInput').value;
+  const emailEl=document.getElementById('emailInput'); const email=emailEl?emailEl.value:'';
   if (email) doc.text(`E-mail: ${email}`, M+5, y+31);
   if (VS.gps) { doc.setTextColor(42,125,82); doc.text(`GPS: ${VS.gps.lat}, ${VS.gps.lng}  (+-${VS.gps.acc}m)`, M+5, y+37); }
   y+=46;
@@ -4010,7 +4020,7 @@ async function gerarECompartilhar(modo) {
     const pdfBlob = doc.output('blob');
 
     if (modo === 'email') {
-      const email = document.getElementById('emailInput').value.trim();
+      const emailEl2 = document.getElementById('emailInput'); const email = emailEl2 ? emailEl2.value.trim() : '';
       const subject = encodeURIComponent(`Avaliação Operacional — ${VS.restaurante} — ${VS.dataInicio}`);
       const body = encodeURIComponent(
         `Olá,\n\nSegue em anexo o relatório de avaliação operacional.\n\n` +
