@@ -2118,7 +2118,14 @@ const defaultCats = [
     '19. Planilha de Checklist de Temperatura dos alimentos em dia',
     '20. Planilha de Checklist de recebimento de mercadorias em dia',
     '21. Planilha de Checklist de Temperatura dos equipamentos em dia',
-    '22. Escala de limpeza atualizada e disponível'
+    '22. Escala de limpeza atualizada e disponível',
+    '23. Contrato/Certificado de dedetização e Planilha de Controle Integrado de Vetores e Pragas (CIVP) preenchida - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    '24. Frasco de álcool 70% com gatilho disponível na operação em quantidade suficiente - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    '25. O TIMER está disponível, funcionando e programado para tocar a cada 30 minutos - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    '26. Utilização de máscara na operação - RECOMENDADO',
+    '27. Álcool gel disponível aos clientes na frente do restaurante - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    '28. Disponibilidade de embalagens descartáveis e acondicionadas corretamente',
+    '29. Ausência de produtos/equipamentos/utensílios NÃO HOMOLOGADOS - ITEM DE NOTIFICAÇÃO - ZERA NOTA'
   ]},
   { id:'estoque', nome:'Estoque e Insumos', emoji:'📦', sub:'Organização, validades e controle', itens:[
     'Itens identificados com data de validade e data de abertura',
@@ -2150,7 +2157,12 @@ const defaultCats = [
     'Relógio em funcionamento na parede da cozinha e timer para controle do tempo de higienização dos alimentos',
     'Produção e utilização de água quente para limpeza dos utensílios',
     'Caixa de gordura/esgoto vedados (não exala odor e não favorece acesso de pragas)',
-    'Conservação geral dos mobiliários de apoio (prateleiras, estantes e bancadas)'
+    'Conservação geral dos mobiliários de apoio (prateleiras, estantes e bancadas)',
+    'Temperatura dos equipamentos de congelamento dentro do padrão - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Temperatura correta dos Equipamentos de Exposição Fria - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Temperatura correta dos Equipamentos de Cadeia Quente - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Todas as temperaturas (equipamentos e alimentos) são registradas conforme padrão estabelecido',
+    'Equipamentos de refrigeração (geladeira e freezer) com borracha em bom estado de conservação, permitindo vedação da porta'
   ]},
   { id:'cozinha', nome:'Operação de Cozinha', emoji:'🍳', sub:'Processos, higiene e fluxo operacional', itens:[
     'Equipe com uniforme completo, limpo e adequado',
@@ -2164,7 +2176,14 @@ const defaultCats = [
     'Descarte correto de óleos e gorduras',
     'Alimentos cobertos durante armazenamento temporário',
     'Higienização correta de frutas, legumes e verduras',
-    'Utensílios limpos e armazenados corretamente'
+    'Utensílios limpos e armazenados corretamente',
+    'Higienização de mãos realizada conforme procedimento (momentos corretos e técnica adequada) - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Presença de pia de higienização das mãos contendo: sabonete bactericida, álcool gel, papel toalha não reciclado, lixeira com pedal e procedimento afixado — verificar limpeza dos dispensers, papeleira e pia - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Utiliza somente pano descartável, limpo e conservado — pano de chão e pano não descartável não são permitidos - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Ausência de alimentos deteriorados ou procedimentos não autorizados - ITEM DE NOTIFICAÇÃO - ZERA NOTA',
+    'Ausência de produtos perecíveis fora de refrigeração expostos por período superior a 30 minutos - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Descongelamento dos alimentos realizado de forma correta (identificados individualmente e sob refrigeração) - ITEM DE ADVERTÊNCIA - perde 1 estrela',
+    'Ausência de comportamentos inadequados do ponto de vista de higiene'
   ]},
   { id:'atendimento', nome:'Atendimento ao Cliente', emoji:'🤝', sub:'Experiência, padrão e apresentação', itens:[
     'Equipe de salão com postura e apresentação adequados',
@@ -2192,10 +2211,25 @@ const defaultCats = [
     'Presença de máquina de gelo ou gelo comprado com certificado de potabilidade',
     'Ausência de caixas de papelão ou madeira (salvo nos momentos de recebimento de mercadorias)',
     'Apresentação das latas (não amassadas e sem ferrugem) e processo de higienização adequado para latas de bebidas e de alimentos'
+  ]},
+  { id:'operacao', nome:'Operação', emoji:'⚙️', sub:'Equipamentos, utensílios e conformidade operacional', itens:[
+    'Fritadeira de duas cubas presente e em funcionamento',
+    'Panelas elétricas presentes e em funcionamento',
+    'Pista fria funcionando e atingindo a temperatura correta de -4°C a 0°C',
+    'Equipamentos de refrigeração (geladeiras, balcões e câmara fria) funcionando e atingindo temperatura de 0°C a 4°C',
+    'Freezer funcionando e atingindo a temperatura de -11°C a -18°C',
+    'Telas de Makeline e Takeaway instaladas e funcionando',
+    'Totens de autoatendimento instalados e funcionando',
+    'Estoque organizado: produtos em prateleiras/paletes, PVPS aplicado e ausência de caixas de papelão',
+    'Restaurante contém forno Rational, tacho ou cooktop em funcionamento',
+    'Restaurante contém etiquetadora de validade em funcionamento',
+    'Utensílios presentes e em bom estado — marque os disponíveis: ✅ Faca de cozinha | ✅ Faca para sushi | ✅ Manaita verde | ✅ Manaita branca | ✅ Manaita vermelha | ✅ Manaita amarela | ✅ Pegador para GNs Quentes | ✅ Espátula de silicone | ✅ GNs padrões para Forno | ✅ GNs padrões para Pistas Frias | ✅ Balança de precisão | ✅ Domburis | ✅ Louças padrões Gendai | ✅ Cutelo | ✅ Garfo para massas',
+    'Colaboradores de uniforme completo: calça, camiseta, jaleco, avental, bandana e/ou faixa e calçado de segurança',
+    'Houve falta de algum produto (insumos ou equipamentos) no restaurante? — SE SIM = NÃO CONFORME: descreva quais produtos estão faltando no campo de observação'
   ]}
 ];
 
-const CATS_SEED_VERSION = 2;
+const CATS_SEED_VERSION = 3;
 
 // ══════════════════════════════════════════
 // INIT
