@@ -1395,6 +1395,20 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 
 <script>
 // ══════════════════════════════════════════
+// VERSÃO DO APP — edite apenas estas 2 linhas a cada atualização
+// ══════════════════════════════════════════
+const APP_VERSION = 3;
+const APP_CHANGELOG = `Novas questões adicionadas às avaliações Geral e Semanal:
+
+📋 Qualidade Assegurada: +7 itens (álcool 70%, timer, máscara, álcool gel clientes, embalagens descartáveis, produtos não homologados, certificado CIVP)
+
+🔧 Manutenção e Infraestrutura: +5 itens (temperatura congelamento, exposição fria, cadeia quente, registro de temperaturas, borracha dos equipamentos)
+
+🍳 Operação de Cozinha: +7 itens (higienização de mãos, pia completa, pano descartável, alimentos deteriorados, perecíveis fora de refrigeração, descongelamento, comportamentos inadequados)
+
+⚙️ Nova categoria Operação: +13 itens (fritadeira, panelas, pista fria, refrigeração, freezer, makeline/takeaway, totens, estoque, forno/tacho/cooktop, etiquetadora, utensílios Gendai, uniforme, falta de produtos)`;
+
+// ══════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════
 const LS = {
@@ -1432,10 +1446,50 @@ async function loadUsers() {
   return usersCache;
 }
 
+async function _publicarAvisoVersao(versao, changelog) {
+  const key = 'vo_aviso_v' + versao;
+  if (LS.get(key)) return;
+  try {
+    await fetch('/api/avisos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titulo: '🆕 Atualização Smart Check — v' + versao,
+        conteudo: changelog,
+        categoria: 'atualizacao',
+        cargosAlvo: 'todos',
+        criadoPor: 'Smart Check'
+      })
+    });
+    LS.set(key, true);
+  } catch(e) { console.warn('Aviso de versao nao publicado', e); }
+}
+
 async function loadCats() {
   try {
     const cats = await api('/api/cats');
     if (Array.isArray(cats) && cats.length) {
+      // Detecta se as categorias do servidor estao desatualizadas
+      const checks = [
+        cats.some(c => c.id === 'operacao'),
+        (cats.find(c => c.id === 'qualidade')?.itens?.length || 0) >= 29,
+        (cats.find(c => c.id === 'cozinha')?.itens?.length || 0) >= 19,
+        (cats.find(c => c.id === 'manutencao')?.itens?.length || 0) >= 23
+      ];
+      const isUpToDate = checks.every(Boolean);
+      if (!isUpToDate) {
+        console.log('[SmartCheck] Atualizando categorias para v' + APP_VERSION);
+        try {
+          const updated = await api('/api/cats', { method: 'PUT', body: defaultCats });
+          const final = Array.isArray(updated) ? updated : defaultCats;
+          LS.set('vo_cats', final);
+          await _publicarAvisoVersao(APP_VERSION, APP_CHANGELOG);
+          return final;
+        } catch (e2) {
+          LS.set('vo_cats', defaultCats);
+          return defaultCats;
+        }
+      }
       LS.set('vo_cats', cats);
       return cats;
     }
