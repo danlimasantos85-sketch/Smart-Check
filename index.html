@@ -2598,6 +2598,18 @@ function abrirDetalhe(id) {
     }
   }
 
+  // Bloco de Plano de Ação no detalhe do histórico
+  const planoExistente = v.planoIA ? v.planoIA : '';
+  html += `
+    <div class="card" id="planoHistCard_${v.id}">
+      <div class="card-title">🤖 Plano de Ação (IA)</div>
+      <div id="planoHistStatus_${v.id}" style="font-size:13px;color:var(--muted);margin-bottom:6px"></div>
+      <div id="planoHistText_${v.id}" style="font-size:13px;line-height:1.55;white-space:pre-wrap;margin-bottom:10px">${planoExistente}</div>
+      <button id="btnPlanoHist_${v.id}" class="btn-sm" onclick="gerarPlanoHistorico('${v.id}')" style="width:100%">
+        ${planoExistente ? '↻ Gerar novamente' : '🤖 Gerar Plano de Ação'}
+      </button>
+    </div>`;
+
   document.getElementById('detailContent').innerHTML = html;
   showScreen('screenDetail');
 }
@@ -3804,6 +3816,49 @@ function finalizarVistoria() {
 // ══════════════════════════════════════════
 // PLANO DE AÇÃO (IA)
 // ══════════════════════════════════════════
+async function _chamarGroq(prompt) {
+  const apiKey = localStorage.getItem('gemini_api_key') || '';
+  if (!apiKey) throw new Error('Chave da API não configurada. Acesse Admin → Config → Chave da API (Groq) e salve sua chave.');
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1200,
+      temperature: 0.7
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data?.error?.message || ('HTTP ' + resp.status));
+  return ((data.choices||[])[0]?.message?.content || '').trim();
+}
+
+function _buildPlanoPrompt(restaurante, tipoNome, nota, ncs, nas) {
+  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' - Obs: '+n.observacao : '')).join('\n');
+  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' - Motivo: '+n.motivo).join('\n');
+  return [
+    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
+    '',
+    'Restaurante: '+(restaurante||''),
+    'Tipo de avaliação: '+(tipoNome||''),
+    'Nota geral: '+((nota||0).toFixed(1))+' / 5.0',
+    '',
+    'NÃO CONFORMIDADES:',
+    ncTxt||'(nenhuma)',
+    '',
+    'ITENS NÃO AVALIADOS:',
+    naTxt||'(nenhum)',
+    '',
+    'Gere um plano de ação com:',
+    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
+    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
+    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
+    '',
+    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.'
+  ].join('\n');
+}
+
 async function gerarPlanoIA(forceRegen) {
   const card = document.getElementById('rPlanoCard');
   const status = document.getElementById('rPlanoStatus');
@@ -3826,52 +3881,9 @@ async function gerarPlanoIA(forceRegen) {
     return;
   }
 
-  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' - Obs: '+n.observacao : '')).join('\n');
-  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' - Motivo: '+n.motivo).join('\n');
-
-  const prompt = [
-    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
-    '',
-    'Restaurante: '+(VS.restaurante||''),
-    'Tipo de avaliação: '+(VS.tipoNome||''),
-    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
-    '',
-    'NÃO CONFORMIDADES:',
-    ncTxt||'(nenhuma)',
-    '',
-    'ITENS NÃO AVALIADOS:',
-    naTxt||'(nenhum)',
-    '',
-    'Gere um plano de ação com:',
-    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
-    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
-    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
-    '',
-    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.'
-  ].join('\n');
-
   try {
-    const apiKey = localStorage.getItem('gemini_api_key') || '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';
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.7
-      }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      const errMsg = data?.error?.message || ('HTTP ' + resp.status);
-      status.textContent = '⚠️ Erro ao gerar plano: ' + errMsg;
-      btnRegen.style.display = 'inline-flex';
-      VS.planoIA = '';
-      dispararEmailSuperiorBg();
-      return;
-    }
-    VS.planoIA = ((data.choices||[])[0]?.message?.content || '').trim();
+    const prompt = _buildPlanoPrompt(VS.restaurante, VS.tipoNome, VS.nota, ncs, nas);
+    VS.planoIA = await _chamarGroq(prompt);
     status.textContent = '';
     text.textContent = VS.planoIA;
     btnRegen.style.display = 'inline-flex';
@@ -3883,10 +3895,46 @@ async function gerarPlanoIA(forceRegen) {
     dispararEmailSuperiorBg();
   } catch (e) {
     console.error(e);
-    status.textContent = '⚠️ Erro: ' + (e.message || 'Verifique a conexão e a chave Gemini.');
+    status.textContent = '⚠️ ' + (e.message || 'Verifique a conexão e a chave da API.');
     btnRegen.style.display = 'inline-flex';
     VS.planoIA = '';
     dispararEmailSuperiorBg();
+  }
+}
+
+// Gera plano de ação para uma avaliação já salva no histórico (admin)
+async function gerarPlanoHistorico(registroId) {
+  const hist = LS.get('vo_historico') || [];
+  const reg = hist.find(r => r.id === registroId);
+  if (!reg) { showToast('Avaliação não encontrada'); return; }
+  const cats = LS.get('vo_cats') || [];
+  // Reconstrói os snapshots de NC e NA a partir das respostas salvas
+  const ncs = [], nas = [];
+  cats.forEach(cat => {
+    cat.itens.forEach((item, idx) => {
+      const k = cat.id + '_' + idx;
+      if ((reg.respostas||{})[k] === 'nao') ncs.push({ categoria: cat.nome, item, observacao: (reg.notas||{})[k] || '' });
+      if ((reg.respostas||{})[k] === 'na')  nas.push({ categoria: cat.nome, item, motivo: (reg.motivos||{})[k] || '' });
+    });
+  });
+  const btnEl = document.getElementById('btnPlanoHist_' + registroId);
+  const statusEl = document.getElementById('planoHistStatus_' + registroId);
+  const textEl = document.getElementById('planoHistText_' + registroId);
+  if (btnEl) btnEl.disabled = true;
+  if (statusEl) statusEl.textContent = '⏳ Gerando plano...';
+  if (textEl) textEl.textContent = '';
+  try {
+    const prompt = _buildPlanoPrompt(reg.restaurante, reg.tipoNome, reg.nota, ncs, nas);
+    const plano = await _chamarGroq(prompt);
+    reg.planoIA = plano;
+    LS.set('vo_historico', hist);
+    if (statusEl) statusEl.textContent = '';
+    if (textEl) { textEl.textContent = plano; textEl.style.display = 'block'; }
+    if (btnEl) { btnEl.textContent = '↻ Gerar novamente'; btnEl.disabled = false; }
+    showToast('✅ Plano de ação gerado!');
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '⚠️ ' + e.message;
+    if (btnEl) btnEl.disabled = false;
   }
 }
 
