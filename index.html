@@ -2598,16 +2598,27 @@ function abrirDetalhe(id) {
     }
   }
 
-  // Bloco de Plano de Ação no detalhe do histórico
-  const planoExistente = v.planoIA ? v.planoIA : '';
+  // Plano de Ação
+  const planoExistente = (v.planoIA||'').trim();
   html += `
     <div class="card" id="planoHistCard_${v.id}">
       <div class="card-title">🤖 Plano de Ação (IA)</div>
       <div id="planoHistStatus_${v.id}" style="font-size:13px;color:var(--muted);margin-bottom:6px"></div>
       <div id="planoHistText_${v.id}" style="font-size:13px;line-height:1.55;white-space:pre-wrap;margin-bottom:10px">${planoExistente}</div>
-      <button id="btnPlanoHist_${v.id}" class="btn-sm" onclick="gerarPlanoHistorico('${v.id}')" style="width:100%">
-        ${planoExistente ? '↻ Gerar novamente' : '🤖 Gerar Plano de Ação'}
+      <button id="btnPlanoHist_${v.id}" class="btn-sm" onclick="gerarPlanoHistorico('${v.id}')" style="width:100%;margin-bottom:6px">
+        ${planoExistente ? '↻ Regenerar Plano de Ação' : '🤖 Gerar Plano de Ação'}
       </button>
+    </div>`;
+
+  // Botões de exportar
+  html += `
+    <div class="card">
+      <div class="card-title">📤 Exportar Relatório</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-primary" onclick="exportarHistorico('${v.id}','download')">📥 Baixar PDF</button>
+        <button class="btn-share-whats" onclick="exportarHistorico('${v.id}','whatsapp')">💬 Compartilhar no WhatsApp</button>
+        <button class="btn-share-native" onclick="exportarHistorico('${v.id}','native')" style="${navigator && navigator.share ? '' : 'display:none'}">📲 Compartilhar...</button>
+      </div>
     </div>`;
 
   document.getElementById('detailContent').innerHTML = html;
@@ -3816,49 +3827,6 @@ function finalizarVistoria() {
 // ══════════════════════════════════════════
 // PLANO DE AÇÃO (IA)
 // ══════════════════════════════════════════
-async function _chamarGroq(prompt) {
-  const apiKey = localStorage.getItem('gemini_api_key') || '';
-  if (!apiKey) throw new Error('Chave da API não configurada. Acesse Admin → Config → Chave da API (Groq) e salve sua chave.');
-  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1200,
-      temperature: 0.7
-    }),
-  });
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data?.error?.message || ('HTTP ' + resp.status));
-  return ((data.choices||[])[0]?.message?.content || '').trim();
-}
-
-function _buildPlanoPrompt(restaurante, tipoNome, nota, ncs, nas) {
-  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' - Obs: '+n.observacao : '')).join('\n');
-  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' - Motivo: '+n.motivo).join('\n');
-  return [
-    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
-    '',
-    'Restaurante: '+(restaurante||''),
-    'Tipo de avaliação: '+(tipoNome||''),
-    'Nota geral: '+((nota||0).toFixed(1))+' / 5.0',
-    '',
-    'NÃO CONFORMIDADES:',
-    ncTxt||'(nenhuma)',
-    '',
-    'ITENS NÃO AVALIADOS:',
-    naTxt||'(nenhum)',
-    '',
-    'Gere um plano de ação com:',
-    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
-    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
-    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
-    '',
-    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.'
-  ].join('\n');
-}
-
 async function gerarPlanoIA(forceRegen) {
   const card = document.getElementById('rPlanoCard');
   const status = document.getElementById('rPlanoStatus');
@@ -3881,9 +3849,52 @@ async function gerarPlanoIA(forceRegen) {
     return;
   }
 
+  const ncTxt = ncs.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+(n.observacao ? ' - Obs: '+n.observacao : '')).join('\n');
+  const naTxt = nas.map((n,i) => (i+1)+'. ['+n.categoria+'] '+n.item+' - Motivo: '+n.motivo).join('\n');
+
+  const prompt = [
+    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
+    '',
+    'Restaurante: '+(VS.restaurante||''),
+    'Tipo de avaliação: '+(VS.tipoNome||''),
+    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
+    '',
+    'NÃO CONFORMIDADES:',
+    ncTxt||'(nenhuma)',
+    '',
+    'ITENS NÃO AVALIADOS:',
+    naTxt||'(nenhum)',
+    '',
+    'Gere um plano de ação com:',
+    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
+    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
+    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
+    '',
+    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.'
+  ].join('\n');
+
   try {
-    const prompt = _buildPlanoPrompt(VS.restaurante, VS.tipoNome, VS.nota, ncs, nas);
-    VS.planoIA = await _chamarGroq(prompt);
+    const apiKey = localStorage.getItem('gemini_api_key') || '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';
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1000,
+        temperature: 0.7
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      const errMsg = data?.error?.message || ('HTTP ' + resp.status);
+      status.textContent = '⚠️ Erro ao gerar plano: ' + errMsg;
+      btnRegen.style.display = 'inline-flex';
+      VS.planoIA = '';
+      dispararEmailSuperiorBg();
+      return;
+    }
+    VS.planoIA = ((data.choices||[])[0]?.message?.content || '').trim();
     status.textContent = '';
     text.textContent = VS.planoIA;
     btnRegen.style.display = 'inline-flex';
@@ -3895,46 +3906,10 @@ async function gerarPlanoIA(forceRegen) {
     dispararEmailSuperiorBg();
   } catch (e) {
     console.error(e);
-    status.textContent = '⚠️ ' + (e.message || 'Verifique a conexão e a chave da API.');
+    status.textContent = '⚠️ Erro: ' + (e.message || 'Verifique a conexão e a chave Gemini.');
     btnRegen.style.display = 'inline-flex';
     VS.planoIA = '';
     dispararEmailSuperiorBg();
-  }
-}
-
-// Gera plano de ação para uma avaliação já salva no histórico (admin)
-async function gerarPlanoHistorico(registroId) {
-  const hist = LS.get('vo_historico') || [];
-  const reg = hist.find(r => r.id === registroId);
-  if (!reg) { showToast('Avaliação não encontrada'); return; }
-  const cats = LS.get('vo_cats') || [];
-  // Reconstrói os snapshots de NC e NA a partir das respostas salvas
-  const ncs = [], nas = [];
-  cats.forEach(cat => {
-    cat.itens.forEach((item, idx) => {
-      const k = cat.id + '_' + idx;
-      if ((reg.respostas||{})[k] === 'nao') ncs.push({ categoria: cat.nome, item, observacao: (reg.notas||{})[k] || '' });
-      if ((reg.respostas||{})[k] === 'na')  nas.push({ categoria: cat.nome, item, motivo: (reg.motivos||{})[k] || '' });
-    });
-  });
-  const btnEl = document.getElementById('btnPlanoHist_' + registroId);
-  const statusEl = document.getElementById('planoHistStatus_' + registroId);
-  const textEl = document.getElementById('planoHistText_' + registroId);
-  if (btnEl) btnEl.disabled = true;
-  if (statusEl) statusEl.textContent = '⏳ Gerando plano...';
-  if (textEl) textEl.textContent = '';
-  try {
-    const prompt = _buildPlanoPrompt(reg.restaurante, reg.tipoNome, reg.nota, ncs, nas);
-    const plano = await _chamarGroq(prompt);
-    reg.planoIA = plano;
-    LS.set('vo_historico', hist);
-    if (statusEl) statusEl.textContent = '';
-    if (textEl) { textEl.textContent = plano; textEl.style.display = 'block'; }
-    if (btnEl) { btnEl.textContent = '↻ Gerar novamente'; btnEl.disabled = false; }
-    showToast('✅ Plano de ação gerado!');
-  } catch(e) {
-    if (statusEl) statusEl.textContent = '⚠️ ' + e.message;
-    if (btnEl) btnEl.disabled = false;
   }
 }
 
@@ -4187,6 +4162,189 @@ async function buildPDFDoc() {
 
 function getPDFFilename() {
   return `Avaliacao_${VS.restaurante.replace(/\s+/g,'_')}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.pdf`;
+}
+
+// ══════════════════════════════════════════
+// PDF A PARTIR DO HISTÓRICO (sem depender de VS)
+// ══════════════════════════════════════════
+async function buildPDFDocFromRegistro(v) {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({unit:'mm',format:'a4'});
+  const allCats = LS.get('vo_cats') || [];
+  // Filtra apenas as categorias que tinham itens respondidos nesta avaliação
+  const cats = allCats.filter(cat =>
+    cat.itens.some((_, i) => (v.respostas||{})[`${cat.id}_${i}`] !== undefined)
+  );
+  const W=210, M=14; let y=0;
+  const conformes   = Object.values(v.respostas||{}).filter(r=>r==='sim').length;
+  const naoConformes= Object.values(v.respostas||{}).filter(r=>r==='nao').length;
+  const naoAvaliados= Object.values(v.respostas||{}).filter(r=>r==='na').length;
+  const total = v.total || (conformes+naoConformes+naoAvaliados);
+  const avaliados = total - naoAvaliados;
+  const nota = v.nota || (avaliados>0?(conformes/avaliados)*5:0);
+
+  // Header
+  doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
+  doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(20);
+  doc.text('Smart Check', M, 17);
+  doc.setTextColor(200,200,200); doc.setFontSize(10);
+  doc.text('Relatorio de Avaliacao Operacional', M, 27);
+  doc.setTextColor(100,100,100); doc.setFontSize(8);
+  doc.text(`Inicio: ${v.dataInicio}  |  Fim: ${v.dataFim||'-'}  |  Duracao: ${v.duracao||'-'}`, M, 38);
+  y=54;
+
+  // Dados
+  doc.setFillColor(245,244,240); doc.roundedRect(M,y,W-M*2,38,3,3,'F');
+  doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text(v.restaurante||'', M+5, y+9);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(`Avaliador: ${v.vistoriador}${v.cargo?' | '+v.cargo:''}`, M+5, y+25);
+  if (v.gpsLat) { doc.setTextColor(42,125,82); doc.text(`GPS: ${v.gpsLat}, ${v.gpsLng}`, M+5, y+37); }
+  y+=46;
+
+  // Score
+  doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
+  doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
+  doc.setFontSize(9); doc.setTextColor(200,200,200);
+  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
+  doc.text(`Classificacao: ${cl}`, M+5, y+21);
+  doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
+  doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
+  doc.setTextColor(176,125,32); doc.text(`Nao aval.: ${naoAvaliados}`, W-M-55, y+25);
+  y+=36;
+
+  // Por categoria
+  doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('Resumo por Categoria', M, y); y+=7;
+  for (const cat of cats) {
+    if (y>272) { doc.addPage(); y=20; }
+    const ok =cat.itens.filter((_,i)=>(v.respostas||{})[`${cat.id}_${i}`]==='sim').length;
+    const nok=cat.itens.filter((_,i)=>(v.respostas||{})[`${cat.id}_${i}`]==='nao').length;
+    const na =cat.itens.filter((_,i)=>(v.respostas||{})[`${cat.id}_${i}`]==='na').length;
+    const av=cat.itens.length-na;
+    const pct=av>0?Math.round((ok/av)*100):0;
+    doc.setFillColor(230,230,228); doc.roundedRect(M,y,W-M*2,9,2,2,'F');
+    doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(cat.nome, M+4, y+6);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.setTextColor(42,125,82); doc.text(`OK:${ok}`, W-M-38, y+6);
+    doc.setTextColor(192,57,43); doc.text(`NC:${nok}`, W-M-24, y+6);
+    doc.setTextColor(176,125,32); doc.text(`NA:${na}`, W-M-12, y+6);
+    doc.setTextColor(80,80,80); doc.text(`${pct}%`, W-M-3, y+6);
+    y+=12;
+  }
+  y+=4;
+
+  // Detalhamento
+  doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.text('Detalhamento dos Itens', M, y); y+=7;
+  for (const cat of cats) {
+    if (y>265) { doc.addPage(); y=20; }
+    doc.setFillColor(24,24,32); doc.rect(M,y,W-M*2,8,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(cat.nome, M+4, y+5.5); y+=11;
+    for (let idx=0;idx<cat.itens.length;idx++) {
+      if (y>272) { doc.addPage(); y=20; }
+      const key=`${cat.id}_${idx}`;
+      const resp=(v.respostas||{})[key];
+      if (!resp) continue;
+      const isNok=resp==='nao', isNa=resp==='na';
+      if (isNok) { doc.setFillColor(255,247,247); doc.rect(M,y-1,W-M*2,8,'F'); doc.setFillColor(192,57,43); doc.rect(M,y-1,2,8,'F'); }
+      if (isNa)  { doc.setFillColor(255,252,240); doc.rect(M,y-1,W-M*2,8,'F'); doc.setFillColor(176,125,32); doc.rect(M,y-1,2,8,'F'); }
+      const col=resp==='sim'?[42,125,82]:resp==='nao'?[192,57,43]:resp==='na'?[176,125,32]:[160,160,160];
+      const sym=resp==='sim'?'[OK]':resp==='nao'?'[NC]':resp==='na'?'[NA]':'[--]';
+      doc.setTextColor(...col); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text(sym, M+3, y+4.5);
+      doc.setTextColor(40,40,40); doc.setFont('helvetica',isNok||isNa?'bold':'normal'); doc.setFontSize(8);
+      const lines=doc.splitTextToSize(cat.itens[idx], W-M*2-18);
+      doc.text(lines, M+15, y+4.5); y+=lines.length*4.5+2;
+      if (isNok && (v.notas||{})[key]) {
+        doc.setTextColor(150,60,60); doc.setFont('helvetica','italic'); doc.setFontSize(7.5);
+        const nl=doc.splitTextToSize('Obs: '+(v.notas||{})[key], W-M*2-20);
+        doc.text(nl, M+17, y+3); y+=nl.length*4+3;
+      }
+      if (isNa && (v.motivos||{})[key]) {
+        doc.setTextColor(140,100,20); doc.setFont('helvetica','italic'); doc.setFontSize(7.5);
+        const ml=doc.splitTextToSize('Motivo: '+(v.motivos||{})[key], W-M*2-20);
+        doc.text(ml, M+17, y+3); y+=ml.length*4+3;
+      }
+    }
+    y+=5;
+  }
+
+  // Plano de Ação
+  const planoTxtPDF = (v.planoIA||'').trim();
+  if (planoTxtPDF) {
+    if (y>250) { doc.addPage(); y=20; }
+    y+=4;
+    doc.setFillColor(24,24,32); doc.rect(M,y,W-M*2,9,'F');
+    doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('Plano de Acao (sugestao por IA)', M+4, y+6); y+=13;
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    const planoLines=doc.splitTextToSize(planoTxtPDF, W-M*2-4);
+    for (const ln of planoLines) { if (y>278){doc.addPage();y=20;} doc.text(ln,M+2,y); y+=4.6; }
+    y+=4;
+  }
+
+  // Assinatura
+  if (y>255){doc.addPage();y=20;} y+=10;
+  doc.setDrawColor(180,180,180); doc.line(M,y,M+80,y);
+  doc.setTextColor(120,120,120); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('Assinatura do Avaliador', M, y+5);
+  doc.text(`${v.vistoriador}${v.cargo?' — '+v.cargo:''}`, M, y+11);
+  doc.text(`Inicio: ${v.dataInicio}  |  Fim: ${v.dataFim||'-'}`, M, y+17);
+
+  return doc;
+}
+
+async function exportarHistorico(registroId, modo) {
+  const hist = LS.get('vo_historico') || [];
+  const v = hist.find(r => r.id === registroId);
+  if (!v) { showToast('Avaliação não encontrada'); return; }
+  showLoading('Gerando PDF...');
+  try {
+    const doc = await buildPDFDocFromRegistro(v);
+    const filename = `Avaliacao_${(v.restaurante||'').replace(/\s+/g,'_')}_${(v.dataFim||v.dataInicio||'').replace(/[/: ,]/g,'-')}.pdf`;
+    if (modo === 'download') {
+      doc.save(filename);
+      hideLoading();
+      showToast('✅ PDF salvo!');
+      return;
+    }
+    const pdfBlob = doc.output('blob');
+    if (modo === 'whatsapp') {
+      if (navigator.share && navigator.canShare) {
+        const file = new File([pdfBlob], filename, {type:'application/pdf'});
+        if (navigator.canShare({files:[file]})) {
+          hideLoading();
+          try { await navigator.share({files:[file], title:`Avaliação — ${v.restaurante}`}); showToast('✅ Compartilhado!'); }
+          catch(e) { if (e.name!=='AbortError') showToast('Compartilhamento cancelado'); }
+          return;
+        }
+      }
+      doc.save(filename);
+      const texto = encodeURIComponent(
+        `📋 *Relatório de Avaliação Operacional*\n\n🏪 *${v.restaurante}*\n👤 ${v.vistoriador}${v.cargo?' ('+v.cargo+')':''}\n📅 ${v.dataFim||v.dataInicio}\n⭐ Nota: ${(v.nota||0).toFixed(1)} / 5.0\n✅ Conformes: ${v.conformes||0}\n❌ Não conf.: ${v.naoConformes||0}\n\n_(PDF baixado — anexe no WhatsApp)_`
+      );
+      hideLoading();
+      setTimeout(()=>window.open('https://wa.me/?text='+texto,'_blank'),400);
+      showToast('💬 PDF salvo — envie pelo WhatsApp que abrir');
+      return;
+    }
+    if (modo === 'native') {
+      if (navigator.share && navigator.canShare) {
+        const file = new File([pdfBlob], filename, {type:'application/pdf'});
+        hideLoading();
+        try { await navigator.share({files:[file], title:`Avaliação — ${v.restaurante}`}); showToast('✅ Compartilhado!'); }
+        catch(e) { if (e.name!=='AbortError'){doc.save(filename);showToast('PDF salvo no dispositivo');} }
+      } else { doc.save(filename); hideLoading(); showToast('✅ PDF salvo!'); }
+    }
+  } catch(e) {
+    hideLoading();
+    showToast('❌ Erro: ' + e.message);
+    console.error(e);
+  }
 }
 
 // ══════════════════════════════════════════
