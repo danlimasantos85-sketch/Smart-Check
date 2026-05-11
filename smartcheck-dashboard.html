@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartCheck — Dashboard Analítico</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#f7f6f2; --surface:#fff; --surface2:#f0ede6; --border:#e2ddd5;
+  --dark:#181820; --dark2:#23232f; --accent:#e8522a;
+  --ok:#2a7d52; --nok:#c0392b; --warn:#b07d20;
+  --text:#181820; --muted:#8a8478; --radius:14px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --gold:#c4a050;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* HEADER */
+.app-header{background:var(--dark);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-logo{display:flex;align-items:center;gap:8px}
+.header-logo h1{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff}
+.header-logo h1 span{color:var(--accent)}
+.header-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px}
+.period-selector{display:flex;gap:4px;background:rgba(255,255,255,.08);border-radius:10px;padding:4px}
+.period-btn{border:none;background:transparent;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 12px;border-radius:7px;cursor:pointer;transition:all .2s}
+.period-btn.active{background:var(--accent);color:#fff;font-weight:700}
+.btn-back{background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:7px 14px;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn-back:hover{background:rgba(255,255,255,.18)}
+
+/* LAYOUT */
+.dash{padding:20px 24px;max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border-radius:var(--radius);padding:18px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.green::before{background:var(--ok)}
+.kpi.red::before{background:var(--nok)}
+.kpi.warn::before{background:var(--warn)}
+.kpi.accent::before{background:var(--accent)}
+.kpi-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.kpi-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--dark);line-height:1}
+.kpi-delta{font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px}
+.kpi-delta.up{color:var(--ok)}.kpi-delta.down{color:var(--nok)}.kpi-delta.neu{color:var(--muted)}
+.kpi-icon{position:absolute;top:14px;right:14px;font-size:22px;opacity:.25}
+
+/* GRID 2 COL */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:800px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card-full{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.card-title span{color:var(--text);font-size:14px;font-weight:700;text-transform:none;letter-spacing:0}
+
+/* CHART CONTAINER */
+.chart-wrap{position:relative;height:220px}
+.chart-wrap.tall{height:280px}
+
+/* RANKING */
+.rank-list{display:flex;flex-direction:column;gap:8px}
+.rank-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;transition:background .15s;cursor:default}
+.rank-item:hover{background:#e8e4dc}
+.rank-pos{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--muted);width:20px;text-align:center;flex-shrink:0}
+.rank-pos.gold{color:#c4a050}.rank-pos.silver{color:#8a9ba8}.rank-pos.bronze{color:#a0714a}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.rank-bar-wrap{width:80px;height:6px;background:var(--border);border-radius:99px;overflow:hidden;flex-shrink:0}
+.rank-bar-fill{height:100%;border-radius:99px;background:var(--ok);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.rank-score{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--dark);width:40px;text-align:right;flex-shrink:0}
+
+/* NC TABLE */
+.nc-list{display:flex;flex-direction:column;gap:6px}
+.nc-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid var(--border)}
+.nc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.nc-dot.high{background:var(--nok)}.nc-dot.med{background:var(--warn)}.nc-dot.low{background:var(--muted)}
+.nc-text{flex:1;font-size:12px;color:var(--dark);line-height:1.4}
+.nc-count{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--nok);flex-shrink:0}
+.nc-trend{font-size:10px;flex-shrink:0;padding:2px 7px;border-radius:99px;font-weight:600}
+.nc-trend.up{background:rgba(192,57,43,.1);color:var(--nok)}
+.nc-trend.down{background:rgba(42,125,82,.1);color:var(--ok)}
+.nc-trend.neu{background:var(--surface2);color:var(--muted)}
+
+/* HISTORY TABLE */
+.hist-table{width:100%;border-collapse:collapse;font-size:13px}
+.hist-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;text-align:left;border-bottom:1.5px solid var(--border)}
+.hist-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--dark);vertical-align:middle}
+.hist-table tr:last-child td{border-bottom:none}
+.hist-table tr:hover td{background:var(--surface2)}
+.score-badge{display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;width:42px;height:26px;border-radius:6px}
+.score-badge.a{background:rgba(42,125,82,.12);color:var(--ok)}
+.score-badge.b{background:rgba(176,125,32,.12);color:var(--warn)}
+.score-badge.c{background:rgba(192,57,43,.1);color:var(--nok)}
+.stars-mini{color:#c4a050;font-size:12px;letter-spacing:1px}
+.tag-loja{background:var(--surface2);color:var(--muted);font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+
+/* AVALIADOR */
+.aval-list{display:flex;flex-direction:column;gap:8px}
+.aval-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border)}
+.aval-avatar{width:36px;height:36px;border-radius:50%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;flex-shrink:0}
+.aval-name{font-size:13px;font-weight:600;color:var(--dark)}
+.aval-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.aval-score{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-left:auto;flex-shrink:0}
+.aval-score.ok{color:var(--ok)}.aval-score.warn{color:var(--warn)}.aval-score.nok{color:var(--nok)}
+
+/* MINI SPARKLINE placeholder */
+.sparkline{display:inline-flex;align-items:flex-end;gap:2px;height:24px}
+.spark-bar{width:4px;border-radius:2px 2px 0 0;background:var(--accent);opacity:.5}
+.spark-bar:last-child{opacity:1}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.filter-select{background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer}
+.filter-select:focus{border-color:var(--dark)}
+
+/* EMPTY */
+.empty{text-align:center;padding:28px;color:var(--muted);font-size:13px}
+
+/* SCORE RING */
+.score-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0}
+.score-ring-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--dark);line-height:1}
+.score-ring-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* SECTION LABEL */
+.section-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:4px 0}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .dash{padding:14px 16px}
+  .app-header{padding:12px 16px}
+  .period-selector{display:none}
+}
+
+/* ANIMATE */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.kpi{animation:fadeUp .4s ease both}
+.kpi:nth-child(1){animation-delay:.05s}.kpi:nth-child(2){animation-delay:.1s}
+.kpi:nth-child(3){animation-delay:.15s}.kpi:nth-child(4){animation-delay:.2s}
+.card,.card-full{animation:fadeUp .5s ease both;animation-delay:.2s}
+
+/* TOOLTIP custom */
+.tip{position:relative;cursor:help}
+.tip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;font-size:11px;padding:5px 9px;border-radius:7px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;z-index:99}
+.tip:hover::after{opacity:1}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="shieldGold" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c4a050"/>
+      <stop offset="50%" stop-color="#e8d090"/>
+      <stop offset="100%" stop-color="#8a6820"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="app-header">
+  <div class="header-left">
+    <div class="header-logo">
+      <svg viewBox="0 0 68 76" fill="none" style="width:30px;height:34px;flex-shrink:0">
+        <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+        <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>Smart<span>Check</span></h1>
+        <div class="header-sub">Dashboard Analítico</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="period-selector">
+      <button class="period-btn" onclick="setPeriod(7,this)">7d</button>
+      <button class="period-btn active" onclick="setPeriod(30,this)">30d</button>
+      <button class="period-btn" onclick="setPeriod(90,this)">90d</button>
+      <button class="period-btn" onclick="setPeriod(365,this)">1a</button>
+    </div>
+  </div>
+</div>
+
+<div class="dash">
+
+  <!-- FILTROS -->
+  <div class="filter-bar">
+    <select class="filter-select" id="filtroLoja" onchange="aplicarFiltros()">
+      <option value="">🏪 Todas as lojas</option>
+    </select>
+    <select class="filter-select" id="filtroAvaliador" onchange="aplicarFiltros()">
+      <option value="">👤 Todos os avaliadores</option>
+    </select>
+    <select class="filter-select" id="filtroTipo" onchange="aplicarFiltros()">
+      <option value="">📋 Todos os tipos</option>
+      <option value="Geral">Avaliação Geral</option>
+      <option value="Abertura">Abertura</option>
+      <option value="Fechamento">Fechamento</option>
+      <option value="Sanitária">Vigilância Sanitária</option>
+    </select>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip">
+    <div class="kpi green">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-label">Score médio</div>
+      <div class="kpi-value" id="kpiScore">–</div>
+      <div class="kpi-delta" id="kpiScoreDelta">–</div>
+    </div>
+    <div class="kpi accent">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-label">Avaliações</div>
+      <div class="kpi-value" id="kpiAval">–</div>
+      <div class="kpi-delta" id="kpiAvalDelta">–</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-label">Não-conformidades</div>
+      <div class="kpi-value" id="kpiNc">–</div>
+      <div class="kpi-delta" id="kpiNcDelta">–</div>
+    </div>
+    <div class="kpi warn">
+      <div class="kpi-icon">🏪</div>
+      <div class="kpi-label">Lojas avaliadas</div>
+      <div class="kpi-value" id="kpiLojas">–</div>
+      <div class="kpi-delta" id="kpiLojasDelta" class="kpi-delta neu">–</div>
+    </div>
+  </div>
+
+  <!-- EVOLUÇÃO + DISTRIBUIÇÃO -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Evolução do Score <span id="evolucaoSub"></span></div>
+      <div class="chart-wrap">
+        <canvas id="chartEvolucao"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Distribuição de Resultados</div>
+      <div class="chart-wrap" style="height:200px;display:flex;align-items:center;justify-content:center;gap:24px">
+        <canvas id="chartDonut" style="max-width:160px;max-height:160px"></canvas>
+        <div id="donutLegend" style="display:flex;flex-direction:column;gap:8px;font-size:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANKING + NCs -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🏆 Ranking de Lojas</div>
+      <div class="rank-list" id="rankingLojas"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚠️ NCs Mais Frequentes</div>
+      <div class="nc-list" id="ncList"></div>
+    </div>
+  </div>
+
+  <!-- AVALIADORES + RADAR -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">👥 Desempenho por Avaliador</div>
+      <div class="aval-list" id="avalList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Score por Categoria</div>
+      <div class="chart-wrap">
+        <canvas id="chartRadar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="card-full">
+    <div class="card-title">📜 Histórico de Avaliações
+      <span id="histCount" style="font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="hist-table" id="histTable">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Loja</th>
+            <th>Tipo</th>
+            <th>Avaliador</th>
+            <th>Score</th>
+            <th>Estrelas</th>
+            <th>NCs</th>
+          </tr>
+        </thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /dash -->
+
+<script>
+// ────────────────────────────────────────────────
+// DADOS MOCK — Troque por chamadas à API no futuro
+// ────────────────────────────────────────────────
+const LOJAS = ['Unidade Centro','Unidade Norte','Unidade Sul','Unidade Leste','Unidade Oeste'];
+const AVALIADORES = ['Carlos Mendes','Ana Lima','Ricardo Souza','Paula Ferreira'];
+const TIPOS = ['Geral','Abertura','Fechamento','Sanitária'];
+const CATEGORIAS = ['Higiene','Estoque','Atendimento','Cozinha','Documentação','Equipamentos'];
+
+function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function rndF(min,max,dec=1){return parseFloat((Math.random()*(max-min)+min).toFixed(dec));}
+function dataRelativa(diasAtras){
+  const d=new Date(); d.setDate(d.getDate()-diasAtras);
+  return d.toISOString().split('T')[0];
+}
+
+// Gera 120 avaliações nos últimos 365 dias
+let AVALIACOES_BASE = [];
+for(let i=0;i<120;i++){
+  const diasAtras = rnd(0,364);
+  const score = rnd(55,100);
+  const nc = score>=85?rnd(0,3):score>=70?rnd(2,7):rnd(5,15);
+  const stars = score>=90?5:score>=80?4:score>=70?3:score>=60?2:1;
+  AVALIACOES_BASE.push({
+    id:i+1,
+    data: dataRelativa(diasAtras),
+    diasAtras,
+    loja: LOJAS[rnd(0,4)],
+    tipo: TIPOS[rnd(0,3)],
+    avaliador: AVALIADORES[rnd(0,3)],
+    score, nc, stars,
+    catScores: CATEGORIAS.map(()=>rnd(50,100))
+  });
+}
+AVALIACOES_BASE.sort((a,b)=>a.diasAtras-b.diasAtras);
+
+const NC_TIPOS = [
+  {label:'Temperatura de alimentos fora do padrão', sev:'high'},
+  {label:'Ausência de EPI na cozinha', sev:'high'},
+  {label:'Validade vencida em estoque', sev:'high'},
+  {label:'Higienização das mãos inadequada', sev:'med'},
+  {label:'Organização da câmara fria', sev:'med'},
+  {label:'Registro de temperatura não atualizado', sev:'med'},
+  {label:'Limpeza de equipamentos pendente', sev:'low'},
+  {label:'Troca de uniforme não realizada', sev:'low'},
+];
+
+// ────────────────────────────────────────────────
+// ESTADO
+// ────────────────────────────────────────────────
+let periodoAtivo = 30;
+let filtroLoja = '';
+let filtroAvaliador = '';
+let filtroTipo = '';
+let charts = {};
+
+// ────────────────────────────────────────────────
+// FILTROS
+// ────────────────────────────────────────────────
+function dadosFiltrados(){
+  return AVALIACOES_BASE.filter(a=>{
+    if(a.diasAtras > periodoAtivo) return false;
+    if(filtroLoja && a.loja !== filtroLoja) return false;
+    if(filtroAvaliador && a.avaliador !== filtroAvaliador) return false;
+    if(filtroTipo && a.tipo !== filtroTipo) return false;
+    return true;
+  });
+}
+function dadosPeriodoAnterior(){
+  const ini = periodoAtivo, fim = periodoAtivo*2;
+  return AVALIACOES_BASE.filter(a=>a.diasAtras>ini && a.diasAtras<=fim);
+}
+
+function aplicarFiltros(){
+  filtroLoja = document.getElementById('filtroLoja').value;
+  filtroAvaliador = document.getElementById('filtroAvaliador').value;
+  filtroTipo = document.getElementById('filtroTipo').value;
+  renderAll();
+}
+
+function setPeriod(d, btn){
+  periodoAtivo = d;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+function popularFiltros(){
+  const sl = document.getElementById('filtroLoja');
+  LOJAS.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent='🏪 '+l; sl.appendChild(o); });
+  const sa = document.getElementById('filtroAvaliador');
+  AVALIADORES.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent='👤 '+a; sa.appendChild(o); });
+}
+
+// ────────────────────────────────────────────────
+// KPIs
+// ────────────────────────────────────────────────
+function renderKPIs(atual, anterior){
+  const scoreAtual = atual.length ? (atual.reduce((s,a)=>s+a.score,0)/atual.length).toFixed(1) : '–';
+  const scoreAnt   = anterior.length ? (anterior.reduce((s,a)=>s+a.score,0)/anterior.length).toFixed(1) : null;
+  const ncAtual    = atual.reduce((s,a)=>s+a.nc,0);
+  const ncAnt      = anterior.reduce((s,a)=>s+a.nc,0);
+  const lojasAtual = new Set(atual.map(a=>a.loja)).size;
+  const lojasAnt   = new Set(anterior.map(a=>a.loja)).size;
+
+  document.getElementById('kpiScore').textContent = scoreAtual !== '–' ? scoreAtual+'%' : '–';
+  document.getElementById('kpiAval').textContent  = atual.length;
+  document.getElementById('kpiNc').textContent    = ncAtual;
+  document.getElementById('kpiLojas').textContent = lojasAtual;
+
+  function delta(el, val, ant, invert=false){
+    if(ant===null){ el.innerHTML='<span style="color:var(--muted)">Sem comparativo</span>'; return; }
+    const diff = parseFloat(val)-parseFloat(ant);
+    const up   = invert ? diff<0 : diff>0;
+    const cl   = diff===0?'neu':up?'up':'down';
+    const arrow= diff===0?'→':up?'↑':'↓';
+    const abs  = Math.abs(diff).toFixed(diff%1===0?0:1);
+    el.className='kpi-delta '+cl;
+    el.innerHTML = `${arrow} ${abs} vs período anterior`;
+  }
+  delta(document.getElementById('kpiScoreDelta'), scoreAtual, scoreAnt);
+  delta(document.getElementById('kpiAvalDelta'),  atual.length, anterior.length);
+  delta(document.getElementById('kpiNcDelta'),    ncAtual, ncAnt, true);
+  delta(document.getElementById('kpiLojasDelta'), lojasAtual, lojasAnt);
+}
+
+// ────────────────────────────────────────────────
+// GRÁFICO EVOLUÇÃO
+// ────────────────────────────────────────────────
+function renderEvolucao(dados){
+  // Agrupa por semana ou dia dependendo do período
+  const grupos = {};
+  const fmt = periodoAtivo<=30 ? 'dia' : periodoAtivo<=90 ? 'semana' : 'mes';
+  dados.forEach(a=>{
+    const d = new Date(a.data+'T12:00:00');
+    let key;
+    if(fmt==='dia') key = a.data;
+    else if(fmt==='semana'){
+      const w = getWeek(d); key = `${d.getFullYear()}-S${w}`;
+    } else {
+      key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+    if(!grupos[key]) grupos[key]={sum:0,cnt:0,label:''};
+    grupos[key].sum+=a.score; grupos[key].cnt++;
+    if(fmt==='dia') grupos[key].label = d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    else if(fmt==='semana') grupos[key].label = 'Sem '+getWeek(d);
+    else grupos[key].label = d.toLocaleDateString('pt-BR',{month:'short'});
+  });
+  const keys = Object.keys(grupos).sort();
+  const labels = keys.map(k=>grupos[k].label);
+  const valores= keys.map(k=>parseFloat((grupos[k].sum/grupos[k].cnt).toFixed(1)));
+
+  document.getElementById('evolucaoSub').textContent = `(${labels.length} pontos)`;
+
+  if(charts.evolucao) charts.evolucao.destroy();
+  const ctx = document.getElementById('chartEvolucao').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,220);
+  grad.addColorStop(0,'rgba(232,82,42,.25)');
+  grad.addColorStop(1,'rgba(232,82,42,0)');
+  charts.evolucao = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Score médio',
+        data:valores,
+        borderColor:'#e8522a',
+        backgroundColor:grad,
+        borderWidth:2.5,
+        pointBackgroundColor:'#e8522a',
+        pointRadius:3,
+        pointHoverRadius:6,
+        tension:.38,
+        fill:true
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},color:'#8a8478',maxTicksLimit:8}},
+        y:{min:40,max:100,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:10},color:'#8a8478',callback:v=>v+'%'}}
+      }
+    }
+  });
+}
+
+function getWeek(d){
+  const onejan = new Date(d.getFullYear(),0,1);
+  return Math.ceil(((d-onejan)/86400000+onejan.getDay()+1)/7);
+}
+
+// ────────────────────────────────────────────────
+// DONUT
+// ────────────────────────────────────────────────
+function renderDonut(dados){
+  const ex  = dados.filter(a=>a.score>=90).length;
+  const bom = dados.filter(a=>a.score>=75&&a.score<90).length;
+  const reg = dados.filter(a=>a.score>=60&&a.score<75).length;
+  const ins = dados.filter(a=>a.score<60).length;
+
+  if(charts.donut) charts.donut.destroy();
+  const ctx = document.getElementById('chartDonut').getContext('2d');
+  charts.donut = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Excelente','Bom','Regular','Insuficiente'],
+      datasets:[{data:[ex,bom,reg,ins],backgroundColor:['#2a7d52','#c4a050','#e8522a','#c0392b'],borderWidth:0,hoverOffset:6}]
+    },
+    options:{responsive:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} aval.`}}},cutout:'65%'}
+  });
+
+  const leg = document.getElementById('donutLegend');
+  const itens = [
+    {cor:'#2a7d52',label:'Excelente (≥90%)',val:ex},
+    {cor:'#c4a050',label:'Bom (75–89%)',val:bom},
+    {cor:'#e8522a',label:'Regular (60–74%)',val:reg},
+    {cor:'#c0392b',label:'Insuf. (<60%)',val:ins},
+  ];
+  leg.innerHTML = itens.map(i=>`
+    <div style="display:flex;align-items:center;gap:7px">
+      <div style="width:10px;height:10px;border-radius:2px;background:${i.cor};flex-shrink:0"></div>
+      <span style="flex:1">${i.label}</span>
+      <b style="color:var(--dark)">${i.val}</b>
+    </div>`).join('');
+}
+
+// ────────────────────────────────────────────────
+// RANKING LOJAS
+// ────────────────────────────────────────────────
+function renderRanking(dados){
+  const map = {};
+  dados.forEach(a=>{
+    if(!map[a.loja]) map[a.loja]={sum:0,cnt:0};
+    map[a.loja].sum+=a.score; map[a.loja].cnt++;
+  });
+  const sorted = Object.entries(map).map(([l,v])=>({loja:l,score:parseFloat((v.sum/v.cnt).toFixed(1)),cnt:v.cnt}))
+    .sort((a,b)=>b.score-a.score);
+  const max = sorted[0]?.score||100;
+  const medals=['gold','silver','bronze'];
+  document.getElementById('rankingLojas').innerHTML = sorted.map((l,i)=>`
+    <div class="rank-item">
+      <div class="rank-pos ${medals[i]||''}">${i+1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${l.loja}</div>
+        <div class="rank-sub">${l.cnt} avaliação${l.cnt>1?'s':''}</div>
+      </div>
+      <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${(l.score/max*100).toFixed(0)}%;background:${l.score>=85?'var(--ok)':l.score>=70?'var(--warn)':'var(--nok)'}"></div></div>
+      <div class="rank-score">${l.score}%</div>
+    </div>`).join('') || '<div class="empty">Sem dados para o período</div>';
+}
+
+// ────────────────────────────────────────────────
+// NCs FREQUENTES
+// ────────────────────────────────────────────────
+function renderNCs(dados){
+  // Simula NCs distribuídas baseadas no volume real
+  const total = dados.reduce((s,a)=>s+a.nc,0);
+  const pesos = [.22,.17,.14,.12,.11,.10,.08,.06];
+  const ncData = NC_TIPOS.map((nc,i)=>({...nc, count:Math.round(total*pesos[i])}))
+    .sort((a,b)=>b.count-a.count);
+
+  document.getElementById('ncList').innerHTML = ncData.slice(0,6).map(nc=>{
+    const trend = rnd(0,2);
+    const trendCl = trend===0?'down':trend===1?'neu':'up';
+    const trendTx = trend===0?'↓ Melhora':trend===1?'→ Estável':'↑ Piora';
+    return `<div class="nc-item">
+      <div class="nc-dot ${nc.sev}"></div>
+      <div class="nc-text">${nc.label}</div>
+      <div class="nc-count">${nc.count}</div>
+      <div class="nc-trend ${trendCl}">${trendTx}</div>
+    </div>`;
+  }).join('') || '<div class="empty">Sem NCs no período</div>';
+}
+
+// ────────────────────────────────────────────────
+// AVALIADORES
+// ────────────────────────────────────────────────
+function renderAvaliadores(dados){
+  const map = {};
+  dados.forEach(a=>{
+    if(!map[a.avaliador]) map[a.avaliador]={sum:0,cnt:0};
+    map[a.avaliador].sum+=a.score; map[a.avaliador].cnt++;
+  });
+  const sorted = Object.entries(map).map(([n,v])=>({nome:n,score:parseFloat((v.sum/v.cnt).toFixed(1)),cnt:v.cnt}))
+    .sort((a,b)=>b.score-a.score);
+  document.getElementById('avalList').innerHTML = sorted.map(a=>{
+    const cl = a.score>=85?'ok':a.score>=70?'warn':'nok';
+    const ini = a.nome.split(' ').map(p=>p[0]).slice(0,2).join('');
+    return `<div class="aval-item">
+      <div class="aval-avatar">${ini}</div>
+      <div style="flex:1">
+        <div class="aval-name">${a.nome}</div>
+        <div class="aval-meta">${a.cnt} avaliação${a.cnt>1?'s':''}</div>
+      </div>
+      <div class="aval-score ${cl}">${a.score}%</div>
+    </div>`;
+  }).join('') || '<div class="empty">Sem dados</div>';
+}
+
+// ────────────────────────────────────────────────
+// RADAR CATEGORIAS
+// ────────────────────────────────────────────────
+function renderRadar(dados){
+  const sums = CATEGORIAS.map(()=>0);
+  const cnts = CATEGORIAS.map(()=>0);
+  dados.forEach(a=>{
+    a.catScores.forEach((v,i)=>{ sums[i]+=v; cnts[i]++; });
+  });
+  const vals = sums.map((s,i)=>cnts[i]?parseFloat((s/cnts[i]).toFixed(1)):0);
+
+  if(charts.radar) charts.radar.destroy();
+  const ctx = document.getElementById('chartRadar').getContext('2d');
+  charts.radar = new Chart(ctx,{
+    type:'radar',
+    data:{
+      labels:CATEGORIAS,
+      datasets:[{
+        label:'Score médio',
+        data:vals,
+        backgroundColor:'rgba(232,82,42,.15)',
+        borderColor:'#e8522a',
+        borderWidth:2,
+        pointBackgroundColor:'#e8522a',
+        pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{r:{
+        min:0,max:100,
+        ticks:{stepSize:25,font:{size:9},color:'#8a8478',backdropColor:'transparent'},
+        grid:{color:'rgba(0,0,0,.07)'},
+        pointLabels:{font:{size:11,family:'DM Sans'},color:'#181820'}
+      }}
+    }
+  });
+}
+
+// ────────────────────────────────────────────────
+// HISTÓRICO
+// ────────────────────────────────────────────────
+function renderHistorico(dados){
+  const sorted = [...dados].sort((a,b)=>b.data.localeCompare(a.data));
+  document.getElementById('histCount').textContent = `(${sorted.length} avaliações)`;
+  const stars = n=>'⭐'.repeat(n)+'☆'.repeat(5-n);
+  const scoreCl = s=>s>=85?'a':s>=70?'b':'c';
+  document.getElementById('histBody').innerHTML = sorted.slice(0,50).map(a=>`
+    <tr>
+      <td>${new Date(a.data+'T12:00:00').toLocaleDateString('pt-BR')}</td>
+      <td><span class="tag-loja">${a.loja}</span></td>
+      <td style="color:var(--muted);font-size:12px">${a.tipo}</td>
+      <td>${a.avaliador}</td>
+      <td><span class="score-badge ${scoreCl(a.score)}">${a.score}%</span></td>
+      <td><span class="stars-mini" title="${a.stars} estrelas">${stars(a.stars)}</span></td>
+      <td style="font-weight:600;color:${a.nc>5?'var(--nok)':a.nc>2?'var(--warn)':'var(--ok)'}">${a.nc}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Sem avaliações no período</td></tr>';
+}
+
+// ────────────────────────────────────────────────
+// RENDER ALL
+// ────────────────────────────────────────────────
+function renderAll(){
+  const atual    = dadosFiltrados();
+  const anterior = dadosPeriodoAnterior();
+  renderKPIs(atual, anterior);
+  renderEvolucao(atual);
+  renderDonut(atual);
+  renderRanking(atual);
+  renderNCs(atual);
+  renderAvaliadores(atual);
+  renderRadar(atual);
+  renderHistorico(atual);
+}
+
+// ────────────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  popularFiltros();
+  renderAll();
+});
+</script>
+</body>
+</html>

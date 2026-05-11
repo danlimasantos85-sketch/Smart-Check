@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartCheck — Multi-Cliente</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg:#f7f6f2; --surface:#fff; --surface2:#f0ede6; --border:#e2ddd5;
+  --dark:#181820; --dark2:#23232f;
+  --accent:#e8522a; --accent2:#c4a050;
+  --ok:#2a7d52; --nok:#c0392b; --warn:#b07d20;
+  --text:#181820; --muted:#8a8478; --radius:14px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  /* Tenant overrides (injetadas por JS) */
+  --t-primary:#e8522a; --t-accent:#c4a050;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── SCREENS ── */
+.screen{display:none}.screen.active{display:block}
+#screenLogin.active{display:flex}
+
+/* ══════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════ */
+#screenLogin{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--dark);position:relative;overflow:hidden}
+#screenLogin::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(196,160,80,.12),transparent);pointer-events:none}
+
+.login-logo{text-align:center;margin-bottom:36px;display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;z-index:1}
+.login-logo-img{width:72px;height:72px;border-radius:16px;object-fit:contain;display:none}
+.login-shield{filter:drop-shadow(0 6px 24px rgba(196,160,80,.45));width:72px;height:80px}
+.login-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#fff}
+.login-title span{color:var(--t-primary)}
+.login-subtitle{font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.4px}
+
+.login-box{background:#23232f;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1;border:1px solid rgba(255,255,255,.06)}
+.login-box label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.login-box input{background:#2e2e3e;border:1.5px solid #3a3a4e;border-radius:10px;padding:13px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;width:100%;transition:border-color .2s}
+.login-box input:focus{border-color:var(--t-primary)}
+.login-box input::placeholder{color:rgba(255,255,255,.2)}
+
+.codigo-wrap{position:relative}
+.codigo-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:rgba(255,255,255,.3);pointer-events:none;font-family:'Syne',sans-serif;font-weight:700}
+.codigo-wrap input{padding-left:26px;text-transform:uppercase;letter-spacing:1px}
+
+.btn-login{border:none;border-radius:12px;padding:15px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;width:100%;cursor:pointer;transition:opacity .2s;background:var(--t-primary);color:#fff}
+.btn-login:active{opacity:.85}
+.login-err{color:#ff6b5b;font-size:13px;text-align:center;display:none;padding:8px;background:rgba(255,107,91,.1);border-radius:8px}
+.login-hint{font-size:11px;color:rgba(255,255,255,.2);text-align:center;line-height:1.6}
+.login-hint b{color:rgba(255,255,255,.5)}
+.login-divider{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.15);font-size:11px}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+
+/* Super Admin link */
+.sa-link{font-size:11px;color:rgba(255,255,255,.2);text-align:center;cursor:pointer;transition:color .2s}
+.sa-link:hover{color:rgba(255,255,255,.5)}
+
+/* ══════════════════════════════════════════
+   SUPER ADMIN
+══════════════════════════════════════════ */
+#screenSuperAdmin{background:var(--bg)}
+.sa-header{background:var(--dark);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.sa-header h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.sa-header h1 span{color:var(--accent)}
+.sa-header p{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.sa-badge{background:rgba(196,160,80,.2);color:var(--accent2);font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.5px;border:1px solid rgba(196,160,80,.3)}
+.btn-logout-sa{background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:7px 12px;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+.sa-body{padding:20px 24px;max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* Tabs SA */
+.sa-tabs{display:flex;gap:4px;background:var(--surface);border-radius:12px;padding:4px;box-shadow:var(--shadow)}
+.sa-tab{flex:1;padding:10px;border:none;background:transparent;border-radius:9px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s}
+.sa-tab.active{background:var(--dark);color:#fff}
+
+/* KPI strip SA */
+.sa-kpi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sa-kpi{background:var(--surface);border-radius:12px;padding:16px;box-shadow:var(--shadow);border-left:3px solid var(--accent)}
+.sa-kpi.green{border-color:var(--ok)}.sa-kpi.gold{border-color:var(--accent2)}
+.sa-kpi-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sa-kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark)}
+
+/* Tenant cards */
+.tenant-grid{display:flex;flex-direction:column;gap:12px}
+.tenant-card{background:var(--surface);border-radius:14px;padding:18px;box-shadow:var(--shadow);display:flex;gap:14px;align-items:flex-start;border:1.5px solid var(--border);transition:border-color .2s}
+.tenant-card:hover{border-color:var(--accent)}
+.tenant-color-dot{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;font-family:'Syne',sans-serif}
+.tenant-info{flex:1;min-width:0}
+.tenant-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--dark)}
+.tenant-code{font-size:11px;color:var(--muted);margin-top:2px;font-family:'Syne',sans-serif;letter-spacing:.5px}
+.tenant-meta{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.tenant-chip{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.tenant-chip b{color:var(--text)}
+.tenant-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;font-family:'Syne',sans-serif;flex-shrink:0}
+.tenant-status.ativo{background:rgba(42,125,82,.1);color:var(--ok);border:1px solid rgba(42,125,82,.2)}
+.tenant-status.inativo{background:rgba(192,57,43,.1);color:var(--nok);border:1px solid rgba(192,57,43,.2)}
+.tenant-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.btn-edit{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.btn-edit:hover{background:#e8e4dc}
+.btn-toggle{border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.btn-toggle.deactivate{background:rgba(192,57,43,.1);color:var(--nok)}
+.btn-toggle.activate{background:rgba(42,125,82,.1);color:var(--ok)}
+
+/* ══════════════════════════════════════════
+   MODAL CRIAR/EDITAR TENANT
+══════════════════════════════════════════ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--dark)}
+.modal-sub{font-size:13px;color:var(--muted);margin-top:-12px;line-height:1.5}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.form-group input:focus,.form-group select:focus{border-color:var(--dark)}
+.form-group .hint{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+.color-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.color-input-wrap{display:flex;align-items:center;gap:8px}
+.color-swatch{width:36px;height:36px;border-radius:9px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;overflow:hidden;padding:0}
+.color-swatch input[type=color]{width:100%;height:100%;border:none;padding:0;cursor:pointer;opacity:0;position:absolute}
+.color-swatch{position:relative}
+.color-hex{flex:1;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);outline:none;text-transform:uppercase}
+
+/* PREVIEW */
+.preview-wrap{border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.preview-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.preview-card{padding:16px;display:flex;flex-direction:column;gap:12px}
+.preview-header{border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.preview-logo-box{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden}
+.preview-logo-box img{width:100%;height:100%;object-fit:contain}
+.preview-app-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff}
+.preview-app-name span{opacity:.7}
+.preview-btn{border:none;border-radius:9px;padding:11px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:default;color:#fff;text-align:center}
+.preview-login-box{background:#23232f;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.preview-input-mock{background:#2e2e3e;border-radius:7px;padding:9px 12px;font-size:12px;color:rgba(255,255,255,.3)}
+
+.modal-actions{display:flex;gap:10px;margin-top:4px}
+.btn-cancel{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+.btn-save{flex:2;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .2s;background:var(--dark)}
+.btn-save:active{opacity:.85}
+
+/* Logo upload */
+.logo-upload-wrap{display:flex;align-items:center;gap:12px}
+.logo-preview-box{width:56px;height:56px;border-radius:12px;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;flex-shrink:0;cursor:pointer;position:relative}
+.logo-preview-box img{width:100%;height:100%;object-fit:contain}
+.logo-preview-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.logo-upload-info{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ══════════════════════════════════════════
+   TENANT APP (simulação do app do cliente)
+══════════════════════════════════════════ */
+#screenTenantApp{background:var(--bg)}
+.tenant-app-header{padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.tenant-app-logo{display:flex;align-items:center;gap:10px}
+.tenant-app-logo-img{width:34px;height:34px;border-radius:8px;object-fit:contain;flex-shrink:0;display:none}
+.tenant-app-logo-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.tenant-app-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff}
+.tenant-app-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+.btn-logout-tenant{background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:7px 12px;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+.tenant-app-body{padding:20px;display:flex;flex-direction:column;gap:16px;max-width:600px;margin:0 auto}
+.welcome-card{border-radius:16px;padding:24px;color:#fff}
+.welcome-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px}
+.welcome-sub{font-size:13px;opacity:.7;line-height:1.5}
+.welcome-chips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.welcome-chip{background:rgba(255,255,255,.15);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600}
+
+.info-card{background:var(--surface);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.info-card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-row .val{font-weight:600;color:var(--dark)}
+
+.tenant-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 20px 22px;display:flex;gap:8px;z-index:100}
+.nav-btn{flex:1;border:none;border-radius:10px;padding:11px 6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;color:var(--muted);transition:all .2s}
+.nav-btn.active{color:#fff}
+.nav-btn .nav-icon{font-size:18px}
+
+/* ══════════════════════════════════════════
+   SHARED UTILS
+══════════════════════════════════════════ */
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px}
+.btn-primary{background:var(--dark);color:#fff;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;width:100%}
+.btn-primary:active{opacity:.85}
+.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.btn-sm:active{opacity:.8}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* Section header */
+.section-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--dark)}
+.section-sub{font-size:13px;color:var(--muted)}
+
+/* Stats SA */
+.sa-stat-table{width:100%;border-collapse:collapse;font-size:13px}
+.sa-stat-table th{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:7px 12px;text-align:left;border-bottom:1.5px solid var(--border)}
+.sa-stat-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.sa-stat-table tr:last-child td{border-bottom:none}
+.sa-stat-table tr:hover td{background:var(--surface2)}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.card,.tenant-card{animation:fadeUp .35s ease both}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════
+     TELA 1: LOGIN UNIFICADO
+══════════════════════════════ -->
+<div class="screen active" id="screenLogin">
+  <div class="login-logo" id="loginLogo">
+    <svg viewBox="0 0 68 76" fill="none" class="login-shield" id="loginShield">
+      <defs>
+        <linearGradient id="sg2" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#c4a050"/><stop offset="50%" stop-color="#e8d090"/><stop offset="100%" stop-color="#8a6820"/>
+        </linearGradient>
+      </defs>
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#sg2)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#sg2)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <img class="login-logo-img" id="loginLogoImg" src="" alt="Logo">
+    <div class="login-title" id="loginTitle">Smart<span>Check</span></div>
+    <div class="login-subtitle" id="loginSubtitle">Plataforma de Avaliação Operacional</div>
+  </div>
+  <div class="login-box">
+    <div>
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" oninput="resetLoginBrand()">
+    </div>
+    <div>
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••">
+    </div>
+    <div class="login-divider">código da empresa</div>
+    <div>
+      <label>Código da Rede</label>
+      <div class="codigo-wrap">
+        <input type="text" id="loginCodigo" placeholder="Ex: BURGUERKING" maxlength="20"
+          oninput="this.value=this.value.toUpperCase();previewTenantBrand(this.value)">
+      </div>
+      <div class="hint" style="font-size:11px;color:rgba(255,255,255,.2);margin-top:5px;line-height:1.5">
+        Deixe em branco para acessar como <b style="color:rgba(255,255,255,.4)">Super Admin</b>
+      </div>
+    </div>
+    <div class="login-err" id="loginErr">E-mail, senha ou código incorretos</div>
+    <button class="btn-login" id="btnLogin" onclick="fazerLogin()">Entrar</button>
+    <div class="login-hint">Não tem código? Peça ao administrador da sua rede.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     TELA 2: SUPER ADMIN
+══════════════════════════════ -->
+<div class="screen" id="screenSuperAdmin">
+  <div class="sa-header">
+    <div>
+      <h1>Smart<span>Check</span> <span style="color:var(--accent2);font-size:12px">SUPER ADMIN</span></h1>
+      <p>Painel de gerenciamento de clientes</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="sa-badge">⭐ MASTER</div>
+      <button class="btn-logout-sa" onclick="fazerLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="sa-body">
+
+    <!-- Tabs -->
+    <div class="sa-tabs">
+      <button class="sa-tab active" onclick="setSaTab('clientes',this)">🏢 Clientes</button>
+      <button class="sa-tab" onclick="setSaTab('stats',this)">📊 Visão Geral</button>
+      <button class="sa-tab" onclick="setSaTab('config',this)">⚙️ Config</button>
+    </div>
+
+    <!-- TAB: CLIENTES -->
+    <div id="saTabClientes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div class="section-title">Clientes Cadastrados</div>
+          <div class="section-sub" id="tenantCount">0 clientes ativos</div>
+        </div>
+        <button class="btn-sm" onclick="abrirModalNovo()">+ Novo Cliente</button>
+      </div>
+      <div class="tenant-grid" id="tenantGrid"></div>
+    </div>
+
+    <!-- TAB: STATS -->
+    <div id="saTabStats" style="display:none">
+      <div class="sa-kpi-strip" style="margin-bottom:16px">
+        <div class="sa-kpi">
+          <div class="sa-kpi-label">Total de Clientes</div>
+          <div class="sa-kpi-val" id="statTotalClientes">–</div>
+        </div>
+        <div class="sa-kpi green">
+          <div class="sa-kpi-label">Ativos</div>
+          <div class="sa-kpi-val" id="statAtivos">–</div>
+        </div>
+        <div class="sa-kpi gold">
+          <div class="sa-kpi-label">Usuários Totais</div>
+          <div class="sa-kpi-val" id="statUsuarios">–</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resumo por Cliente</div>
+        <div style="overflow-x:auto">
+          <table class="sa-stat-table">
+            <thead><tr><th>Cliente</th><th>Código</th><th>Usuários</th><th>Lojas</th><th>Aval. (mês)</th><th>Status</th></tr></thead>
+            <tbody id="statsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CONFIG -->
+    <div id="saTabConfig" style="display:none">
+      <div class="card">
+        <div class="card-title">🔐 Credenciais Super Admin</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="form-group">
+            <label>E-mail Master</label>
+            <input type="email" id="saEmail" value="admin@smartcheck.com.br">
+          </div>
+          <div class="form-group">
+            <label>Senha Master</label>
+            <input type="password" id="saSenha" value="master123">
+          </div>
+          <button class="btn-sm" onclick="showToast('✅ Credenciais salvas!')" style="width:100%">Salvar</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-title">🎨 Identidade padrão (sem código)</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Aparência exibida no login quando nenhum código é digitado.</p>
+        <div class="form-group">
+          <label>Nome do sistema</label>
+          <input type="text" id="defaultNome" value="SmartCheck">
+        </div>
+        <button class="btn-sm" style="width:100%;margin-top:10px" onclick="showToast('✅ Padrão salvo!')">Salvar padrão</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     TELA 3: APP DO TENANT
+══════════════════════════════ -->
+<div class="screen" id="screenTenantApp">
+  <div class="tenant-app-header" id="tenantHeader">
+    <div class="tenant-app-logo">
+      <div class="tenant-app-logo-icon" id="tenantLogoIcon"></div>
+      <img class="tenant-app-logo-img" id="tenantLogoImg" src="" alt="">
+      <div>
+        <div class="tenant-app-name" id="tenantAppName">–</div>
+        <div class="tenant-app-sub" id="tenantAppSub">–</div>
+      </div>
+    </div>
+    <button class="btn-logout-tenant" onclick="fazerLogout()">Sair</button>
+  </div>
+
+  <div class="tenant-app-body">
+    <div class="welcome-card" id="welcomeCard">
+      <div class="welcome-title" id="welcomeTitle">Olá! 👋</div>
+      <div class="welcome-sub" id="welcomeSub">Bem-vindo ao painel da sua rede.</div>
+      <div class="welcome-chips">
+        <div class="welcome-chip">✅ Avaliações</div>
+        <div class="welcome-chip">📊 Relatórios</div>
+        <div class="welcome-chip">🏪 Lojas</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Informações da Rede</div>
+      <div class="info-row"><span>Nome da empresa</span><span class="val" id="infoNome">–</span></div>
+      <div class="info-row"><span>Código de acesso</span><span class="val" id="infoCodigo">–</span></div>
+      <div class="info-row"><span>Plano</span><span class="val" id="infoPlano">–</span></div>
+      <div class="info-row"><span>Lojas cadastradas</span><span class="val" id="infoLojas">–</span></div>
+      <div class="info-row"><span>Usuários</span><span class="val" id="infoUsers">–</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">🎨 Identidade Visual da Rede</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div id="brandPreviewCircle" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600" id="brandPreviewName">–</div>
+          <div style="font-size:11px;color:var(--muted)">Identidade aplicada em todo o sistema</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Cor Principal</div>
+          <div id="corPrincipalBox" style="height:28px;border-radius:7px;margin-bottom:4px"></div>
+          <div style="font-size:11px;font-family:'Syne',sans-serif;font-weight:700" id="corPrincipalHex">–</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Cor de Destaque</div>
+          <div id="corDestaqueBox" style="height:28px;border-radius:7px;margin-bottom:4px"></div>
+          <div style="font-size:11px;font-family:'Syne',sans-serif;font-weight:700" id="corDestaqueHex">–</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:90px"></div>
+  </div>
+
+  <div class="tenant-nav" id="tenantNav">
+    <button class="nav-btn active" id="navHome" onclick="setNavActive(this)">
+      <span class="nav-icon">🏠</span>Início
+    </button>
+    <button class="nav-btn" onclick="setNavActive(this)">
+      <span class="nav-icon">📋</span>Avaliar
+    </button>
+    <button class="nav-btn" onclick="setNavActive(this)">
+      <span class="nav-icon">📊</span>Relatórios
+    </button>
+    <button class="nav-btn" onclick="setNavActive(this)">
+      <span class="nav-icon">⚙️</span>Config
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODAL: CRIAR / EDITAR CLIENTE
+══════════════════════════════ -->
+<div class="modal-bg" id="modalTenant">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTenantTitle">Novo Cliente</div>
+    <div class="modal-sub">Preencha as informações para criar o ambiente isolado do cliente.</div>
+
+    <input type="hidden" id="editTenantId">
+
+    <div class="form-group">
+      <label>Nome da Empresa / Rede</label>
+      <input type="text" id="tNome" placeholder="Ex: Burguer King Brasil" oninput="atualizarPreview()">
+    </div>
+
+    <div class="form-group">
+      <label>Código de acesso <span style="font-weight:400;text-transform:none;letter-spacing:0">(único, maiúsculas, sem espaço)</span></label>
+      <input type="text" id="tCodigo" placeholder="Ex: BKBRASIL" maxlength="20"
+        oninput="this.value=this.value.toUpperCase().replace(/\s/g,'');atualizarPreview()">
+      <div class="hint">Os funcionários usarão este código no login. Não pode ser alterado depois.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Plano</label>
+      <select id="tPlano" onchange="atualizarPreview()">
+        <option value="Starter">🌱 Starter — até 3 lojas / 10 usuários</option>
+        <option value="Pro" selected>🚀 Pro — até 20 lojas / 50 usuários</option>
+        <option value="Enterprise">🏢 Enterprise — ilimitado</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Logo da empresa</label>
+      <div class="logo-upload-wrap">
+        <div class="logo-preview-box" id="logoPreviewBox" onclick="document.getElementById('tLogoInput').click()">
+          <span id="logoEmoji">🏢</span>
+          <img id="logoPreviewImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:contain">
+          <input type="file" id="tLogoInput" accept="image/*" onchange="onLogoSelect(event)" style="display:none">
+        </div>
+        <div class="logo-upload-info">
+          Clique para enviar o logo.<br>
+          PNG transparente recomendado.<br>
+          <span style="color:var(--accent);cursor:pointer" onclick="removerLogo()">Remover logo</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-pair">
+      <div class="form-group">
+        <label>Cor Principal</label>
+        <div class="color-input-wrap">
+          <div class="color-swatch" id="swatchPrimary" style="background:#e8522a">
+            <input type="color" id="tColorPrimary" value="#e8522a" oninput="syncColor('primary')">
+          </div>
+          <input type="text" class="color-hex" id="tColorPrimaryHex" value="#E8522A" maxlength="7"
+            oninput="syncColorFromHex('primary')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cor de Destaque</label>
+        <div class="color-input-wrap">
+          <div class="color-swatch" id="swatchAccent" style="background:#c4a050">
+            <input type="color" id="tColorAccent" value="#c4a050" oninput="syncColor('accent')">
+          </div>
+          <input type="text" class="color-hex" id="tColorAccentHex" value="#C4A050" maxlength="7"
+            oninput="syncColorFromHex('accent')">
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-wrap">
+      <div class="preview-label">👁️ Preview — como o cliente vai ver</div>
+      <div class="preview-card">
+        <div class="preview-header" id="previewHeader" style="background:#181820">
+          <div class="preview-logo-box" id="previewLogoBox" style="background:#e8522a">?</div>
+          <div>
+            <div class="preview-app-name" id="previewAppName">–</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.35)">Avaliação Operacional</div>
+          </div>
+        </div>
+        <div class="preview-login-box">
+          <div class="preview-input-mock">email@empresa.com</div>
+          <div class="preview-input-mock">••••••••</div>
+          <div class="preview-input-mock" id="previewCodigoMock" style="color:rgba(255,255,255,.5);font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1px">CODIGO</div>
+          <div class="preview-btn" id="previewBtn" style="background:#e8522a">Entrar</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" onclick="salvarTenant()">💾 Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DADOS MOCK — Tenants
+// ─────────────────────────────────────────────
+let tenants = [
+  {id:1, nome:'Burguer Palace', codigo:'BPALACE', plano:'Enterprise', primary:'#e8522a', accent:'#c4a050', logo:'', ativo:true, lojas:12, usuarios:34, avalisMes:89},
+  {id:2, nome:'Pizza Mondo',    codigo:'PMONDO',  plano:'Pro',        primary:'#1a6b3c', accent:'#f5a623', logo:'', ativo:true, lojas:6,  usuarios:18, avalisMes:41},
+  {id:3, nome:'Sushi Zen',      codigo:'SUSHIZEN', plano:'Starter',   primary:'#2c3e7a', accent:'#e74c3c', logo:'', ativo:true, lojas:2,  usuarios:8,  avalisMes:12},
+  {id:4, nome:'Churrascaria Gaúcha', codigo:'CGAUCHA', plano:'Pro',  primary:'#6b2c1a', accent:'#c4a050', logo:'', ativo:false, lojas:4, usuarios:11, avalisMes:0},
+];
+let nextId = 5;
+let currentUser = null;   // { role:'super'|'tenant', tenant?:obj }
+let logoDataUrl = '';
+let editingId = null;
+
+// Credenciais demo
+const SUPER_CRED = {email:'admin@smartcheck.com.br', senha:'master123'};
+
+// ─────────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────────
+function previewTenantBrand(codigo){
+  const t = tenants.find(x=>x.codigo===codigo && x.ativo);
+  const shield = document.getElementById('loginShield');
+  const logoImg = document.getElementById('loginLogoImg');
+  const title   = document.getElementById('loginTitle');
+  const sub     = document.getElementById('loginSubtitle');
+  const btn     = document.getElementById('btnLogin');
+
+  if(t){
+    document.documentElement.style.setProperty('--t-primary', t.primary);
+    document.documentElement.style.setProperty('--t-accent',  t.accent);
+    if(t.logo){
+      shield.style.display='none'; logoImg.style.display='block'; logoImg.src=t.logo;
+    } else {
+      shield.style.display='block'; logoImg.style.display='none';
+    }
+    title.innerHTML = t.nome;
+    sub.textContent = 'Sistema de Avaliação Operacional';
+    btn.textContent = `Entrar como ${t.nome}`;
+  } else {
+    resetLoginBrand();
+  }
+}
+
+function resetLoginBrand(){
+  document.documentElement.style.setProperty('--t-primary','#e8522a');
+  document.documentElement.style.setProperty('--t-accent','#c4a050');
+  document.getElementById('loginShield').style.display='block';
+  document.getElementById('loginLogoImg').style.display='none';
+  document.getElementById('loginTitle').innerHTML='Smart<span style="color:var(--t-primary)">Check</span>';
+  document.getElementById('loginSubtitle').textContent='Plataforma de Avaliação Operacional';
+  document.getElementById('btnLogin').textContent='Entrar';
+}
+
+function fazerLogin(){
+  const email  = document.getElementById('loginEmail').value.trim();
+  const senha  = document.getElementById('loginPass').value;
+  const codigo = document.getElementById('loginCodigo').value.trim().toUpperCase();
+  const err    = document.getElementById('loginErr');
+  err.style.display='none';
+
+  // Super admin
+  if(!codigo){
+    if(email===SUPER_CRED.email && senha===SUPER_CRED.senha){
+      currentUser = {role:'super'};
+      showScreen('screenSuperAdmin');
+      renderSuperAdmin();
+      return;
+    }
+    err.textContent='E-mail ou senha incorretos.'; err.style.display='block'; return;
+  }
+
+  // Tenant user
+  const t = tenants.find(x=>x.codigo===codigo && x.ativo);
+  if(!t){ err.textContent='Código de empresa não encontrado ou inativo.'; err.style.display='block'; return; }
+  if(!email || !senha){ err.textContent='Preencha e-mail e senha.'; err.style.display='block'; return; }
+
+  currentUser = {role:'tenant', tenant:t};
+  aplicarTema(t);
+  showScreen('screenTenantApp');
+  renderTenantApp(t);
+}
+
+function fazerLogout(){
+  currentUser=null; resetLoginBrand();
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginCodigo').value='';
+  document.getElementById('loginErr').style.display='none';
+  showScreen('screenLogin');
+  resetTema();
+}
+
+// ─────────────────────────────────────────────
+// TEMA
+// ─────────────────────────────────────────────
+function aplicarTema(t){
+  document.documentElement.style.setProperty('--t-primary', t.primary);
+  document.documentElement.style.setProperty('--t-accent',  t.accent);
+  document.documentElement.style.setProperty('--accent',    t.primary);
+}
+function resetTema(){
+  document.documentElement.style.setProperty('--t-primary','#e8522a');
+  document.documentElement.style.setProperty('--t-accent','#c4a050');
+  document.documentElement.style.setProperty('--accent','#e8522a');
+}
+
+// ─────────────────────────────────────────────
+// SUPER ADMIN — RENDER
+// ─────────────────────────────────────────────
+function renderSuperAdmin(){
+  renderTenantGrid();
+  renderStats();
+  const ativos = tenants.filter(t=>t.ativo).length;
+  document.getElementById('tenantCount').textContent = `${ativos} cliente${ativos!==1?'s':''} ativo${ativos!==1?'s':''}`;
+}
+
+function renderTenantGrid(){
+  const grid = document.getElementById('tenantGrid');
+  grid.innerHTML = tenants.map(t=>{
+    const ini = t.nome.split(' ').map(p=>p[0]).slice(0,2).join('');
+    return `<div class="tenant-card">
+      <div class="tenant-color-dot" style="background:${t.primary}">${t.logo?`<img src="${t.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:10px">`:ini}</div>
+      <div class="tenant-info">
+        <div class="tenant-name">${t.nome}</div>
+        <div class="tenant-code">🔑 ${t.codigo}</div>
+        <div class="tenant-meta">
+          <span class="tenant-chip">🏪 <b>${t.lojas}</b> lojas</span>
+          <span class="tenant-chip">👥 <b>${t.usuarios}</b> usuários</span>
+          <span class="tenant-chip">📋 <b>${t.avalisMes}</b> aval./mês</span>
+          <span class="tenant-chip" style="background:${t.plano==='Enterprise'?'rgba(196,160,80,.1)':t.plano==='Pro'?'rgba(42,125,82,.1)':'rgba(138,132,120,.1)'};padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;color:var(--dark)">
+            ${t.plano==='Enterprise'?'🏢':t.plano==='Pro'?'🚀':'🌱'} ${t.plano}
+          </span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
+        <span class="tenant-status ${t.ativo?'ativo':'inativo'}">${t.ativo?'● Ativo':'○ Inativo'}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn-edit" onclick="abrirModalEditar(${t.id})">✎ Editar</button>
+          <button class="btn-toggle ${t.ativo?'deactivate':'activate'}" onclick="toggleTenant(${t.id})">${t.ativo?'Desativar':'Ativar'}</button>
+        </div>
+        <button class="btn-edit" style="width:100%;font-size:11px;color:var(--ok)" onclick="simularAcessoTenant(${t.id})">👁️ Simular acesso</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(){
+  const ativos = tenants.filter(t=>t.ativo).length;
+  const totalUsers = tenants.reduce((s,t)=>s+t.usuarios,0);
+  document.getElementById('statTotalClientes').textContent = tenants.length;
+  document.getElementById('statAtivos').textContent = ativos;
+  document.getElementById('statUsuarios').textContent = totalUsers;
+  document.getElementById('statsBody').innerHTML = tenants.map(t=>`
+    <tr>
+      <td><b>${t.nome}</b></td>
+      <td style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px">${t.codigo}</td>
+      <td>${t.usuarios}</td>
+      <td>${t.lojas}</td>
+      <td>${t.avalisMes}</td>
+      <td><span class="status-dot" style="background:${t.ativo?'var(--ok)':'var(--nok)'}"></span>${t.ativo?'Ativo':'Inativo'}</td>
+    </tr>`).join('');
+}
+
+function setSaTab(tab, btn){
+  document.querySelectorAll('.sa-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('saTabClientes').style.display = tab==='clientes'?'block':'none';
+  document.getElementById('saTabStats').style.display    = tab==='stats'?'block':'none';
+  document.getElementById('saTabConfig').style.display   = tab==='config'?'block':'none';
+  if(tab==='stats') renderStats();
+}
+
+function toggleTenant(id){
+  const t = tenants.find(x=>x.id===id); if(!t) return;
+  t.ativo=!t.ativo;
+  renderSuperAdmin();
+  showToast(t.ativo?`✅ ${t.nome} ativado`:`⛔ ${t.nome} desativado`);
+}
+
+function simularAcessoTenant(id){
+  const t = tenants.find(x=>x.id===id); if(!t) return;
+  currentUser={role:'tenant',tenant:t};
+  aplicarTema(t);
+  showScreen('screenTenantApp');
+  renderTenantApp(t);
+  showToast(`👁️ Simulando acesso: ${t.nome}`);
+}
+
+// ─────────────────────────────────────────────
+// MODAL CRIAR / EDITAR TENANT
+// ─────────────────────────────────────────────
+function abrirModalNovo(){
+  editingId=null; logoDataUrl='';
+  document.getElementById('modalTenantTitle').textContent='Novo Cliente';
+  document.getElementById('editTenantId').value='';
+  document.getElementById('tNome').value='';
+  document.getElementById('tCodigo').value='';
+  document.getElementById('tCodigo').disabled=false;
+  document.getElementById('tPlano').value='Pro';
+  setColor('primary','#e8522a'); setColor('accent','#c4a050');
+  removerLogo();
+  atualizarPreview();
+  document.getElementById('modalTenant').classList.add('open');
+}
+
+function abrirModalEditar(id){
+  const t=tenants.find(x=>x.id===id); if(!t) return;
+  editingId=id; logoDataUrl=t.logo||'';
+  document.getElementById('modalTenantTitle').textContent='Editar Cliente';
+  document.getElementById('editTenantId').value=id;
+  document.getElementById('tNome').value=t.nome;
+  document.getElementById('tCodigo').value=t.codigo;
+  document.getElementById('tCodigo').disabled=true; // código imutável
+  document.getElementById('tPlano').value=t.plano;
+  setColor('primary',t.primary); setColor('accent',t.accent);
+  if(t.logo){ mostrarLogoPreview(t.logo); } else { removerLogo(); }
+  atualizarPreview();
+  document.getElementById('modalTenant').classList.add('open');
+}
+
+function fecharModal(){
+  document.getElementById('modalTenant').classList.remove('open');
+}
+
+function salvarTenant(){
+  const nome   = document.getElementById('tNome').value.trim();
+  const codigo = document.getElementById('tCodigo').value.trim().toUpperCase();
+  const plano  = document.getElementById('tPlano').value;
+  const primary= document.getElementById('tColorPrimary').value;
+  const accent = document.getElementById('tColorAccent').value;
+
+  if(!nome){ showToast('⚠️ Nome obrigatório'); return; }
+  if(!editingId && !codigo){ showToast('⚠️ Código obrigatório'); return; }
+  if(!editingId && tenants.find(t=>t.codigo===codigo)){ showToast('⚠️ Código já existe'); return; }
+
+  if(editingId){
+    const t=tenants.find(x=>x.id===editingId);
+    Object.assign(t,{nome,plano,primary,accent,logo:logoDataUrl});
+  } else {
+    tenants.push({id:nextId++,nome,codigo,plano,primary,accent,logo:logoDataUrl,ativo:true,lojas:0,usuarios:0,avalisMes:0});
+  }
+  fecharModal();
+  renderSuperAdmin();
+  showToast(editingId?'✅ Cliente atualizado!':'✅ Cliente criado!');
+}
+
+// ─────────────────────────────────────────────
+// LOGO
+// ─────────────────────────────────────────────
+function onLogoSelect(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ logoDataUrl=ev.target.result; mostrarLogoPreview(ev.target.result); atualizarPreview(); };
+  reader.readAsDataURL(file);
+}
+function mostrarLogoPreview(src){
+  document.getElementById('logoEmoji').style.display='none';
+  const img=document.getElementById('logoPreviewImg');
+  img.src=src; img.style.display='block';
+}
+function removerLogo(){
+  logoDataUrl='';
+  document.getElementById('logoEmoji').style.display='block';
+  const img=document.getElementById('logoPreviewImg');
+  img.src=''; img.style.display='none';
+  document.getElementById('tLogoInput').value='';
+  atualizarPreview();
+}
+
+// ─────────────────────────────────────────────
+// CORES
+// ─────────────────────────────────────────────
+function setColor(type,hex){
+  const picker = document.getElementById(type==='primary'?'tColorPrimary':'tColorAccent');
+  const hexInput= document.getElementById(type==='primary'?'tColorPrimaryHex':'tColorAccentHex');
+  const swatch  = document.getElementById(type==='primary'?'swatchPrimary':'swatchAccent');
+  picker.value=hex; hexInput.value=hex.toUpperCase(); swatch.style.background=hex;
+}
+function syncColor(type){
+  const picker=document.getElementById(type==='primary'?'tColorPrimary':'tColorAccent');
+  const hex=picker.value;
+  document.getElementById(type==='primary'?'tColorPrimaryHex':'tColorAccentHex').value=hex.toUpperCase();
+  document.getElementById(type==='primary'?'swatchPrimary':'swatchAccent').style.background=hex;
+  atualizarPreview();
+}
+function syncColorFromHex(type){
+  let hex=document.getElementById(type==='primary'?'tColorPrimaryHex':'tColorAccentHex').value;
+  if(!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+  document.getElementById(type==='primary'?'tColorPrimary':'tColorAccent').value=hex;
+  document.getElementById(type==='primary'?'swatchPrimary':'swatchAccent').style.background=hex;
+  atualizarPreview();
+}
+
+// ─────────────────────────────────────────────
+// PREVIEW DO MODAL
+// ─────────────────────────────────────────────
+function atualizarPreview(){
+  const nome    = document.getElementById('tNome').value||'Nome da Empresa';
+  const codigo  = document.getElementById('tCodigo').value||'CODIGO';
+  const primary = document.getElementById('tColorPrimary').value||'#e8522a';
+  const ini     = nome.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()||'?';
+
+  document.getElementById('previewAppName').textContent = nome;
+  document.getElementById('previewBtn').style.background = primary;
+  document.getElementById('previewCodigoMock').textContent = codigo;
+
+  const logoBox = document.getElementById('previewLogoBox');
+  logoBox.style.background = primary;
+  if(logoDataUrl){
+    logoBox.innerHTML=`<img src="${logoDataUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:8px">`;
+  } else {
+    logoBox.textContent=ini;
+  }
+}
+
+// ─────────────────────────────────────────────
+// TENANT APP — RENDER
+// ─────────────────────────────────────────────
+function renderTenantApp(t){
+  // Header
+  const header = document.getElementById('tenantHeader');
+  header.style.background = t.primary;
+
+  const icon = document.getElementById('tenantLogoIcon');
+  const img  = document.getElementById('tenantLogoImg');
+  const ini  = t.nome.split(' ').map(p=>p[0]).slice(0,2).join('');
+  if(t.logo){
+    icon.style.display='none'; img.style.display='block'; img.src=t.logo;
+  } else {
+    icon.style.display='flex'; img.style.display='none';
+    icon.style.background=t.accent; icon.textContent=ini;
+  }
+
+  document.getElementById('tenantAppName').textContent=t.nome;
+  document.getElementById('tenantAppSub').textContent=`Código: ${t.codigo}`;
+
+  // Welcome
+  const wc=document.getElementById('welcomeCard');
+  wc.style.background=`linear-gradient(135deg,${t.primary},${t.accent})`;
+  document.getElementById('welcomeTitle').textContent=`Bem-vindo, ${t.nome}! 👋`;
+  document.getElementById('welcomeSub').textContent=`Ambiente isolado e personalizado para a sua rede.`;
+
+  // Info
+  document.getElementById('infoNome').textContent=t.nome;
+  document.getElementById('infoCodigo').textContent=t.codigo;
+  document.getElementById('infoPlano').textContent=t.plano;
+  document.getElementById('infoLojas').textContent=t.lojas;
+  document.getElementById('infoUsers').textContent=t.usuarios;
+
+  // Brand preview
+  const bpc=document.getElementById('brandPreviewCircle');
+  bpc.style.background=t.primary;
+  bpc.textContent=ini;
+  document.getElementById('brandPreviewName').textContent=t.nome;
+  document.getElementById('corPrincipalBox').style.background=t.primary;
+  document.getElementById('corPrincipalHex').textContent=t.primary.toUpperCase();
+  document.getElementById('corDestaqueBox').style.background=t.accent;
+  document.getElementById('corDestaqueHex').textContent=t.accent.toUpperCase();
+
+  // Nav
+  const nav=document.getElementById('tenantNav');
+  nav.querySelectorAll('.nav-btn.active').forEach(b=>{
+    b.style.background=t.primary; b.style.borderRadius='10px';
+  });
+}
+
+function setNavActive(btn){
+  const nav=document.getElementById('tenantNav');
+  nav.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.remove('active'); b.style.background=''; b.style.color='';
+  });
+  btn.classList.add('active');
+  const t=currentUser?.tenant;
+  if(t){ btn.style.background=t.primary; btn.style.color='#fff'; }
+  showToast('🚧 Módulo em breve nesta demo');
+}
+
+// ─────────────────────────────────────────────
+// SCREENS
+// ─────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// Fechar modal clicando fora
+document.getElementById('modalTenant').addEventListener('click',function(e){
+  if(e.target===this) fecharModal();
+});
+
+// Init
+renderTenantGrid();
+</script>
+</body>
+</html>
