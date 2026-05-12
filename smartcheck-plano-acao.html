@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartCheck — Plano de Ação</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f6f2; --surface:#fff; --surface2:#f0ede6; --border:#e2ddd5;
+  --dark:#181820; --dark2:#23232f; --accent:#e8522a;
+  --ok:#2a7d52; --nok:#c0392b; --warn:#b07d20;
+  --text:#181820; --muted:#8a8478; --radius:14px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* ── HEADER ── */
+.app-header{background:var(--dark);padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-logo h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.header-logo h1 span{color:var(--accent)}
+.header-logo p{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.user-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer;transition:background .2s}
+.user-pill:hover{background:rgba(255,255,255,.18)}
+.notif-btn{position:relative;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.15);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;border:none;transition:background .2s}
+.notif-btn:hover{background:rgba(255,255,255,.18)}
+.notif-badge{position:absolute;top:-3px;right:-3px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:9px;padding:0 4px;display:flex;align-items:center;justify-content:center;border:2px solid var(--dark);font-family:'Syne',sans-serif}
+
+/* ── TABS ── */
+.tab-bar{background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;position:sticky;top:51px;z-index:99;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{flex-shrink:0;padding:13px 18px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab-item.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-badge{background:var(--nok);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:99px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif}
+.tab-badge.warn{background:var(--warn)}
+.tab-badge.ok{background:var(--ok)}
+
+/* ── BODY ── */
+.page{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-width:760px;margin:0 auto}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-select{background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer}
+.filter-select:focus{border-color:var(--dark)}
+.search-box{flex:1;min-width:180px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);outline:none}
+.search-box:focus{border-color:var(--dark)}
+
+/* ── CARD NC ── */
+.nc-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1.5px solid var(--border);transition:border-color .2s}
+.nc-card:hover{border-color:#ccc}
+.nc-card.status-aberto{border-left:4px solid var(--nok)}
+.nc-card.status-em_andamento{border-left:4px solid var(--warn)}
+.nc-card.status-resolvido{border-left:4px solid var(--ok)}
+.nc-card.status-vencido{border-left:4px solid #8a2be2}
+
+.nc-header{padding:14px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.nc-icon-box{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.nc-icon-box.op{background:rgba(192,57,43,.1)}
+.nc-icon-box.doc{background:rgba(176,125,32,.1)}
+.nc-icon-box.qa{background:rgba(42,125,82,.1)}
+
+.nc-main{flex:1;min-width:0}
+.nc-title{font-size:14px;font-weight:600;color:var(--dark);line-height:1.4;margin-bottom:5px}
+.nc-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.nc-chip{font-size:10px;font-weight:600;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:3px}
+.nc-chip.loja{background:var(--surface2);color:var(--muted)}
+.nc-chip.cat{background:rgba(232,82,42,.1);color:var(--accent)}
+.nc-chip.resp{background:rgba(42,125,82,.1);color:var(--ok)}
+.nc-chip.prazo{background:rgba(176,125,32,.1);color:var(--warn)}
+.nc-chip.prazo.vencido{background:rgba(142,43,226,.1);color:#8a2be2}
+.nc-chip.prazo.critico{background:rgba(192,57,43,.1);color:var(--nok)}
+
+.nc-status-badge{flex-shrink:0;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.3px;align-self:flex-start}
+.nc-status-badge.aberto{background:rgba(192,57,43,.1);color:var(--nok);border:1px solid rgba(192,57,43,.2)}
+.nc-status-badge.em_andamento{background:rgba(176,125,32,.1);color:var(--warn);border:1px solid rgba(176,125,32,.2)}
+.nc-status-badge.resolvido{background:rgba(42,125,82,.1);color:var(--ok);border:1px solid rgba(42,125,82,.2)}
+.nc-status-badge.vencido{background:rgba(142,43,226,.1);color:#8a2be2;border:1px solid rgba(142,43,226,.2)}
+
+/* ── EXPANDED BODY ── */
+.nc-body{display:none;border-top:1px solid var(--border);padding:14px 16px;flex-direction:column;gap:12px}
+.nc-body.open{display:flex}
+
+.nc-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.nc-detail-grid{grid-template-columns:1fr}}
+.nc-detail-item{background:var(--surface2);border-radius:10px;padding:10px 12px}
+.nc-detail-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.nc-detail-val{font-size:13px;font-weight:600;color:var(--dark);line-height:1.4}
+
+/* Linha do tempo / histórico */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:10px;position:relative}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:13px;top:26px;bottom:-4px;width:1.5px;background:var(--border)}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:2px solid var(--border);background:var(--surface)}
+.tl-dot.ok{background:rgba(42,125,82,.1);border-color:var(--ok)}
+.tl-dot.warn{background:rgba(176,125,32,.1);border-color:var(--warn)}
+.tl-dot.nok{background:rgba(192,57,43,.1);border-color:var(--nok)}
+.tl-dot.info{background:rgba(232,82,42,.1);border-color:var(--accent)}
+.tl-content{flex:1;padding-bottom:14px}
+.tl-text{font-size:13px;color:var(--dark);line-height:1.5}
+.tl-text b{font-weight:600}
+.tl-date{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Ações */
+.nc-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-action{border:none;border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px}
+.btn-action.primary{background:var(--dark);color:#fff}
+.btn-action.success{background:rgba(42,125,82,.12);color:var(--ok);border:1.5px solid rgba(42,125,82,.3)}
+.btn-action.danger{background:rgba(192,57,43,.08);color:var(--nok);border:1.5px solid rgba(192,57,43,.2)}
+.btn-action.ghost{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border)}
+.btn-action:active{opacity:.8}
+.btn-action:disabled{opacity:.4;cursor:not-allowed}
+
+/* Foto evidência */
+.foto-thumb{width:64px;height:64px;border-radius:9px;object-fit:cover;border:1.5px solid var(--border);cursor:pointer}
+.fotos-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.red::before{background:var(--nok)}.kpi.warn::before{background:var(--warn)}
+.kpi.ok::before{background:var(--ok)}.kpi.purple::before{background:#8a2be2}
+.kpi-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.open{display:flex}
+@media(min-width:600px){.modal-bg{align-items:center}}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;box-shadow:0 -8px 40px rgba(0,0,0,.18)}
+@media(min-width:600px){.modal-box{border-radius:20px}}
+.modal-drag{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto -8px}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--dark)}
+.modal-sub{font-size:13px;color:var(--muted);margin-top:-10px;line-height:1.5}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--dark)}
+.form-group textarea{resize:none}
+.modal-actions{display:flex;gap:10px}
+.btn-cancel{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+.btn-save{flex:2;background:var(--dark);border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .2s}
+.btn-save:active{opacity:.85}
+.btn-success-full{background:var(--ok);border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;width:100%;transition:opacity .2s}
+.btn-success-full:active{opacity:.85}
+
+/* Alerta regra */
+.regra-box{background:rgba(196,160,80,.1);border:1.5px solid rgba(196,160,80,.3);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--dark);line-height:1.6}
+.regra-box b{color:var(--warn)}
+
+/* Notificação panel */
+.notif-panel{position:fixed;top:52px;right:0;width:320px;background:var(--surface);border-left:1px solid var(--border);border-bottom:1px solid var(--border);box-shadow:-4px 4px 20px rgba(0,0,0,.12);z-index:200;max-height:calc(100vh - 52px);overflow-y:auto;display:none}
+.notif-panel.open{display:block}
+.notif-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.notif-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--dark)}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:hover{background:var(--surface2)}
+.notif-item.unread{background:rgba(232,82,42,.04);border-left:3px solid var(--accent)}
+.notif-item-title{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px}
+.notif-item-sub{font-size:11px;color:var(--muted);line-height:1.5}
+.notif-item-time{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+
+/* Empty */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;display:block;margin-bottom:10px}
+.empty-text{font-size:14px;font-weight:500}
+.empty-sub{font-size:12px;margin-top:4px}
+
+/* Progress bar */
+.progress-mini{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:6px}
+.progress-mini-fill{height:100%;border-radius:99px;transition:width .4s}
+
+/* Prioridade indicator */
+.prioridade-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.prioridade-dot.alta{background:var(--nok)}
+.prioridade-dot.media{background:var(--warn)}
+.prioridade-dot.baixa{background:var(--muted)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.nc-card{animation:fadeUp .3s ease both}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-header">
+    <div class="notif-panel-title">🔔 Notificações</div>
+    <button style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer" onclick="toggleNotif()">Fechar</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="header-left">
+    <svg viewBox="0 0 68 76" fill="none" style="width:28px;height:32px;flex-shrink:0">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4a050"/><stop offset="50%" stop-color="#e8d090"/><stop offset="100%" stop-color="#8a6820"/></linearGradient></defs>
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#sg)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#sg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-logo">
+      <h1>Smart<span>Check</span></h1>
+      <p>Plano de Ação</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="notif-btn" onclick="toggleNotif()">
+      🔔<span class="notif-badge" id="notifBadge">3</span>
+    </button>
+    <div class="user-pill" onclick="trocarUsuario()">
+      <span id="userLabel">👤 Carlos (Gerente)</span> ↕
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab-item active" onclick="setTab('abertos',this)">
+    ⚠️ Em aberto <span class="tab-badge" id="badgeAbertos">–</span>
+  </div>
+  <div class="tab-item" onclick="setTab('andamento',this)">
+    🔧 Em andamento <span class="tab-badge warn" id="badgeAndamento">–</span>
+  </div>
+  <div class="tab-item" onclick="setTab('resolvidos',this)">
+    ✅ Resolvidos <span class="tab-badge ok" id="badgeResolvidos">–</span>
+  </div>
+  <div class="tab-item" onclick="setTab('vencidos',this)">
+    🚨 Vencidos <span class="tab-badge" id="badgeVencidos" style="background:#8a2be2">–</span>
+  </div>
+  <div class="tab-item" onclick="setTab('visao',this)">
+    📊 Visão Geral
+  </div>
+</div>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<div id="tabAbertos" class="tab-content page">
+  <div class="filter-bar">
+    <input class="search-box" type="text" placeholder="🔍 Buscar NC..." oninput="filtrar(this.value)">
+    <select class="filter-select" id="filtroLoja" onchange="filtrar()">
+      <option value="">🏪 Todas as lojas</option>
+    </select>
+    <select class="filter-select" id="filtroCategoria" onchange="filtrar()">
+      <option value="">📋 Todas as categorias</option>
+      <option value="Operacional">Operacional</option>
+      <option value="Qualidade">Qualidade Assegurada</option>
+      <option value="Documentação">Documentação</option>
+    </select>
+  </div>
+  <div id="listaAbertos"></div>
+</div>
+
+<div id="tabAndamento" class="tab-content page" style="display:none">
+  <div id="listaAndamento"></div>
+</div>
+
+<div id="tabResolvidos" class="tab-content page" style="display:none">
+  <div id="listaResolvidos"></div>
+</div>
+
+<div id="tabVencidos" class="tab-content page" style="display:none">
+  <div id="listaVencidos"></div>
+</div>
+
+<!-- VISÃO GERAL -->
+<div id="tabVisao" class="tab-content page" style="display:none">
+  <div class="kpi-strip">
+    <div class="kpi red"><div class="kpi-label">Em aberto</div><div class="kpi-val" id="vKpiAbertos">–</div><div class="kpi-sub">aguardando ação</div></div>
+    <div class="kpi warn"><div class="kpi-label">Em andamento</div><div class="kpi-val" id="vKpiAndamento">–</div><div class="kpi-sub">responsável atuando</div></div>
+    <div class="kpi ok"><div class="kpi-label">Resolvidos</div><div class="kpi-val" id="vKpiResolvidos">–</div><div class="kpi-sub">validados e fechados</div></div>
+    <div class="kpi purple"><div class="kpi-label">Vencidos</div><div class="kpi-val" id="vKpiVencidos">–</div><div class="kpi-sub">prazo expirado</div></div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">Taxa de resolução por responsável</div>
+    <div id="resolucaoRanking"></div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">NCs por categoria</div>
+    <div id="catBreakdown"></div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">Tempo médio de resolução</div>
+    <div id="tempoResolucao" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--dark)">–<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:6px">dias em média</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Baseado nas NCs resolvidas no período</div>
+  </div>
+</div>
+
+<!-- ── MODAL: ATRIBUIR RESPONSÁVEL ── -->
+<div class="modal-bg" id="modalAtribuir">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-title">📋 Atribuir Responsável</div>
+    <div class="modal-sub" id="modalAtribuirDesc">–</div>
+
+    <div class="regra-box">
+      <b>Regra de atribuição:</b><br>
+      🔴 NCs <b>Operacionais e de QA</b> → Gerente da loja<br>
+      📄 NCs de <b>Documentação</b> → Supervisor ou Franqueado<br>
+      🎯 <b>Consultor</b> pode atribuir livremente para Gerente, Supervisor ou Franqueado<br>
+      O sistema pré-seleciona o responsável correto, mas o Consultor pode escolher qualquer perfil.
+    </div>
+
+    <div class="form-group">
+      <label>Responsável pela resolução</label>
+      <select id="selectResponsavel">
+        <option value="">Selecione...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Prazo para resolução</label>
+      <input type="date" id="inputPrazo">
+    </div>
+
+    <div class="form-group">
+      <label>Plano de ação (o que deve ser feito)</label>
+      <textarea id="inputPlanoAcao" rows="3" placeholder="Descreva as ações necessárias para resolver esta NC..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Prioridade</label>
+      <select id="selectPrioridade">
+        <option value="alta">🔴 Alta — resolver em 24h</option>
+        <option value="media" selected>🟡 Média — resolver em 3 dias</option>
+        <option value="baixa">⚪ Baixa — resolver em 7 dias</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modalAtribuir')">Cancelar</button>
+      <button class="btn-save" onclick="salvarAtribuicao()">✅ Atribuir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: REGISTRAR PROGRESSO ── -->
+<div class="modal-bg" id="modalProgresso">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-title">🔧 Registrar Progresso</div>
+    <div class="modal-sub">Atualize o status e descreva o que foi feito.</div>
+
+    <div class="form-group">
+      <label>O que foi feito até agora?</label>
+      <textarea id="inputProgresso" rows="3" placeholder="Descreva as ações realizadas..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Status atual</label>
+      <select id="selectStatusProgresso">
+        <option value="em_andamento">🔧 Ainda em andamento</option>
+        <option value="aguardando">⏳ Aguardando insumo/aprovação</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modalProgresso')">Cancelar</button>
+      <button class="btn-save" onclick="salvarProgresso()">Salvar atualização</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: RESOLVER NC ── -->
+<div class="modal-bg" id="modalResolver">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-title">✅ Marcar como Resolvido</div>
+    <div class="modal-sub">Apenas o responsável atribuído pode concluir. O superior imediato será notificado automaticamente.</div>
+
+    <div class="form-group">
+      <label>Como foi resolvido?</label>
+      <textarea id="inputResolucao" rows="3" placeholder="Descreva detalhadamente a solução aplicada..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Evidência (foto da resolução — opcional)</label>
+      <input type="file" accept="image/*" id="inputEvidencia" onchange="previewEvidencia(event)" style="font-size:13px">
+      <div id="evidenciaPreview" style="margin-top:8px"></div>
+    </div>
+
+    <div style="background:rgba(42,125,82,.08);border:1.5px solid rgba(42,125,82,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ok);line-height:1.6">
+      🔔 O <b>superior imediato</b> receberá uma notificação assim que você confirmar a resolução.
+    </div>
+
+    <button class="btn-success-full" onclick="confirmarResolucao()">✅ Confirmar Resolução</button>
+    <button class="btn-cancel" style="width:100%;text-align:center" onclick="fecharModal('modalResolver')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// DADOS
+// ─────────────────────────────────────────
+const USUARIOS = [
+  {id:1, nome:'Carlos Mendes',   cargo:'Gerente',    loja:'Unidade Centro', superior:'Ana Lima'},
+  {id:2, nome:'Ana Lima',        cargo:'Supervisor',  loja:null,             superior:'Ricardo Souza'},
+  {id:3, nome:'Ricardo Souza',   cargo:'Franqueado',  loja:null,             superior:null},
+  {id:4, nome:'Paula Ferreira',  cargo:'Gerente',     loja:'Unidade Norte',  superior:'Ana Lima'},
+  {id:5, nome:'Marcos Oliveira', cargo:'Gerente',     loja:'Unidade Sul',    superior:'Ana Lima'},
+];
+
+function prazoRelativo(dias){
+  const d=new Date(); d.setDate(d.getDate()+dias);
+  return d.toISOString().split('T')[0];
+}
+function prazoPassado(dias){
+  const d=new Date(); d.setDate(d.getDate()-dias);
+  return d.toISOString().split('T')[0];
+}
+
+let NCS = [
+  {id:1, titulo:'Temperatura da câmara fria fora do padrão', categoria:'Operacional', loja:'Unidade Centro',
+   avaliador:'Carlos Mendes', dataAval:'2026-05-08', status:'aberto', prioridade:'alta',
+   descricao:'Câmara registrou 12°C durante a visita. Padrão exige máximo 4°C para laticínios.',
+   fotos:['🧊'], responsavel:null, prazo:null, planoAcao:null, historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Carlos Mendes</b> durante Avaliação Geral.',data:'08/05/2026 09:14',dot:'nok'}
+   ]},
+  {id:2, titulo:'Registro de temperatura não atualizado há 3 dias', categoria:'Documentação', loja:'Unidade Centro',
+   avaliador:'Carlos Mendes', dataAval:'2026-05-08', status:'em_andamento', prioridade:'media',
+   descricao:'Planilha de controle de temperatura sem registros desde 05/05/2026.',
+   fotos:[], responsavel:'Ana Lima', prazo:prazoRelativo(2), planoAcao:'Atualizar planilha diariamente e designar responsável fixo.', historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Carlos Mendes</b>.',data:'08/05/2026 09:20',dot:'nok'},
+     {tipo:'info',texto:'Responsável atribuído: <b>Ana Lima (Supervisor)</b>. Prazo: '+prazoRelativo(2)+'.',data:'08/05/2026 10:05',dot:'info'},
+     {tipo:'warn',texto:'<b>Ana Lima</b> registrou progresso: "Planilha atualizada para hoje. Designei Carlos como responsável diário."',data:'09/05/2026 14:30',dot:'warn'},
+   ]},
+  {id:3, titulo:'Ausência de EPI na cozinha — 2 funcionários', categoria:'Operacional', loja:'Unidade Norte',
+   avaliador:'Paula Ferreira', dataAval:'2026-05-07', status:'resolvido', prioridade:'alta',
+   descricao:'Dois colaboradores manipulando alimentos sem luvas e touca.',
+   fotos:['🧤'], responsavel:'Paula Ferreira', prazo:prazoPassado(1), planoAcao:'Substituir EPIs danificados e reforçar treinamento.', historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Paula Ferreira</b>.',data:'07/05/2026 11:00',dot:'nok'},
+     {tipo:'info',texto:'Responsável atribuído: <b>Paula Ferreira (Gerente)</b>.',data:'07/05/2026 11:30',dot:'info'},
+     {tipo:'ok',texto:'<b>Paula Ferreira</b> marcou como resolvido: "EPIs substituídos. Treinamento realizado com toda a equipe."',data:'09/05/2026 08:00',dot:'ok'},
+     {tipo:'ok',texto:'✅ Superior <b>Ana Lima</b> foi notificada da resolução.',data:'09/05/2026 08:01',dot:'ok'},
+   ], resolucao:'EPIs substituídos. Treinamento realizado com toda a equipe.',dataResolucao:'09/05/2026'},
+  {id:4, titulo:'Alvará sanitário vencido', categoria:'Documentação', loja:'Unidade Sul',
+   avaliador:'Carlos Mendes', dataAval:'2026-05-05', status:'vencido', prioridade:'alta',
+   descricao:'Alvará sanitário vencido em 30/04/2026. Operação em risco.',
+   fotos:[], responsavel:'Ricardo Souza', prazo:prazoPassado(3), planoAcao:'Protocolar renovação na Vigilância Sanitária.', historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Carlos Mendes</b>.',data:'05/05/2026 10:00',dot:'nok'},
+     {tipo:'info',texto:'Responsável atribuído: <b>Ricardo Souza (Franqueado)</b>. Prazo: '+prazoPassado(3)+'.',data:'05/05/2026 10:30',dot:'info'},
+     {tipo:'nok',texto:'⏰ Prazo venceu sem resolução. Alerta enviado ao superior.',data:prazoPassado(3)+' 23:59',dot:'nok'},
+   ]},
+  {id:5, titulo:'Limpeza do exaustor pendente', categoria:'Operacional', loja:'Unidade Centro',
+   avaliador:'Carlos Mendes', dataAval:'2026-05-10', status:'aberto', prioridade:'baixa',
+   descricao:'Exaustor da cozinha com acúmulo de gordura visível. Último registro de limpeza: março.',
+   fotos:[], responsavel:null, prazo:null, planoAcao:null, historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Carlos Mendes</b> durante Avaliação Geral.',data:'10/05/2026 14:20',dot:'nok'}
+   ]},
+  {id:6, titulo:'Higienização das mãos inadequada observada', categoria:'Qualidade', loja:'Unidade Norte',
+   avaliador:'Paula Ferreira', dataAval:'2026-05-09', status:'aberto', prioridade:'alta',
+   descricao:'3 colaboradores observados não seguindo o protocolo de lavagem de mãos ao retornar ao posto.',
+   fotos:[], responsavel:null, prazo:null, planoAcao:null, historico:[
+     {tipo:'nok',texto:'NC registrada por <b>Paula Ferreira</b>.',data:'09/05/2026 09:45',dot:'nok'}
+   ]},
+];
+
+let notificacoes = [
+  {id:1, titulo:'NC resolvida: EPI na cozinha', sub:'Paula Ferreira (Unidade Norte) resolveu a NC de ausência de EPI.', tempo:'há 1 hora', lida:false},
+  {id:2, titulo:'Prazo vencido: Alvará sanitário', sub:'Ricardo Souza não resolveu a NC a tempo. Ação necessária.', tempo:'há 2 horas', lida:false},
+  {id:3, titulo:'Nova NC atribuída a você', sub:'Ana Lima atribuiu: Registro de temperatura não atualizado.', tempo:'há 3 horas', lida:false},
+];
+
+const USUARIOS_SIMULAR = [
+  {id:1, label:'👤 Carlos (Gerente)', nome:'Carlos Mendes', cargo:'Gerente', loja:'Unidade Centro'},
+  {id:2, label:'👤 Ana (Supervisora)', nome:'Ana Lima', cargo:'Supervisor', loja:null},
+  {id:3, label:'👤 Ricardo (Franqueado)', nome:'Ricardo Souza', cargo:'Franqueado', loja:null},
+  {id:4, label:'👤 Paula (Gerente)', nome:'Paula Ferreira', cargo:'Gerente', loja:'Unidade Norte'},
+  {id:5, label:'🎯 Lucas (Consultor)', nome:'Lucas Teixeira', cargo:'Consultor', loja:null},
+];
+let usuarioAtual = USUARIOS_SIMULAR[0];
+let userSimIdx = 0;
+
+let tabAtiva = 'abertos';
+let ncAtiva  = null;
+let ncEmAcao = null;
+
+// ─────────────────────────────────────────
+// USUÁRIO SIMULADO
+// ─────────────────────────────────────────
+function trocarUsuario(){
+  userSimIdx = (userSimIdx+1) % USUARIOS_SIMULAR.length;
+  usuarioAtual = USUARIOS_SIMULAR[userSimIdx];
+  document.getElementById('userLabel').textContent = usuarioAtual.label;
+  renderTudo();
+  showToast(`Visualizando como: ${usuarioAtual.nome}`);
+}
+
+// ─────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────
+function setTab(tab, el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab'+cap(tab)).style.display='flex';
+  el.classList.add('active');
+  tabAtiva=tab;
+  if(tab==='visao') renderVisao();
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+
+// ─────────────────────────────────────────
+// RENDER PRINCIPAL
+// ─────────────────────────────────────────
+function renderTudo(){
+  const abertos   = NCS.filter(n=>n.status==='aberto');
+  const andamento = NCS.filter(n=>n.status==='em_andamento');
+  const resolvidos= NCS.filter(n=>n.status==='resolvido');
+  const vencidos  = NCS.filter(n=>n.status==='vencido');
+
+  document.getElementById('badgeAbertos').textContent   = abertos.length;
+  document.getElementById('badgeAndamento').textContent  = andamento.length;
+  document.getElementById('badgeResolvidos').textContent = resolvidos.length;
+  document.getElementById('badgeVencidos').textContent   = vencidos.length;
+
+  renderLista('listaAbertos',   abertos);
+  renderLista('listaAndamento', andamento);
+  renderLista('listaResolvidos',resolvidos);
+  renderLista('listaVencidos',  vencidos);
+  popularFiltros();
+  renderNotificacoes();
+}
+
+function renderLista(elId, lista){
+  const el = document.getElementById(elId);
+  if(!lista.length){
+    el.innerHTML=`<div class="empty-state"><span class="empty-icon">${elId.includes('Resolvidos')?'✅':'📋'}</span><div class="empty-text">${elId.includes('Resolvidos')?'Nenhuma NC resolvida ainda':'Nenhuma NC neste status'}</div></div>`;
+    return;
+  }
+  el.innerHTML = lista.map(nc=>renderCard(nc)).join('');
+}
+
+function renderCard(nc){
+  const prazoStr = nc.prazo ? formatPrazo(nc.prazo) : null;
+  const catIcon  = {Operacional:'🍳',Documentação:'📄',Qualidade:'🔬'}[nc.categoria]||'📋';
+  const catClass = {Operacional:'op',Documentação:'doc',Qualidade:'qa'}[nc.categoria]||'op';
+  const prioLabel= {alta:'🔴 Alta',media:'🟡 Média',baixa:'⚪ Baixa'}[nc.prioridade];
+
+  const fotoHtml = nc.fotos.length
+    ? `<div class="fotos-row">${nc.fotos.map(f=>`<div class="foto-thumb" style="display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--surface2)">${f}</div>`).join('')}</div>`
+    : '';
+
+  const tlHtml = nc.historico.map(h=>`
+    <div class="tl-item">
+      <div class="tl-dot ${h.dot}">${h.dot==='ok'?'✓':h.dot==='nok'?'✕':h.dot==='warn'?'!':'→'}</div>
+      <div class="tl-content">
+        <div class="tl-text">${h.texto}</div>
+        <div class="tl-date">${h.data}</div>
+      </div>
+    </div>`).join('');
+
+  const resolucaoHtml = nc.resolucao
+    ? `<div style="background:rgba(42,125,82,.08);border:1.5px solid rgba(42,125,82,.2);border-radius:10px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">✅ Resolução registrada em ${nc.dataResolucao}</div>
+        <div style="font-size:13px;color:var(--dark);line-height:1.5">${nc.resolucao}</div>
+       </div>`
+    : '';
+
+  const acoesHtml = renderAcoes(nc);
+
+  const prazoChip = prazoStr
+    ? `<span class="nc-chip prazo ${prazoStr.cl}">${prazoStr.icone} ${prazoStr.texto}</span>`
+    : '';
+
+  return `<div class="nc-card status-${nc.status}" id="ncCard${nc.id}">
+    <div class="nc-header" onclick="toggleCard(${nc.id})">
+      <div class="nc-icon-box ${catClass}">${catIcon}</div>
+      <div class="nc-main">
+        <div class="nc-title">${nc.titulo}</div>
+        <div class="nc-meta">
+          <span class="nc-chip loja">🏪 ${nc.loja}</span>
+          <span class="nc-chip cat">${nc.categoria}</span>
+          ${nc.responsavel?`<span class="nc-chip resp">👤 ${nc.responsavel}</span>`:''}
+          ${prazoChip}
+          <span style="font-size:10px;color:var(--muted);font-weight:600">${prioLabel}</span>
+        </div>
+      </div>
+      <span class="nc-status-badge ${nc.status}">${statusLabel(nc.status)}</span>
+    </div>
+    <div class="nc-body" id="ncBody${nc.id}">
+      <div style="font-size:13px;color:var(--dark);line-height:1.6;background:var(--surface2);border-radius:9px;padding:11px 13px">${nc.descricao}</div>
+      ${fotoHtml}
+      <div class="nc-detail-grid">
+        <div class="nc-detail-item"><div class="nc-detail-label">Avaliador</div><div class="nc-detail-val">${nc.avaliador}</div></div>
+        <div class="nc-detail-item"><div class="nc-detail-label">Data da avaliação</div><div class="nc-detail-val">${nc.dataAval}</div></div>
+        ${nc.responsavel?`<div class="nc-detail-item"><div class="nc-detail-label">Responsável</div><div class="nc-detail-val">${nc.responsavel}</div></div>`:''}
+        ${nc.prazo?`<div class="nc-detail-item"><div class="nc-detail-label">Prazo</div><div class="nc-detail-val">${nc.prazo}</div></div>`:''}
+        ${nc.planoAcao?`<div class="nc-detail-item" style="grid-column:1/-1"><div class="nc-detail-label">Plano de ação</div><div class="nc-detail-val">${nc.planoAcao}</div></div>`:''}
+      </div>
+      ${resolucaoHtml}
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Histórico</div>
+        <div class="timeline">${tlHtml}</div>
+      </div>
+      <div class="nc-actions">${acoesHtml}</div>
+    </div>
+  </div>`;
+}
+
+function renderAcoes(nc){
+  const euSouResponsavel = nc.responsavel === usuarioAtual.nome;
+  const euSouAdmin = ['Supervisor','Franqueado'].includes(usuarioAtual.cargo);
+  const euSouConsultor = usuarioAtual.cargo === 'Consultor';
+  let html = '';
+
+  if(nc.status==='aberto'){
+    if(euSouAdmin || euSouConsultor){
+      html += `<button class="btn-action primary" onclick="abrirAtribuir(${nc.id})">📋 Atribuir responsável</button>`;
+    }
+  }
+  if(nc.status==='em_andamento'){
+    if(euSouResponsavel){
+      html += `<button class="btn-action success" onclick="abrirResolver(${nc.id})">✅ Marcar resolvido</button>`;
+      html += `<button class="btn-action ghost" onclick="abrirProgresso(${nc.id})">🔧 Atualizar progresso</button>`;
+    } else {
+      html += `<button class="btn-action ghost" disabled title="Apenas o responsável pode resolver">🔒 Aguardando ${nc.responsavel}</button>`;
+      if(euSouAdmin || euSouConsultor){
+        html += `<button class="btn-action ghost" onclick="abrirAtribuir(${nc.id})">↺ Reatribuir</button>`;
+      }
+    }
+  }
+  if(nc.status==='vencido' && (euSouAdmin || euSouConsultor)){
+    html += `<button class="btn-action danger" onclick="abrirAtribuir(${nc.id})">🚨 Reatribuir urgente</button>`;
+  }
+  if(nc.status==='resolvido' && (euSouAdmin || euSouConsultor)){
+    html += `<button class="btn-action ghost" onclick="abrirProgresso(${nc.id})">💬 Adicionar comentário</button>`;
+  }
+  return html||'<span style="font-size:12px;color:var(--muted)">Sem ações disponíveis para seu perfil.</span>';
+}
+
+function toggleCard(id){
+  const body = document.getElementById('ncBody'+id);
+  body.classList.toggle('open');
+}
+
+// ─────────────────────────────────────────
+// PRAZO HELPER
+// ─────────────────────────────────────────
+function formatPrazo(prazoStr){
+  const hoje  = new Date(); hoje.setHours(0,0,0,0);
+  const prazo = new Date(prazoStr+'T12:00:00');
+  const diff  = Math.round((prazo-hoje)/86400000);
+  if(diff<0) return {texto:`Venceu há ${Math.abs(diff)}d`,cl:'vencido',icone:'🚨'};
+  if(diff===0) return {texto:'Vence hoje',cl:'critico',icone:'⏰'};
+  if(diff<=2)  return {texto:`Vence em ${diff}d`,cl:'critico',icone:'⚠️'};
+  return {texto:`Prazo: ${diff}d`,cl:'',icone:'📅'};
+}
+
+function statusLabel(s){
+  return {aberto:'● Aberto',em_andamento:'⟳ Em andamento',resolvido:'✓ Resolvido',vencido:'✕ Vencido'}[s]||s;
+}
+
+// ─────────────────────────────────────────
+// MODAL ATRIBUIR
+// ─────────────────────────────────────────
+function abrirAtribuir(id){
+  ncEmAcao=id;
+  const nc = NCS.find(n=>n.id===id);
+  document.getElementById('modalAtribuirDesc').textContent = nc.titulo;
+
+  // Sugestão automática de responsável
+  const sel = document.getElementById('selectResponsavel');
+  sel.innerHTML='';
+  const euSouConsultorAtrib = usuarioAtual.cargo === 'Consultor';
+
+  if(euSouConsultorAtrib){
+    // Consultor vê todos os perfis elegíveis, sem restrição de categoria
+    USUARIOS.filter(u=>['Gerente','Supervisor','Franqueado'].includes(u.cargo)).forEach(u=>{
+      const opt=document.createElement('option'); opt.value=u.nome;
+      opt.textContent=`👤 ${u.nome} — ${u.cargo}${u.loja?' ('+u.loja+')':''}`;
+      sel.appendChild(opt);
+    });
+  } else if(nc.categoria==='Operacional'||nc.categoria==='Qualidade'){
+    const gerentes = USUARIOS.filter(u=>u.cargo==='Gerente' && u.loja===nc.loja);
+    const sugerido = gerentes[0]?.nome||null;
+    USUARIOS.filter(u=>u.cargo==='Gerente').forEach(u=>{
+      const opt=document.createElement('option'); opt.value=u.nome; opt.textContent=`👤 ${u.nome} — Gerente (${u.loja})`;
+      if(u.nome===sugerido) opt.selected=true; sel.appendChild(opt);
+    });
+  } else {
+    const sups = USUARIOS.filter(u=>u.cargo==='Supervisor'||u.cargo==='Franqueado');
+    const sugerido = sups[0]?.nome||null;
+    sups.forEach(u=>{
+      const opt=document.createElement('option'); opt.value=u.nome; opt.textContent=`👤 ${u.nome} — ${u.cargo}`;
+      if(u.nome===sugerido) opt.selected=true; sel.appendChild(opt);
+    });
+  }
+
+  // Prazo sugerido por prioridade
+  const diasPrazo = {alta:1, media:3, baixa:7}[nc.prioridade]||3;
+  document.getElementById('inputPrazo').value = prazoRelativo(diasPrazo);
+  document.getElementById('inputPlanoAcao').value = nc.planoAcao||'';
+  document.getElementById('selectPrioridade').value = nc.prioridade;
+  document.getElementById('modalAtribuir').classList.add('open');
+}
+
+function salvarAtribuicao(){
+  const nc = NCS.find(n=>n.id===ncEmAcao); if(!nc) return;
+  const resp   = document.getElementById('selectResponsavel').value;
+  const prazo  = document.getElementById('inputPrazo').value;
+  const plano  = document.getElementById('inputPlanoAcao').value.trim();
+  const prio   = document.getElementById('selectPrioridade').value;
+  if(!resp||!prazo||!plano){showToast('⚠️ Preencha todos os campos'); return;}
+
+  nc.responsavel = resp;
+  nc.prazo = prazo;
+  nc.planoAcao = plano;
+  nc.prioridade = prio;
+  nc.status = 'em_andamento';
+  nc.historico.push({
+    tipo:'info',
+    texto:`Responsável atribuído: <b>${resp}</b>. Prazo: ${prazo}. Plano: "${plano}"`,
+    data: new Date().toLocaleString('pt-BR'),
+    dot:'info'
+  });
+
+  fecharModal('modalAtribuir');
+  renderTudo();
+  setTab('andamento', document.querySelectorAll('.tab-item')[1]);
+  showToast(`✅ Atribuído para ${resp}`);
+  adicionarNotif(`📋 NC atribuída a ${resp}`, `"${nc.titulo}" — prazo: ${prazo}`);
+}
+
+// ─────────────────────────────────────────
+// MODAL PROGRESSO
+// ─────────────────────────────────────────
+function abrirProgresso(id){
+  ncEmAcao=id;
+  document.getElementById('inputProgresso').value='';
+  document.getElementById('modalProgresso').classList.add('open');
+}
+function salvarProgresso(){
+  const nc = NCS.find(n=>n.id===ncEmAcao); if(!nc) return;
+  const txt = document.getElementById('inputProgresso').value.trim();
+  if(!txt){showToast('⚠️ Descreva o progresso'); return;}
+  nc.historico.push({
+    tipo:'warn',
+    texto:`<b>${usuarioAtual.nome}</b> atualizou: "${txt}"`,
+    data: new Date().toLocaleString('pt-BR'),
+    dot:'warn'
+  });
+  fecharModal('modalProgresso');
+  renderTudo();
+  showToast('📝 Progresso registrado!');
+}
+
+// ─────────────────────────────────────────
+// MODAL RESOLVER
+// ─────────────────────────────────────────
+function abrirResolver(id){
+  ncEmAcao=id;
+  document.getElementById('inputResolucao').value='';
+  document.getElementById('evidenciaPreview').innerHTML='';
+  document.getElementById('modalResolver').classList.add('open');
+}
+function confirmarResolucao(){
+  const nc = NCS.find(n=>n.id===ncEmAcao); if(!nc) return;
+  const txt = document.getElementById('inputResolucao').value.trim();
+  if(!txt){showToast('⚠️ Descreva a resolução'); return;}
+
+  const superior = USUARIOS.find(u=>u.nome===nc.responsavel)?.superior || 'Supervisor';
+  nc.status = 'resolvido';
+  nc.resolucao = txt;
+  nc.dataResolucao = new Date().toLocaleDateString('pt-BR');
+  nc.historico.push({tipo:'ok',texto:`<b>${usuarioAtual.nome}</b> marcou como resolvido: "${txt}"`,data:new Date().toLocaleString('pt-BR'),dot:'ok'});
+  nc.historico.push({tipo:'ok',texto:`✅ Notificação enviada ao superior <b>${superior}</b>.`,data:new Date().toLocaleString('pt-BR'),dot:'ok'});
+
+  fecharModal('modalResolver');
+  renderTudo();
+  setTab('resolvidos', document.querySelectorAll('.tab-item')[2]);
+  showToast(`✅ Resolvido! ${superior} foi notificado.`);
+  adicionarNotif(`✅ NC resolvida por ${usuarioAtual.nome}`, `"${nc.titulo}" foi marcada como resolvida.`);
+}
+function previewEvidencia(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    document.getElementById('evidenciaPreview').innerHTML=`<img src="${ev.target.result}" style="max-width:100%;border-radius:10px;border:1.5px solid var(--border)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─────────────────────────────────────────
+// VISÃO GERAL
+// ─────────────────────────────────────────
+function renderVisao(){
+  const abertos   = NCS.filter(n=>n.status==='aberto').length;
+  const andamento = NCS.filter(n=>n.status==='em_andamento').length;
+  const resolvidos= NCS.filter(n=>n.status==='resolvido').length;
+  const vencidos  = NCS.filter(n=>n.status==='vencido').length;
+
+  document.getElementById('vKpiAbertos').textContent   = abertos;
+  document.getElementById('vKpiAndamento').textContent  = andamento;
+  document.getElementById('vKpiResolvidos').textContent = resolvidos;
+  document.getElementById('vKpiVencidos').textContent   = vencidos;
+
+  // Ranking resolução por responsável
+  const mapa = {};
+  NCS.forEach(nc=>{
+    if(!nc.responsavel) return;
+    if(!mapa[nc.responsavel]) mapa[nc.responsavel]={total:0,resolvidos:0};
+    mapa[nc.responsavel].total++;
+    if(nc.status==='resolvido') mapa[nc.responsavel].resolvidos++;
+  });
+  const ranked = Object.entries(mapa).map(([nome,v])=>({nome,pct:v.total?Math.round(v.resolvidos/v.total*100):0,...v})).sort((a,b)=>b.pct-a.pct);
+  document.getElementById('resolucaoRanking').innerHTML = ranked.map(r=>`
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px">
+        <span style="font-weight:600">${r.nome}</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:800;color:${r.pct>=70?'var(--ok)':r.pct>=40?'var(--warn)':'var(--nok)'}">${r.pct}%</span>
+      </div>
+      <div class="progress-mini"><div class="progress-mini-fill" style="width:${r.pct}%;background:${r.pct>=70?'var(--ok)':r.pct>=40?'var(--warn)':'var(--nok)'}"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${r.resolvidos} de ${r.total} NCs resolvidas</div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:13px">Nenhuma NC atribuída ainda.</div>';
+
+  // Por categoria
+  const cats = ['Operacional','Documentação','Qualidade'];
+  const catCount = cats.map(c=>({cat:c,total:NCS.filter(n=>n.categoria===c).length,resolvidos:NCS.filter(n=>n.categoria===c&&n.status==='resolvido').length}));
+  document.getElementById('catBreakdown').innerHTML = catCount.map(c=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;flex:1">${c.cat}</div>
+      <div style="font-size:12px;color:var(--muted)">${c.resolvidos}/${c.total} resolvidos</div>
+      <div style="width:80px"><div class="progress-mini"><div class="progress-mini-fill" style="width:${c.total?Math.round(c.resolvidos/c.total*100):0}%;background:var(--ok)"></div></div></div>
+    </div>`).join('');
+
+  // Tempo médio
+  document.getElementById('tempoResolucao').innerHTML = '2.4<span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:6px">dias em média</span>';
+}
+
+// ─────────────────────────────────────────
+// NOTIFICAÇÕES
+// ─────────────────────────────────────────
+function renderNotificacoes(){
+  const naoLidas = notificacoes.filter(n=>!n.lida).length;
+  const badge = document.getElementById('notifBadge');
+  badge.textContent = naoLidas;
+  badge.style.display = naoLidas?'flex':'none';
+
+  document.getElementById('notifList').innerHTML = notificacoes.length
+    ? notificacoes.map(n=>`
+        <div class="notif-item ${n.lida?'':'unread'}" onclick="lerNotif(${n.id})">
+          <div class="notif-item-title">${n.titulo}</div>
+          <div class="notif-item-sub">${n.sub}</div>
+          <div class="notif-item-time">${n.tempo}</div>
+        </div>`).join('')
+    : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Nenhuma notificação</div>';
+}
+
+function adicionarNotif(titulo, sub){
+  notificacoes.unshift({id:Date.now(),titulo,sub,tempo:'agora',lida:false});
+  renderNotificacoes();
+}
+function lerNotif(id){
+  const n=notificacoes.find(x=>x.id===id); if(n) n.lida=true;
+  renderNotificacoes();
+}
+function toggleNotif(){
+  document.getElementById('notifPanel').classList.toggle('open');
+}
+
+// ─────────────────────────────────────────
+// FILTROS
+// ─────────────────────────────────────────
+function popularFiltros(){
+  const lojas=[...new Set(NCS.map(n=>n.loja))];
+  const sl=document.getElementById('filtroLoja');
+  const val=sl.value;
+  sl.innerHTML='<option value="">🏪 Todas as lojas</option>';
+  lojas.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; if(l===val)o.selected=true; sl.appendChild(o); });
+}
+function filtrar(busca){
+  const b=(busca||document.querySelector('.search-box')?.value||'').toLowerCase();
+  const l=document.getElementById('filtroLoja').value;
+  const c=document.getElementById('filtroCategoria').value;
+  const abertos=NCS.filter(n=>n.status==='aberto'&&(n.titulo.toLowerCase().includes(b)||!b)&&(!l||n.loja===l)&&(!c||n.categoria===c));
+  renderLista('listaAbertos',abertos);
+}
+
+// ─────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────
+function fecharModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')}));
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+renderTudo();
+</script>
+</body>
+</html>
