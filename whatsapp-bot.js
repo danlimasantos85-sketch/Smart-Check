@@ -20,7 +20,7 @@ const twilio  = require('twilio');
 const router  = express.Router();
 
 const ACCOUNT_SID  = process.env.TWILIO_ACCOUNT_SID || 'AC72e7ca7ebbedcdbd5744a3a500ce1429';
-const AUTH_TOKEN   = process.env.TWILIO_AUTH_TOKEN  || 'cf008bdcc1a691ba635e40b5b8e1c3d6';
+const AUTH_TOKEN = 'cf008bdcc1a691ba635e40b5b8e1c3d6';
 const WA_NUMBER    = process.env.TWILIO_WA_NUMBER   || 'whatsapp:+14155238886';
 const GROQ_API_KEY = process.env.GROQ_API_KEY       || '';
 const APP_URL      = process.env.APP_URL            || 'https://smart-check-f77i.onrender.com/shell.html';
