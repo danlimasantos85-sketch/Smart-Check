@@ -1670,3 +1670,5 @@ ensureSchema()
     console.error('Failed to initialize schema:', err);
     process.exit(1);
   });
+const whatsappBot = require('./whatsapp-bot');
+app.use(whatsappBot);
