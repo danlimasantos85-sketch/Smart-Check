@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#181820">
+<title>SmartCheck — Modo Offline</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede6;--border:#e2ddd5;
+  --dark:#181820;--accent:#e8522a;
+  --ok:#2a7d52;--nok:#c0392b;--warn:#b07d20;
+  --text:#181820;--muted:#8a8478;--radius:14px;
+  --shadow:0 2px 14px rgba(0,0,0,.08);
+  --offline:#6b2de8;--syncing:#0077cc;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* CONN BAR */
+.conn-bar{padding:7px 16px;font-size:11px;font-weight:700;text-align:center;letter-spacing:.4px;font-family:'Syne',sans-serif;transition:all .4s;display:flex;align-items:center;justify-content:center;gap:8px;position:sticky;top:0;z-index:200}
+.conn-bar.online{background:rgba(42,125,82,.1);color:var(--ok);border-bottom:1px solid rgba(42,125,82,.2)}
+.conn-bar.offline{background:rgba(107,45,232,.12);color:var(--offline);border-bottom:1px solid rgba(107,45,232,.2)}
+.conn-bar.syncing{background:rgba(0,119,204,.1);color:var(--syncing);border-bottom:1px solid rgba(0,119,204,.2)}
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.conn-bar.online .conn-dot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.conn-bar.offline .conn-dot{background:var(--offline);animation:blink 1.4s infinite}
+.conn-bar.syncing .conn-dot{background:var(--syncing);animation:blink .7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.conn-toggle{background:rgba(0,0,0,.12);border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;color:inherit;font-family:'Syne',sans-serif;margin-left:8px}
+
+/* HEADER */
+.app-header{background:var(--dark);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:31px;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.logo h1 span{color:var(--accent)}
+.logo p{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.pill-offline{background:rgba(107,45,232,.25);border:1px solid rgba(107,45,232,.35);border-radius:99px;padding:5px 11px;font-size:10px;font-weight:700;color:#b59cf5;font-family:'Syne',sans-serif;display:none;align-items:center;gap:5px}
+.pill-pending{background:rgba(232,82,42,.18);border:1px solid rgba(232,82,42,.28);border-radius:99px;padding:5px 11px;font-size:10px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif;cursor:pointer;display:none;align-items:center;gap:5px}
+
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;position:sticky;top:83px;z-index:99;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* PAGE */
+.page{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-width:680px;margin:0 auto}
+
+/* HERO OFFLINE */
+.hero-offline{background:linear-gradient(135deg,#14082e,#2a1060);border-radius:16px;padding:20px;color:#fff}
+.hero-offline h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px}
+.hero-offline p{font-size:13px;opacity:.7;line-height:1.6}
+.hero-caps{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.hero-cap{background:rgba(255,255,255,.12);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600}
+
+/* CARD */
+.card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.fg label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--dark)}
+.fg textarea{resize:none}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+
+/* CHECKLIST */
+.cl-item{background:var(--surface2);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px;border:1.5px solid transparent;margin-bottom:6px;transition:all .15s}
+.cl-item.ok{background:rgba(42,125,82,.07);border-color:rgba(42,125,82,.2)}
+.cl-item.nok{background:rgba(192,57,43,.07);border-color:rgba(192,57,43,.2)}
+.cl-item.na{background:rgba(138,132,120,.07);border-color:rgba(138,132,120,.15)}
+.cl-text{flex:1;font-size:13px;color:var(--dark);line-height:1.4}
+.cl-cat{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.cl-btns{display:flex;gap:5px;flex-shrink:0}
+.cl-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-weight:700}
+.cl-btn.ok.active{background:var(--ok);border-color:var(--ok);color:#fff}
+.cl-btn.nok.active{background:var(--nok);border-color:var(--nok);color:#fff}
+.cl-btn.na.active{background:var(--muted);border-color:var(--muted);color:#fff}
+
+/* SCORE BAR */
+.score-wrap{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.score-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.score-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.score-sub{font-size:11px;color:var(--muted)}
+.score-track{height:8px;background:var(--border);border-radius:99px;overflow:hidden}
+.score-fill{height:100%;border-radius:99px;transition:width .4s,background .4s}
+
+/* FOTO */
+.foto-drop{border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s}
+.foto-drop:hover{border-color:var(--accent)}
+.foto-drop-icon{font-size:26px;margin-bottom:5px}
+.foto-drop-text{font-size:12px;color:var(--muted);line-height:1.5}
+.fotos-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.foto-item{position:relative;flex-shrink:0}
+.foto-img{width:70px;height:70px;border-radius:10px;object-fit:cover;border:1.5px solid var(--border)}
+.foto-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--nok);border-radius:50%;color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--surface)}
+
+/* ASSINATURA */
+.sig-box{border:1.5px solid var(--border);border-radius:12px;overflow:hidden}
+.sig-top{background:var(--surface2);padding:9px 13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.sig-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.sig-btns{display:flex;gap:6px}
+.sig-btn{background:none;border:none;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:6px;transition:background .15s}
+.sig-btn:hover{background:var(--border)}
+.sig-btn.ok{color:var(--ok)}
+canvas#sigCv{display:block;width:100%;height:120px;touch-action:none;cursor:crosshair;background:#fff}
+.sig-done{background:rgba(42,125,82,.07);padding:10px 13px;font-size:12px;color:var(--ok);font-weight:600;display:none;align-items:center;gap:6px}
+.sig-done.show{display:flex}
+
+/* SYNC PANEL */
+.sync-panel{background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1.5px solid var(--border)}
+.sync-head{background:linear-gradient(135deg,#14082e,#2a1060);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;color:#fff}
+.sync-head-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800}
+.sync-head-sub{font-size:11px;opacity:.55;margin-top:2px}
+.btn-sync{background:#fff;color:#14082e;border:none;border-radius:9px;padding:9px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap}
+.btn-sync:disabled{opacity:.4;cursor:not-allowed}
+.sync-list{padding:4px 0}
+.sync-item{padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sync-item:last-child{border-bottom:none}
+.si-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.si-dot.pending{background:var(--accent)}
+.si-dot.synced{background:var(--ok)}
+.si-dot.syncing{background:var(--syncing);animation:blink .6s infinite}
+.si-dot.error{background:var(--nok)}
+.si-info{flex:1;min-width:0}
+.si-name{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.si-st{font-size:11px;font-weight:700;flex-shrink:0}
+.si-st.pending{color:var(--accent)}.si-st.synced{color:var(--ok)}.si-st.syncing{color:var(--syncing)}.si-st.error{color:var(--nok)}
+.sync-prog{padding:12px 16px;border-top:1px solid var(--border);display:none}
+.sync-prog.show{display:block}
+.sync-prog-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
+.sync-prog-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.sync-prog-fill{height:100%;background:var(--syncing);border-radius:99px;transition:width .3s;width:0}
+
+/* STORAGE */
+.st-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.st-row:last-child{border-bottom:none}
+.st-val{font-family:'Syne',sans-serif;font-weight:800;color:var(--dark)}
+.st-bar{height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:10px}
+.st-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--ok),var(--accent));transition:width .5s}
+
+/* BOTÕES */
+.btn-primary{background:var(--dark);color:#fff;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s}
+.btn-primary:active{opacity:.85}
+.btn-ghost{background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:11px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);width:100%;transition:background .2s;text-align:left}
+.btn-ghost:hover{background:#e8e4dc}
+.btn-ok{background:var(--ok);color:#fff;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;width:100%}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.open{display:flex}
+@media(min-width:600px){.modal-bg{align-items:center}}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;box-shadow:0 -8px 40px rgba(0,0,0,.2)}
+@media(min-width:600px){.modal-box{border-radius:20px}}
+.modal-drag{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto -6px}
+.modal-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800}
+.modal-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-top:-8px}
+.modal-actions{display:flex;gap:10px;margin-top:4px}
+.btn-cancel{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:12px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;opacity:.4;display:block;margin-bottom:8px}
+
+/* AVAL ITEM (rascunhos) */
+.aval-item{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px}
+.aval-item-head{padding:13px 15px;display:flex;gap:11px;align-items:center;cursor:pointer}
+.aval-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.aval-icon.draft{background:rgba(107,45,232,.1)}
+.aval-icon.pending{background:rgba(232,82,42,.1)}
+.aval-icon.synced{background:rgba(42,125,82,.1)}
+.aval-info{flex:1;min-width:0}
+.aval-name{font-size:13px;font-weight:600;color:var(--dark)}
+.aval-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:7px;flex-wrap:wrap}
+.status-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;font-family:'Syne',sans-serif;flex-shrink:0}
+.status-pill.draft{background:rgba(107,45,232,.1);color:#7c3aed;border:1px solid rgba(107,45,232,.18)}
+.status-pill.pending{background:rgba(232,82,42,.1);color:var(--accent);border:1px solid rgba(232,82,42,.18)}
+.status-pill.synced{background:rgba(42,125,82,.1);color:var(--ok);border:1px solid rgba(42,125,82,.18)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.warn{background:var(--warn);color:#fff}
+.toast.info{background:var(--dark);color:#fff}
+.toast.offline{background:var(--offline);color:#fff}
+.toast.sync{background:var(--syncing);color:#fff}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card,.sync-panel,.aval-item{animation:fadeUp .3s ease both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite;display:inline-block}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- CONNECTIVITY BAR -->
+<div class="conn-bar online" id="connBar">
+  <div class="conn-dot"></div>
+  <span id="connText">● ONLINE — dados sincronizados</span>
+  <button class="conn-toggle" onclick="toggleConn()">SIMULAR OFFLINE</button>
+</div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:26px;height:30px;flex-shrink:0">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4a050"/><stop offset="50%" stop-color="#e8d090"/><stop offset="100%" stop-color="#8a6820"/></linearGradient></defs>
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#sg)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#sg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div><h1>Smart<span>Check</span></h1><p>Modo Offline</p></div>
+  </div>
+  <div class="hdr-right">
+    <div class="pill-offline" id="pillOffline">📡 OFFLINE</div>
+    <div class="pill-pending" id="pillPending" onclick="goSync()">⏳ <span id="pendCnt">0</span> pendentes</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="setTab('nova',this)">✏️ Nova Avaliação</div>
+  <div class="tab" onclick="setTab('rascunhos',this)">📁 Rascunhos</div>
+  <div class="tab" onclick="setTab('sync',this)">🔄 Sincronização</div>
+  <div class="tab" onclick="setTab('storage',this)">💾 Armazenamento</div>
+</div>
+
+<!-- ══ TAB NOVA AVALIAÇÃO ══ -->
+<div id="tabNova" class="page">
+  <div class="hero-offline">
+    <h2>📡 Funciona sem internet</h2>
+    <p>Preencha normalmente. Fotos, checklist e assinatura ficam guardados no dispositivo até você sincronizar.</p>
+    <div class="hero-caps">
+      <div class="hero-cap">✅ Checklist completo</div>
+      <div class="hero-cap">📷 Fotos offline</div>
+      <div class="hero-cap">✍️ Assinatura digital</div>
+      <div class="hero-cap">🔒 Salvo localmente</div>
+    </div>
+  </div>
+
+  <!-- CABEÇALHO -->
+  <div class="card">
+    <div class="card-title">Cabeçalho da Avaliação</div>
+    <div class="form-grid">
+      <div class="fg"><label>Loja</label>
+        <select id="fLoja">
+          <option>Unidade Centro</option><option>Unidade Norte</option>
+          <option>Unidade Sul</option><option>Unidade Leste</option>
+        </select>
+      </div>
+      <div class="fg"><label>Tipo</label>
+        <select id="fTipo"><option>Geral</option><option>Abertura</option><option>Fechamento</option><option>Sanitária</option></select>
+      </div>
+      <div class="fg"><label>Avaliador</label><input type="text" id="fAval" value="Carlos Mendes"></div>
+      <div class="fg"><label>Data</label><input type="date" id="fData"></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="card">
+    <div class="card-title">Checklist Operacional <span id="scoreDisplay" style="font-size:16px;font-family:'Syne',sans-serif;font-weight:800">–</span></div>
+    <div class="score-wrap">
+      <div class="score-top">
+        <div class="score-sub" id="scoreItems">0 / 0 itens respondidos</div>
+      </div>
+      <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%;background:var(--muted)"></div></div>
+    </div>
+    <div id="clList"></div>
+  </div>
+
+  <!-- OBSERVAÇÕES -->
+  <div class="card">
+    <div class="card-title">Observações</div>
+    <textarea id="fObs" class="fg" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;width:100%;resize:none" rows="3" placeholder="Anotações sobre a visita..."></textarea>
+  </div>
+
+  <!-- FOTOS -->
+  <div class="card">
+    <div class="card-title">Evidências Fotográficas <span id="fotoCnt" style="font-weight:400;font-size:11px;text-transform:none;letter-spacing:0;color:var(--muted)">0 fotos</span></div>
+    <div class="foto-drop" onclick="document.getElementById('fotoInput').click()">
+      <input type="file" id="fotoInput" accept="image/*" multiple onchange="addFotos(event)" style="display:none">
+      <div class="foto-drop-icon">📷</div>
+      <div class="foto-drop-text">Toque para fotografar ou selecionar<br><span style="font-size:10px">Salvas localmente — sem internet</span></div>
+    </div>
+    <div class="fotos-row" id="fotosRow"></div>
+  </div>
+
+  <!-- ASSINATURA -->
+  <div class="card">
+    <div class="card-title">Assinatura Digital</div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px">Assine no campo abaixo. Armazenada localmente e enviada junto com a avaliação na sincronização.</p>
+    <div class="sig-box">
+      <div class="sig-top">
+        <div class="sig-label">✍️ Assine aqui</div>
+        <div class="sig-btns">
+          <button class="sig-btn" onclick="sigClear()">Limpar</button>
+          <button class="sig-btn ok" onclick="sigConfirm()">✓ Confirmar</button>
+        </div>
+      </div>
+      <canvas id="sigCv" width="640" height="120"></canvas>
+      <div class="sig-done" id="sigDone">✅ Assinatura confirmada por <b id="sigName">–</b> em <span id="sigTime">–</span></div>
+    </div>
+  </div>
+
+  <!-- AÇÕES -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn-primary" onclick="saveAval()">💾 Salvar localmente</button>
+    <button class="btn-ghost" onclick="saveDraft()">📁 Salvar como rascunho</button>
+  </div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- ══ TAB RASCUNHOS ══ -->
+<div id="tabRascunhos" class="page" style="display:none">
+  <div id="rascList"></div>
+</div>
+
+<!-- ══ TAB SYNC ══ -->
+<div id="tabSync" class="page" style="display:none">
+  <div class="sync-panel">
+    <div class="sync-head">
+      <div>
+        <div class="sync-head-title">🔄 Fila de Sincronização</div>
+        <div class="sync-head-sub" id="syncSub">Aguardando...</div>
+      </div>
+      <button class="btn-sync" id="btnSync" onclick="startSync()">🔄 Sincronizar</button>
+    </div>
+    <div class="sync-list" id="syncList"></div>
+    <div class="sync-prog" id="syncProg">
+      <div class="sync-prog-lbl"><span id="syncProgLbl">Enviando...</span><span id="syncProgPct">0%</span></div>
+      <div class="sync-prog-track"><div class="sync-prog-fill" id="syncProgFill"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Regras de sincronização</div>
+    <div style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:var(--dark);line-height:1.6">
+      <div style="display:flex;gap:8px"><span style="color:var(--ok);font-weight:700;flex-shrink:0">✓</span>Dados salvos no dispositivo ficam disponíveis indefinidamente.</div>
+      <div style="display:flex;gap:8px"><span style="color:var(--ok);font-weight:700;flex-shrink:0">✓</span>Fotos são comprimidas antes de sincronizar para economizar dados móveis.</div>
+      <div style="display:flex;gap:8px"><span style="color:var(--ok);font-weight:700;flex-shrink:0">✓</span>Se a sync falhar no meio, retoma de onde parou.</div>
+      <div style="display:flex;gap:8px"><span style="color:var(--warn);font-weight:700;flex-shrink:0">⚠</span>Sincronize com frequência para liberar espaço no dispositivo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB STORAGE ══ -->
+<div id="tabStorage" class="page" style="display:none">
+  <div class="card">
+    <div class="card-title">💾 Uso de Armazenamento Local</div>
+    <div class="st-row"><span>Avaliações salvas</span><span class="st-val" id="stAval">–</span></div>
+    <div class="st-row"><span>Fotos armazenadas</span><span class="st-val" id="stFotos">–</span></div>
+    <div class="st-row"><span>Assinaturas</span><span class="st-val" id="stSig">–</span></div>
+    <div class="st-row"><span>Total usado</span><span class="st-val" id="stTotal">–</span></div>
+    <div class="st-row"><span>Disponível</span><span class="st-val" id="stFree" style="color:var(--ok)">–</span></div>
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Uso do espaço</span><span id="stPct">–</span></div>
+      <div class="st-bar"><div class="st-bar-fill" id="stBarFill" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚙️ Gerenciar dados</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-ghost" onclick="clearSynced()">🗑️ Remover avaliações já sincronizadas</button>
+      <button class="btn-ghost" onclick="exportJSON()">📤 Exportar dados locais (JSON)</button>
+      <button class="btn-ghost" onclick="toast('📲 Acesse o menu do navegador > Adicionar à tela inicial','info')">📲 Instalar como app (PWA)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RASCUNHO -->
+<div class="modal-bg" id="modalRasc">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="mrTitle">Rascunho</div>
+    <div class="modal-sub" id="mrSub">–</div>
+    <div id="mrBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalRasc')">Fechar</button>
+      <button class="btn-ok" style="flex:2" onclick="draftToQueue()">➕ Mover para fila de sync</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CHECKLIST DATA ──
+const CL = [
+  {id:'c1',txt:'Temperatura câmara fria ≤ 4°C',cat:'Higiene'},
+  {id:'c2',txt:'Funcionários com EPIs completos',cat:'Higiene'},
+  {id:'c3',txt:'Higienização de mãos conforme protocolo',cat:'Higiene'},
+  {id:'c4',txt:'Validade de insumos em conformidade',cat:'Estoque'},
+  {id:'c5',txt:'Organização e limpeza da câmara fria',cat:'Estoque'},
+  {id:'c6',txt:'Planilha de temperatura atualizada',cat:'Documentação'},
+  {id:'c7',txt:'Alvará sanitário dentro da validade',cat:'Documentação'},
+  {id:'c8',txt:'Uniformes limpos e completos',cat:'Apresentação'},
+  {id:'c9',txt:'Área de produção limpa e organizada',cat:'Higiene'},
+  {id:'c10',txt:'Equipamentos em funcionamento',cat:'Equipamentos'},
+  {id:'c11',txt:'Lixeiras com tampa e saco plástico',cat:'Higiene'},
+  {id:'c12',txt:'Treinamentos em dia',cat:'Documentação'},
+];
+
+// ── DB EM MEMÓRIA ──
+let DB = {
+  avaliacoes:[
+    {id:'av1',loja:'Unidade Norte',tipo:'Geral',aval:'Paula Ferreira',data:'2026-05-09',score:78,fotos:2,assinado:true,criadoEm:'09/05/2026 09:45',sync:'pending'},
+    {id:'av2',loja:'Unidade Sul',tipo:'Abertura',aval:'Marcos Oliveira',data:'2026-05-10',score:91,fotos:1,assinado:true,criadoEm:'10/05/2026 07:30',sync:'pending'},
+    {id:'av3',loja:'Unidade Centro',tipo:'Sanitária',aval:'Carlos Mendes',data:'2026-05-08',score:85,fotos:3,assinado:true,criadoEm:'08/05/2026 11:00',sync:'synced'},
+  ],
+  drafts:[
+    {id:'dr1',loja:'Unidade Leste',tipo:'Fechamento',aval:'Ana Lima',data:'2026-05-11',criadoEm:'11/05/2026 22:10',filled:5,total:12},
+  ],
+  fotos:[],
+  sig:null,
+  sigOk:false,
+};
+
+let online=true, syncRunning=false;
+let clState={};
+CL.forEach(i=>clState[i.id]=null);
+let activeDraft=null;
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fData').value=new Date().toISOString().split('T')[0];
+  renderCL();
+  renderDrafts();
+  renderSync();
+  renderStorage();
+  initSig();
+  updateBadges();
+});
+
+// ── CONEXÃO ──
+function toggleConn(){
+  online=!online;
+  const bar=document.getElementById('connBar');
+  const btn=bar.querySelector('.conn-toggle');
+  if(online){
+    bar.className='conn-bar online';
+    document.getElementById('connText').textContent='● ONLINE — dados sincronizados';
+    btn.textContent='SIMULAR OFFLINE';
+    document.getElementById('pillOffline').style.display='none';
+    toast('✅ Conexão restaurada','ok');
+  } else {
+    bar.className='conn-bar offline';
+    document.getElementById('connText').textContent='◌ OFFLINE — salvando localmente';
+    btn.textContent='VOLTAR ONLINE';
+    document.getElementById('pillOffline').style.display='flex';
+    toast('📡 Modo offline ativado — tudo salvo no dispositivo','offline');
+  }
+}
+function goSync(){setTab('sync',document.querySelectorAll('.tab')[2]);}
+
+// ── CHECKLIST ──
+function renderCL(){
+  document.getElementById('clList').innerHTML=CL.map(i=>`
+    <div class="cl-item ${clState[i.id]||''}" id="ci${i.id}">
+      <div class="cl-text">${i.txt}<span class="cl-cat">${i.cat}</span></div>
+      <div class="cl-btns">
+        <button class="cl-btn ok ${clState[i.id]==='ok'?'active':''}" onclick="setCL('${i.id}','ok')">✓</button>
+        <button class="cl-btn nok ${clState[i.id]==='nok'?'active':''}" onclick="setCL('${i.id}','nok')">✕</button>
+        <button class="cl-btn na ${clState[i.id]==='na'?'active':''}" onclick="setCL('${i.id}','na')">N/A</button>
+      </div>
+    </div>`).join('');
+  calcScore();
+}
+
+function setCL(id,val){
+  clState[id]=clState[id]===val?null:val;
+  const ci=document.getElementById('ci'+id);
+  ci.className='cl-item '+(clState[id]||'');
+  ci.querySelector('.cl-btn.ok').classList.toggle('active',clState[id]==='ok');
+  ci.querySelector('.cl-btn.nok').classList.toggle('active',clState[id]==='nok');
+  ci.querySelector('.cl-btn.na').classList.toggle('active',clState[id]==='na');
+  calcScore();
+}
+
+function calcScore(){
+  const resp=Object.values(clState).filter(v=>v&&v!=='na');
+  const ok=Object.values(clState).filter(v=>v==='ok').length;
+  const tot=resp.length;
+  const pct=tot?Math.round(ok/tot*100):0;
+  const cor=pct>=85?'var(--ok)':pct>=70?'var(--warn)':'var(--nok)';
+  document.getElementById('scoreDisplay').textContent=tot?pct+'%':'–';
+  document.getElementById('scoreDisplay').style.color=cor;
+  document.getElementById('scoreItems').textContent=`${ok} / ${tot} itens respondidos`;
+  document.getElementById('scoreFill').style.width=pct+'%';
+  document.getElementById('scoreFill').style.background=cor;
+}
+
+// ── FOTOS ──
+function addFotos(e){
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{DB.fotos.push({src:ev.target.result,name:f.name});renderFotos();};
+    r.readAsDataURL(f);
+  });
+}
+function renderFotos(){
+  document.getElementById('fotoCnt').textContent=DB.fotos.length+' foto'+(DB.fotos.length!==1?'s':'');
+  document.getElementById('fotosRow').innerHTML=DB.fotos.map((f,i)=>`
+    <div class="foto-item">
+      <img src="${f.src}" class="foto-img">
+      <div class="foto-del" onclick="delFoto(${i})">✕</div>
+    </div>`).join('');
+}
+function delFoto(i){DB.fotos.splice(i,1);renderFotos();}
+
+// ── ASSINATURA ──
+let sigCtx,sigDrawing=false,sigHas=false;
+function initSig(){
+  const cv=document.getElementById('sigCv');
+  sigCtx=cv.getContext('2d');
+  sigCtx.strokeStyle='#181820';sigCtx.lineWidth=2.5;sigCtx.lineCap='round';sigCtx.lineJoin='round';
+  function pt(e){
+    const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
+    const s=e.touches?e.touches[0]:e;
+    return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy};
+  }
+  cv.addEventListener('mousedown',e=>{sigDrawing=true;const p=pt(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+  cv.addEventListener('mousemove',e=>{if(!sigDrawing)return;const p=pt(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHas=true;});
+  cv.addEventListener('mouseup',()=>sigDrawing=false);
+  cv.addEventListener('mouseleave',()=>sigDrawing=false);
+  cv.addEventListener('touchstart',e=>{e.preventDefault();sigDrawing=true;const p=pt(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+  cv.addEventListener('touchmove',e=>{e.preventDefault();if(!sigDrawing)return;const p=pt(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHas=true;},{passive:false});
+  cv.addEventListener('touchend',()=>sigDrawing=false);
+}
+function sigClear(){
+  const cv=document.getElementById('sigCv');
+  sigCtx.clearRect(0,0,cv.width,cv.height);
+  sigHas=false;DB.sig=null;DB.sigOk=false;
+  document.getElementById('sigDone').classList.remove('show');
+}
+function sigConfirm(){
+  if(!sigHas){toast('⚠️ Assine antes de confirmar','warn');return;}
+  DB.sig=document.getElementById('sigCv').toDataURL('image/png');
+  DB.sigOk=true;
+  document.getElementById('sigName').textContent=document.getElementById('fAval').value||'Avaliador';
+  document.getElementById('sigTime').textContent=new Date().toLocaleString('pt-BR');
+  document.getElementById('sigDone').classList.add('show');
+  toast('✍️ Assinatura confirmada!','ok');
+}
+
+// ── SALVAR ──
+function saveAval(){
+  const resp=Object.values(clState).filter(v=>v&&v!=='na');
+  const ok=Object.values(clState).filter(v=>v==='ok').length;
+  if(!resp.length){toast('⚠️ Preencha ao menos um item','warn');return;}
+  const score=Math.round(ok/resp.length*100);
+  DB.avaliacoes.push({
+    id:'av'+Date.now(),
+    loja:document.getElementById('fLoja').value,
+    tipo:document.getElementById('fTipo').value,
+    aval:document.getElementById('fAval').value,
+    data:document.getElementById('fData').value,
+    score,fotos:DB.fotos.length,assinado:DB.sigOk,
+    criadoEm:new Date().toLocaleString('pt-BR'),sync:'pending'
+  });
+  renderSync();renderStorage();updateBadges();
+  toast(online?'💾 Salvo! Pronto para sincronizar.':'💾 Salvo localmente — sincronize quando tiver sinal', online?'ok':'offline');
+  resetForm();
+  setTab('sync',document.querySelectorAll('.tab')[2]);
+}
+function saveDraft(){
+  const filled=Object.values(clState).filter(v=>v).length;
+  DB.drafts.push({
+    id:'dr'+Date.now(),
+    loja:document.getElementById('fLoja').value,
+    tipo:document.getElementById('fTipo').value,
+    aval:document.getElementById('fAval').value,
+    data:document.getElementById('fData').value,
+    criadoEm:new Date().toLocaleString('pt-BR'),
+    filled,total:CL.length
+  });
+  renderDrafts();
+  toast('📁 Rascunho salvo!','info');
+  setTab('rascunhos',document.querySelectorAll('.tab')[1]);
+}
+function resetForm(){
+  CL.forEach(i=>clState[i.id]=null);
+  DB.fotos=[];DB.sig=null;DB.sigOk=false;
+  renderCL();renderFotos();sigClear();
+  document.getElementById('fObs').value='';
+  document.getElementById('sigDone').classList.remove('show');
+}
+
+// ── RASCUNHOS ──
+function renderDrafts(){
+  const el=document.getElementById('rascList');
+  if(!DB.drafts.length){
+    el.innerHTML='<div class="empty"><span class="empty-icon">📁</span><div>Nenhum rascunho salvo</div><div style="font-size:12px;margin-top:4px">Salve uma avaliação incompleta para continuar depois</div></div>';
+    return;
+  }
+  el.innerHTML=DB.drafts.map(d=>`
+    <div class="aval-item">
+      <div class="aval-item-head" onclick="openDraft('${d.id}')">
+        <div class="aval-icon draft">📁</div>
+        <div class="aval-info">
+          <div class="aval-name">${d.loja} — ${d.tipo}</div>
+          <div class="aval-meta"><span>📅 ${d.data}</span><span>👤 ${d.aval}</span><span>✅ ${d.filled}/${d.total} itens</span></div>
+          <div style="margin-top:7px;height:4px;background:var(--border);border-radius:99px;overflow:hidden">
+            <div style="height:100%;border-radius:99px;background:var(--warn);width:${Math.round(d.filled/d.total*100)}%"></div>
+          </div>
+        </div>
+        <span class="status-pill draft">Rascunho</span>
+      </div>
+    </div>`).join('');
+}
+function openDraft(id){
+  activeDraft=DB.drafts.find(d=>d.id===id);
+  if(!activeDraft)return;
+  document.getElementById('mrTitle').textContent=`${activeDraft.loja} — ${activeDraft.tipo}`;
+  document.getElementById('mrSub').textContent=`Rascunho de ${activeDraft.aval} em ${activeDraft.criadoEm}`;
+  document.getElementById('mrBody').innerHTML=`
+    <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.8">
+      <div>📅 Data: <b>${activeDraft.data}</b></div>
+      <div>✅ Itens preenchidos: <b>${activeDraft.filled} de ${activeDraft.total}</b></div>
+      <div style="color:var(--warn);margin-top:4px">⚠️ Avaliação incompleta — ao mover para a fila será enviada com score parcial.</div>
+    </div>`;
+  document.getElementById('modalRasc').classList.add('open');
+}
+function draftToQueue(){
+  if(!activeDraft)return;
+  DB.drafts=DB.drafts.filter(d=>d.id!==activeDraft.id);
+  DB.avaliacoes.push({...activeDraft,score:0,fotos:0,assinado:false,sync:'pending'});
+  renderDrafts();renderSync();updateBadges();
+  closeModal('modalRasc');
+  toast('📋 Movido para a fila de sync','info');
+  setTab('sync',document.querySelectorAll('.tab')[2]);
+}
+
+// ── SINCRONIZAÇÃO ──
+function renderSync(){
+  const pend=DB.avaliacoes.filter(a=>a.sync!=='synced');
+  const done=DB.avaliacoes.filter(a=>a.sync==='synced');
+  document.getElementById('syncSub').textContent=`${pend.length} pendente${pend.length!==1?'s':''} · ${done.length} sincronizada${done.length!==1?'s':''}`;
+  const el=document.getElementById('syncList');
+  const all=[...DB.avaliacoes].reverse();
+  if(!all.length){el.innerHTML='<div class="empty" style="padding:20px"><span class="empty-icon">✅</span><div style="font-size:13px">Nada para sincronizar</div></div>';return;}
+  el.innerHTML=all.map(a=>`
+    <div class="sync-item" id="si${a.id}">
+      <div class="si-dot ${a.sync}" id="sd${a.id}"></div>
+      <div class="si-info">
+        <div class="si-name">${a.loja} — ${a.tipo}</div>
+        <div class="si-meta">${a.criadoEm} · 📷 ${a.fotos} foto${a.fotos!==1?'s':''} · ${a.assinado?'✍️ Assinado':'⚠️ Sem assinatura'}</div>
+      </div>
+      <div class="si-st ${a.sync}" id="ss${a.id}">${{pending:'⏳ Pendente',synced:'✅ Sync',syncing:'⟳ Enviando',error:'✕ Erro'}[a.sync]}</div>
+    </div>`).join('');
+}
+
+function startSync(){
+  if(syncRunning)return;
+  if(!online){toast('📡 Sem conexão — ative a internet primeiro','offline');return;}
+  const pend=DB.avaliacoes.filter(a=>a.sync==='pending');
+  if(!pend.length){toast('✅ Tudo já está sincronizado!','ok');return;}
+  syncRunning=true;
+  const btn=document.getElementById('btnSync');
+  btn.disabled=true;btn.innerHTML='<span class="spin">⟳</span> Sincronizando...';
+  const prog=document.getElementById('syncProg');prog.classList.add('show');
+  let idx=0;const tot=pend.length;
+  function next(){
+    if(idx>=tot){
+      syncRunning=false;btn.disabled=false;btn.innerHTML='🔄 Sincronizar';
+      prog.classList.remove('show');
+      document.getElementById('syncProgFill').style.width='0';
+      renderSync();renderStorage();updateBadges();
+      toast(`✅ ${tot} avaliação${tot!==1?'s':''} sincronizada${tot!==1?'s':''}!`,'ok');
+      return;
+    }
+    const a=pend[idx];a.sync='syncing';
+    const sd=document.getElementById('sd'+a.id);
+    const ss=document.getElementById('ss'+a.id);
+    if(sd){sd.className='si-dot syncing';}
+    if(ss){ss.className='si-st syncing';ss.textContent='⟳ Enviando';}
+    const pct=Math.round((idx/tot)*100);
+    document.getElementById('syncProgFill').style.width=pct+'%';
+    document.getElementById('syncProgLbl').textContent=`Enviando: ${a.loja} (${idx+1}/${tot})`;
+    document.getElementById('syncProgPct').textContent=pct+'%';
+    setTimeout(()=>{a.sync='synced';idx++;next();},1300);
+  }
+  next();
+}
+
+// ── STORAGE ──
+function renderStorage(){
+  const nA=DB.avaliacoes.length;
+  const nF=DB.avaliacoes.reduce((s,a)=>s+a.fotos,0);
+  const nS=DB.avaliacoes.filter(a=>a.assinado).length;
+  const kb=nA*4+nF*320+nS*8;
+  const total=51200;
+  const pct=Math.min(100,Math.round(kb/total*100));
+  document.getElementById('stAval').textContent=nA+' avaliação'+(nA!==1?'s':'');
+  document.getElementById('stFotos').textContent=nF+' foto'+(nF!==1?'s':'')+' (≈'+(nF*320)+'KB)';
+  document.getElementById('stSig').textContent=nS+' arquivo'+(nS!==1?'s':'');
+  document.getElementById('stTotal').textContent=kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+  document.getElementById('stFree').textContent=((total-kb)/1024).toFixed(1)+'MB';
+  document.getElementById('stPct').textContent=pct+'%';
+  document.getElementById('stBarFill').style.width=pct+'%';
+}
+function clearSynced(){
+  const n=DB.avaliacoes.filter(a=>a.sync==='synced').length;
+  DB.avaliacoes=DB.avaliacoes.filter(a=>a.sync!=='synced');
+  renderSync();renderStorage();updateBadges();
+  toast(`🗑️ ${n} registro${n!==1?'s':''} removido${n!==1?'s':''}`,n?'ok':'info');
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({avaliacoes:DB.avaliacoes,drafts:DB.drafts,exportadoEm:new Date().toLocaleString('pt-BR')},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smartcheck_backup.json';a.click();
+  toast('📤 Exportação iniciada','ok');
+}
+
+// ── BADGES ──
+function updateBadges(){
+  const n=DB.avaliacoes.filter(a=>a.sync==='pending').length;
+  const pill=document.getElementById('pillPending');
+  document.getElementById('pendCnt').textContent=n;
+  pill.style.display=n?'flex':'none';
+}
+
+// ── TABS ──
+function setTab(t,el){
+  const map={nova:'tabNova',rascunhos:'tabRascunhos',sync:'tabSync',storage:'tabStorage'};
+  Object.values(map).forEach(id=>document.getElementById(id).style.display='none');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(map[t]).style.display='flex';
+  if(el)el.classList.add('active');
+}
+
+// ── UTILS ──
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+let _tt;
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartCheck — Agendamentos</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede6;--border:#e2ddd5;
+  --dark:#181820;--accent:#e8522a;--accent2:#c4a050;
+  --ok:#2a7d52;--nok:#c0392b;--warn:#b07d20;
+  --text:#181820;--muted:#8a8478;--radius:14px;
+  --shadow:0 2px 14px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.app-header{background:var(--dark);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.logo h1 span{color:var(--accent)}
+.logo p{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.notif-btn{position:relative;background:rgba(255,255,255,.1);border:none;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.notif-btn:hover{background:rgba(255,255,255,.18)}
+.notif-badge{position:absolute;top:-2px;right:-2px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:9px;padding:0 4px;display:flex;align-items:center;justify-content:center;border:2px solid var(--dark);font-family:'Syne',sans-serif}
+.user-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer;transition:background .2s}
+.user-pill:hover{background:rgba(255,255,255,.18)}
+
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;position:sticky;top:51px;z-index:99;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-cnt{background:var(--nok);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:99px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center}
+.tab-cnt.warn{background:var(--warn)}
+.tab-cnt.ok{background:var(--ok)}
+
+/* PAGE */
+.page{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-width:760px;margin:0 auto}
+
+/* CALENDAR STRIP */
+.cal-strip{background:var(--surface);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border:1.5px solid var(--border)}
+.cal-month{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--dark);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.cal-nav{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:2px 8px;border-radius:6px;transition:background .15s}
+.cal-nav:hover{background:var(--surface2)}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-wday{font-size:10px;font-weight:700;color:var(--muted);text-align:center;padding-bottom:4px;font-family:'Syne',sans-serif;text-transform:uppercase}
+.cal-day{aspect-ratio:1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;position:relative;transition:background .15s;gap:2px}
+.cal-day:hover{background:var(--surface2)}
+.cal-day.today{background:var(--dark);color:#fff;font-weight:800}
+.cal-day.selected{background:var(--accent);color:#fff}
+.cal-day.other-month{color:var(--border)}
+.cal-day.has-events::after{content:'';display:block;width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px}
+.cal-day.today.has-events::after{background:#fff}
+.cal-day.selected.has-events::after{background:#fff}
+
+/* AGENDA DO DIA */
+.agenda-header{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.agenda-date{font-size:11px;color:var(--muted);font-weight:400;font-family:'DM Sans',sans-serif}
+.agenda-item{background:var(--surface);border-radius:12px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:8px;box-shadow:var(--shadow);transition:border-color .2s}
+.agenda-item:hover{border-color:#ccc}
+.agenda-item.pendente{border-left:4px solid var(--warn)}
+.agenda-item.concluido{border-left:4px solid var(--ok)}
+.agenda-item.atrasado{border-left:4px solid var(--nok)}
+.agenda-item.agendado{border-left:4px solid var(--accent2)}
+.ai-head{padding:12px 14px;display:flex;gap:10px;align-items:center;cursor:pointer}
+.ai-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ai-icon.abertura{background:rgba(196,160,80,.12)}
+.ai-icon.fechamento{background:rgba(42,125,82,.1)}
+.ai-icon.geral{background:rgba(232,82,42,.1)}
+.ai-icon.sanitaria{background:rgba(0,119,204,.1)}
+.ai-info{flex:1;min-width:0}
+.ai-title{font-size:13px;font-weight:600;color:var(--dark)}
+.ai-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:7px;flex-wrap:wrap}
+.ai-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;font-family:'Syne',sans-serif;flex-shrink:0}
+.ai-status.pendente{background:rgba(176,125,32,.1);color:var(--warn);border:1px solid rgba(176,125,32,.2)}
+.ai-status.concluido{background:rgba(42,125,82,.1);color:var(--ok);border:1px solid rgba(42,125,82,.2)}
+.ai-status.atrasado{background:rgba(192,57,43,.1);color:var(--nok);border:1px solid rgba(192,57,43,.2)}
+.ai-status.agendado{background:rgba(196,160,80,.1);color:var(--accent2);border:1px solid rgba(196,160,80,.2)}
+.ai-body{display:none;border-top:1px solid var(--border);padding:12px 14px;flex-direction:column;gap:10px}
+.ai-body.open{display:flex}
+.ai-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:480px){.ai-detail-grid{grid-template-columns:1fr}}
+.ai-detail{background:var(--surface2);border-radius:9px;padding:9px 11px}
+.ai-detail-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.ai-detail-val{font-size:13px;font-weight:600;color:var(--dark)}
+.ai-actions{display:flex;gap:7px;flex-wrap:wrap}
+.btn-action{border:none;border-radius:9px;padding:8px 14px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;gap:5px}
+.btn-action.primary{background:var(--dark);color:#fff}
+.btn-action.ok{background:rgba(42,125,82,.12);color:var(--ok);border:1.5px solid rgba(42,125,82,.25)}
+.btn-action.ghost{background:var(--surface2);color:var(--muted);border:1.5px solid var(--border)}
+.btn-action.danger{background:rgba(192,57,43,.08);color:var(--nok);border:1.5px solid rgba(192,57,43,.2)}
+.btn-action:active{opacity:.8}
+
+/* AGENDAMENTOS LISTA */
+.sched-card{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px;transition:border-color .2s}
+.sched-card:hover{border-color:#ccc}
+.sched-card.inactive{opacity:.55}
+.sc-head{padding:13px 15px;display:flex;gap:11px;align-items:flex-start;cursor:pointer}
+.sc-color{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sc-info{flex:1;min-width:0}
+.sc-title{font-size:14px;font-weight:700;color:var(--dark)}
+.sc-subtitle{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.sc-chips{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.sc-chip{font-size:10px;font-weight:600;padding:3px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:3px}
+.sc-chip.freq{background:rgba(232,82,42,.1);color:var(--accent)}
+.sc-chip.loja{background:var(--surface2);color:var(--muted)}
+.sc-chip.aval{background:rgba(42,125,82,.1);color:var(--ok)}
+.sc-chip.hora{background:rgba(196,160,80,.1);color:var(--accent2)}
+.sc-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0}
+.toggle-switch{position:relative;width:42px;height:24px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:99px;background:var(--border);transition:background .2s}
+.toggle-switch input:checked~.toggle-track{background:var(--ok)}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-switch input:checked~.toggle-track~.toggle-thumb,
+.toggle-switch input:checked+.toggle-track+.toggle-thumb{transform:translateX(18px)}
+.sc-body{display:none;border-top:1px solid var(--border);padding:13px 15px;flex-direction:column;gap:10px}
+.sc-body.open{display:flex}
+
+/* PRÓXIMAS EXECUÇÕES */
+.proximas{display:flex;flex-direction:column;gap:5px}
+.proxima-item{display:flex;align-items:center;gap:10px;padding:8px 11px;background:var(--surface2);border-radius:9px;font-size:12px;color:var(--dark)}
+.proxima-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--accent)}
+.proxima-date{flex:1;font-weight:600}
+.proxima-rel{font-size:11px;color:var(--muted)}
+
+/* NOTIFICAÇÕES PANEL */
+.notif-panel{position:fixed;top:52px;right:0;width:min(340px,100vw);background:var(--surface);border-left:1px solid var(--border);border-bottom:1px solid var(--border);box-shadow:-4px 4px 24px rgba(0,0,0,.12);z-index:200;max-height:calc(100vh - 52px);overflow-y:auto;display:none}
+.notif-panel.open{display:block}
+.notif-panel-hdr{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.notif-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--dark)}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:hover{background:var(--surface2)}
+.notif-item.unread{background:rgba(232,82,42,.04);border-left:3px solid var(--accent)}
+.notif-item.whatsapp{background:rgba(37,211,102,.04);border-left:3px solid #25d366}
+.notif-title{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.notif-sub{font-size:11px;color:var(--muted);line-height:1.5}
+.notif-time{font-size:10px;color:var(--muted);margin-top:4px}
+.whatsapp-badge{background:#25d366;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;font-family:'Syne',sans-serif}
+
+/* KPI */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:560px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border-radius:12px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden;border:1.5px solid var(--border)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.red::before{background:var(--nok)}.kpi.warn::before{background:var(--warn)}
+.kpi.ok::before{background:var(--ok)}.kpi.gold::before{background:var(--accent2)}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:2px}
+.fg label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.fg input:focus,.fg select:focus{border-color:var(--dark)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+
+/* DIAS DA SEMANA */
+.weekdays{display:flex;gap:6px;flex-wrap:wrap}
+.wday-btn{width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.wday-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* NOTIF CHANNELS */
+.channel-row{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border);margin-bottom:6px}
+.channel-info{display:flex;align-items:center;gap:10px}
+.channel-icon{font-size:20px}
+.channel-name{font-size:13px;font-weight:600;color:var(--dark)}
+.channel-desc{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.open{display:flex}
+@media(min-width:600px){.modal-bg{align-items:center}}
+.modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;box-shadow:0 -8px 40px rgba(0,0,0,.2)}
+@media(min-width:600px){.modal-box{border-radius:20px}}
+.modal-drag{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto -6px}
+.modal-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800}
+.modal-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-top:-8px}
+.modal-section{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.modal-actions{display:flex;gap:10px;margin-top:4px}
+.btn-cancel{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:12px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+.btn-save{flex:2;background:var(--dark);border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer}
+.btn-save:active{opacity:.85}
+.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s}
+.btn-sm:active{opacity:.8}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;display:block;margin-bottom:8px;opacity:.4}
+
+/* WHATSAPP PREVIEW */
+.wa-preview{background:#e8f5e9;border-radius:12px;padding:14px;border:1.5px solid #c8e6c9}
+.wa-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.wa-avatar{width:36px;height:36px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.wa-name{font-size:13px;font-weight:700;color:#1b5e20}
+.wa-status{font-size:10px;color:#4caf50}
+.wa-bubble{background:#fff;border-radius:12px 12px 12px 3px;padding:11px 13px;font-size:13px;color:#212121;line-height:1.6;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.wa-time{font-size:10px;color:#9e9e9e;text-align:right;margin-top:5px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.warn{background:var(--warn);color:#fff}
+.toast.info{background:var(--dark);color:#fff}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sched-card,.agenda-item,.kpi{animation:fadeUp .3s ease both}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-hdr">
+    <div class="notif-panel-title">🔔 Notificações</div>
+    <button style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer" onclick="toggleNotif()">Fechar</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:26px;height:30px;flex-shrink:0">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4a050"/><stop offset="50%" stop-color="#e8d090"/><stop offset="100%" stop-color="#8a6820"/></linearGradient></defs>
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#sg)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#sg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div><h1>Smart<span>Check</span></h1><p>Agendamentos Recorrentes</p></div>
+  </div>
+  <div class="hdr-right">
+    <button class="notif-btn" onclick="toggleNotif()">
+      🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span>
+    </button>
+    <div class="user-pill" onclick="cycleUser()">
+      <span id="userLabel">👤 Carlos (Gerente)</span> ↕
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="setTab('agenda',this)">📅 Agenda <span class="tab-cnt warn" id="tabCntHoje">0</span></div>
+  <div class="tab" onclick="setTab('agendamentos',this)">🔁 Recorrências</div>
+  <div class="tab" onclick="setTab('visao',this)">📊 Visão Geral</div>
+  <div class="tab" onclick="setTab('notif',this)">🔔 Avisos <span class="tab-cnt" id="tabCntNotif">0</span></div>
+</div>
+
+<!-- ══ TAB AGENDA ══ -->
+<div id="tabAgenda" class="page">
+
+  <!-- CALENDÁRIO -->
+  <div class="cal-strip">
+    <div class="cal-month">
+      <button class="cal-nav" onclick="calNav(-1)">‹</button>
+      <span id="calMonthLabel">–</span>
+      <button class="cal-nav" onclick="calNav(1)">›</button>
+    </div>
+    <div class="cal-days" id="calDays"></div>
+  </div>
+
+  <!-- AGENDA DO DIA SELECIONADO -->
+  <div>
+    <div class="agenda-header">
+      <span>Checklists do dia</span>
+      <span class="agenda-date" id="agendaDateLabel">–</span>
+    </div>
+    <div id="agendaList"></div>
+  </div>
+</div>
+
+<!-- ══ TAB AGENDAMENTOS ══ -->
+<div id="tabAgendamentos" class="page" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--dark)">Recorrências</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px" id="schedSubtitle">–</div>
+    </div>
+    <button class="btn-sm" onclick="abrirNovoAgend()">+ Nova</button>
+  </div>
+  <div id="schedList"></div>
+</div>
+
+<!-- ══ TAB VISÃO GERAL ══ -->
+<div id="tabVisao" class="page" style="display:none">
+  <div class="kpi-strip">
+    <div class="kpi gold"><div class="kpi-lbl">Agendamentos</div><div class="kpi-val" id="vKpiTotal">–</div><div class="kpi-sub">recorrências ativas</div></div>
+    <div class="kpi warn"><div class="kpi-lbl">Hoje</div><div class="kpi-val" id="vKpiHoje">–</div><div class="kpi-sub">checklists previstos</div></div>
+    <div class="kpi ok"><div class="kpi-lbl">Concluídos</div><div class="kpi-val" id="vKpiOk">–</div><div class="kpi-sub">esta semana</div></div>
+    <div class="kpi red"><div class="kpi-lbl">Atrasados</div><div class="kpi-val" id="vKpiAtrasados">–</div><div class="kpi-sub">sem conclusão</div></div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">Taxa de conclusão por loja</div>
+    <div id="visaoLojas"></div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">Distribuição por frequência</div>
+    <div id="visaoFreq"></div>
+  </div>
+</div>
+
+<!-- ══ TAB AVISOS ══ -->
+<div id="tabNotif" class="page" style="display:none">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">📱 Canais de notificação configurados</div>
+    <div class="channel-row">
+      <div class="channel-info">
+        <div class="channel-icon">🔔</div>
+        <div><div class="channel-name">Notificação no App</div><div class="channel-desc">Push notification ao abrir o SmartCheck</div></div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" checked onchange="toggleChannel('app',this)">
+        <div class="toggle-track"></div><div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="channel-row">
+      <div class="channel-info">
+        <div class="channel-icon">💬</div>
+        <div><div class="channel-name">WhatsApp</div><div class="channel-desc">Mensagem automática pelo número cadastrado</div></div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" checked onchange="toggleChannel('whatsapp',this)">
+        <div class="toggle-track"></div><div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div style="margin-top:10px">
+      <div class="fg"><label>Número WhatsApp (com DDD)</label><input type="tel" id="waNumero" value="(11) 99999-0000" placeholder="(11) 99999-0000"></div>
+      <button class="btn-sm" style="width:100%;margin-top:6px" onclick="testarWhatsApp()">📲 Testar mensagem WhatsApp</button>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">👁️ Preview da mensagem WhatsApp</div>
+    <div class="wa-preview">
+      <div class="wa-header">
+        <div class="wa-avatar">✅</div>
+        <div><div class="wa-name">SmartCheck</div><div class="wa-status">● Online</div></div>
+      </div>
+      <div class="wa-bubble" id="waPreview">
+        🔔 *SmartCheck — Lembrete de Avaliação*<br><br>
+        Olá, Carlos! 👋<br><br>
+        Você tem um checklist pendente para hoje:<br><br>
+        📋 *Avaliação de Abertura*<br>
+        🏪 Unidade Centro<br>
+        🕐 Horário: 07:00<br>
+        ⏰ Prazo: até 09:00<br><br>
+        Acesse o SmartCheck para realizar a avaliação.<br><br>
+        _Este é um aviso automático. Não responda a esta mensagem._
+      </div>
+      <div class="wa-time">Agora ✓✓</div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">⚙️ Antecedência do aviso</div>
+    <div class="fg"><label>Avisar com quanto tempo de antecedência?</label>
+      <select id="antecedencia">
+        <option value="30">30 minutos antes</option>
+        <option value="60" selected>1 hora antes</option>
+        <option value="120">2 horas antes</option>
+        <option value="1440">1 dia antes</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-top:10px"><label>Reenviar lembrete se não concluído após</label>
+      <select id="reenvio">
+        <option value="0">Não reenviar</option>
+        <option value="30">30 min</option>
+        <option value="60" selected>1 hora</option>
+        <option value="120">2 horas</option>
+      </select>
+    </div>
+    <button class="btn-sm" style="width:100%;margin-top:10px" onclick="showToast('✅ Configurações salvas!','ok')">Salvar configurações</button>
+  </div>
+
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px">📜 Histórico de avisos</div>
+    <div id="notifHistorico"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO/EDITAR AGENDAMENTO -->
+<div class="modal-bg" id="modalAgend">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-title" id="modalAgendTitle">Novo Agendamento</div>
+    <div class="modal-sub">Configure a recorrência do checklist para esta loja.</div>
+
+    <div class="modal-section">Identificação</div>
+    <div class="fg"><label>Nome do agendamento</label><input type="text" id="aName" placeholder="Ex: Abertura Diária — Centro"></div>
+    <div class="form-grid">
+      <div class="fg"><label>Tipo de checklist</label>
+        <select id="aTipo">
+          <option value="Abertura">🌅 Abertura</option>
+          <option value="Fechamento">🌙 Fechamento</option>
+          <option value="Geral">📋 Avaliação Geral</option>
+          <option value="Sanitária">🔬 Sanitária</option>
+        </select>
+      </div>
+      <div class="fg"><label>Loja</label>
+        <select id="aLoja">
+          <option>Unidade Centro</option><option>Unidade Norte</option>
+          <option>Unidade Sul</option><option>Unidade Leste</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Avaliador responsável</label>
+      <select id="aAvaliador">
+        <option>Carlos Mendes</option><option>Paula Ferreira</option>
+        <option>Ana Lima</option><option>Marcos Oliveira</option><option>Lucas Teixeira</option>
+      </select>
+    </div>
+
+    <div class="modal-section">Frequência</div>
+    <div class="fg"><label>Repetir</label>
+      <select id="aFreq" onchange="onFreqChange()">
+        <option value="diario">📅 Diariamente</option>
+        <option value="semanal">📆 Semanalmente</option>
+        <option value="quinzenal">📆 Quinzenalmente</option>
+        <option value="mensal">🗓️ Mensalmente</option>
+      </select>
+    </div>
+    <div id="diasSemanaWrap" style="display:none">
+      <div class="fg"><label>Dias da semana</label>
+        <div class="weekdays" id="weekdays">
+          <button class="wday-btn active" data-day="1" onclick="toggleDay(this)">Seg</button>
+          <button class="wday-btn active" data-day="2" onclick="toggleDay(this)">Ter</button>
+          <button class="wday-btn active" data-day="3" onclick="toggleDay(this)">Qua</button>
+          <button class="wday-btn active" data-day="4" onclick="toggleDay(this)">Qui</button>
+          <button class="wday-btn active" data-day="5" onclick="toggleDay(this)">Sex</button>
+          <button class="wday-btn" data-day="6" onclick="toggleDay(this)">Sáb</button>
+          <button class="wday-btn" data-day="0" onclick="toggleDay(this)">Dom</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Horário</label><input type="time" id="aHora" value="07:00"></div>
+      <div class="fg"><label>Prazo (até)</label><input type="time" id="aPrazo" value="09:00"></div>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Válido a partir de</label><input type="date" id="aInicio"></div>
+      <div class="fg"><label>Válido até (opcional)</label><input type="date" id="aFim"></div>
+    </div>
+
+    <div class="modal-section">Avisos</div>
+    <div class="channel-row" style="margin-bottom:6px">
+      <div class="channel-info"><div class="channel-icon">🔔</div><div><div class="channel-name">App</div><div class="channel-desc">Notificação ao abrir</div></div></div>
+      <label class="toggle-switch"><input type="checkbox" id="notifApp" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="channel-row">
+      <div class="channel-info"><div class="channel-icon">💬</div><div><div class="channel-name">WhatsApp</div><div class="channel-desc">Mensagem automática</div></div></div>
+      <label class="toggle-switch"><input type="checkbox" id="notifWa" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+
+    <input type="hidden" id="editAgendId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalAgend')">Cancelar</button>
+      <button class="btn-save" onclick="saveAgend()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DADOS ──
+const LOJAS = ['Unidade Centro','Unidade Norte','Unidade Sul','Unidade Leste'];
+const FREQ_LABEL = {diario:'Diário',semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
+const TIPO_ICON = {Abertura:'🌅',Fechamento:'🌙',Geral:'📋',Sanitária:'🔬'};
+const TIPO_CLASS = {Abertura:'abertura',Fechamento:'fechamento',Geral:'geral',Sanitária:'sanitaria'};
+const USERS = [
+  {label:'👤 Carlos (Gerente)', nome:'Carlos Mendes'},
+  {label:'👤 Ana (Supervisora)', nome:'Ana Lima'},
+  {label:'🎯 Lucas (Consultor)', nome:'Lucas Teixeira'},
+  {label:'👤 Paula (Gerente)', nome:'Paula Ferreira'},
+];
+let userIdx=0, usuario=USERS[0];
+
+let AGENDAMENTOS = [
+  {id:'ag1',nome:'Abertura Diária — Centro',tipo:'Abertura',loja:'Unidade Centro',avaliador:'Carlos Mendes',freq:'diario',dias:[1,2,3,4,5],hora:'07:00',prazo:'09:00',inicio:'2026-05-01',fim:'',notifApp:true,notifWa:true,ativo:true},
+  {id:'ag2',nome:'Fechamento Diário — Centro',tipo:'Fechamento',loja:'Unidade Centro',avaliador:'Carlos Mendes',freq:'diario',dias:[1,2,3,4,5,6],hora:'22:00',prazo:'23:30',inicio:'2026-05-01',fim:'',notifApp:true,notifWa:true,ativo:true},
+  {id:'ag3',nome:'Avaliação Geral Semanal — Norte',tipo:'Geral',loja:'Unidade Norte',avaliador:'Paula Ferreira',freq:'semanal',dias:[3],hora:'10:00',prazo:'12:00',inicio:'2026-05-01',fim:'',notifApp:true,notifWa:false,ativo:true},
+  {id:'ag4',nome:'Sanitária Mensal — Sul',tipo:'Sanitária',loja:'Unidade Sul',avaliador:'Ana Lima',freq:'mensal',dias:[1],hora:'09:00',prazo:'11:00',inicio:'2026-05-01',fim:'2026-12-31',notifApp:true,notifWa:true,ativo:false},
+];
+
+let OCORRENCIAS = []; // geradas dinamicamente
+let NOTIFICACOES = [
+  {id:1,titulo:'⏰ Abertura pendente',sub:'Unidade Centro — prazo em 30 minutos',tempo:'há 5 min',canal:'app',lida:false},
+  {id:2,titulo:'💬 Lembrete WhatsApp enviado',sub:'Carlos Mendes notificado: Abertura Diária',tempo:'há 1h',canal:'whatsapp',lida:false},
+  {id:3,titulo:'✅ Fechamento concluído',sub:'Paula Ferreira completou Unidade Norte',tempo:'ontem',canal:'app',lida:true},
+];
+
+// Calendário
+let calDate = new Date(2026, 4, 1); // Maio 2026
+let selectedDay = new Date(2026, 4, 13); // hoje
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('aInicio').value='2026-05-13';
+  gerarOcorrencias();
+  renderCal();
+  renderAgenda(selectedDay);
+  renderAgendamentos();
+  renderVisao();
+  renderNotifPanel();
+  renderNotifHistorico();
+  updateBadges();
+});
+
+// ── USUÁRIO ──
+function cycleUser(){
+  userIdx=(userIdx+1)%USERS.length;
+  usuario=USERS[userIdx];
+  document.getElementById('userLabel').textContent=usuario.label;
+  showToast(`Visualizando como: ${usuario.nome}`,'info');
+}
+
+// ── GERAR OCORRÊNCIAS (últimos 7 dias + próximos 30) ──
+function gerarOcorrencias(){
+  OCORRENCIAS=[];
+  const hoje=new Date(2026,4,13);
+  AGENDAMENTOS.filter(a=>a.ativo).forEach(ag=>{
+    for(let d=-7;d<=30;d++){
+      const dt=new Date(hoje); dt.setDate(hoje.getDate()+d);
+      if(ocorrenciaNoDia(ag,dt)){
+        const status = d<0?'atrasado':d===0?'pendente':d===0&&Math.random()>.5?'concluido':'agendado';
+        const s2 = d<-3?'atrasado':d<0?'concluido':d===0?'pendente':'agendado';
+        OCORRENCIAS.push({
+          id:`oc_${ag.id}_${dt.toISOString().split('T')[0]}`,
+          agId:ag.id, ag,
+          data:new Date(dt),
+          status: d>0?'agendado':d===0?'pendente':Math.random()>.4?'concluido':'atrasado',
+        });
+      }
+    }
+  });
+}
+
+function ocorrenciaNoDia(ag,dt){
+  const dow=dt.getDay(); // 0=dom,1=seg...
+  if(ag.freq==='diario') return ag.dias.includes(dow);
+  if(ag.freq==='semanal') return ag.dias.includes(dow);
+  if(ag.freq==='quinzenal'){
+    const semana=Math.floor(dt.getDate()/7);
+    return ag.dias.includes(dow)&&semana%2===0;
+  }
+  if(ag.freq==='mensal') return dt.getDate()===1&&ag.dias.includes(dow);
+  return false;
+}
+
+// ── CALENDÁRIO ──
+function renderCal(){
+  const ano=calDate.getFullYear(), mes=calDate.getMonth();
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('calMonthLabel').textContent=`${meses[mes]} ${ano}`;
+  const primeiroDia=new Date(ano,mes,1).getDay();
+  const diasNoMes=new Date(ano,mes+1,0).getDate();
+  const hoje=new Date(2026,4,13);
+
+  // Dias com eventos
+  const diasComEventos=new Set(OCORRENCIAS.map(o=>{
+    const d=o.data;
+    if(d.getFullYear()===ano&&d.getMonth()===mes) return d.getDate();
+    return null;
+  }).filter(Boolean));
+
+  const wdays=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html=wdays.map(w=>`<div class="cal-wday">${w}</div>`).join('');
+
+  // Dias do mês anterior
+  const diasAntes=primeiroDia;
+  const diasMesAnt=new Date(ano,mes,0).getDate();
+  for(let i=diasMesAnt-diasAntes+1;i<=diasMesAnt;i++){
+    html+=`<div class="cal-day other-month">${i}</div>`;
+  }
+
+  for(let d=1;d<=diasNoMes;d++){
+    const isHoje=ano===2026&&mes===4&&d===13;
+    const isSel=selectedDay.getFullYear()===ano&&selectedDay.getMonth()===mes&&selectedDay.getDate()===d;
+    const hasEv=diasComEventos.has(d);
+    const cls=['cal-day',isHoje?'today':'',isSel&&!isHoje?'selected':'',hasEv?'has-events':''].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="selectDay(${ano},${mes},${d})">${d}</div>`;
+  }
+  document.getElementById('calDays').innerHTML=html;
+}
+
+function calNav(dir){
+  calDate=new Date(calDate.getFullYear(),calDate.getMonth()+dir,1);
+  renderCal();
+}
+function selectDay(y,m,d){
+  selectedDay=new Date(y,m,d);
+  renderCal();
+  renderAgenda(selectedDay);
+}
+
+// ── AGENDA DO DIA ──
+function renderAgenda(dt){
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const dias=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  document.getElementById('agendaDateLabel').textContent=`${dias[dt.getDay()]}, ${dt.getDate()} de ${meses[dt.getMonth()]}`;
+
+  const ocs=OCORRENCIAS.filter(o=>
+    o.data.getFullYear()===dt.getFullYear()&&
+    o.data.getMonth()===dt.getMonth()&&
+    o.data.getDate()===dt.getDate()
+  );
+
+  const el=document.getElementById('agendaList');
+  if(!ocs.length){
+    el.innerHTML='<div class="empty"><span class="empty-icon">📅</span><div style="font-size:13px">Nenhum checklist para este dia</div></div>';
+    document.getElementById('tabCntHoje').textContent=0;
+    return;
+  }
+
+  const pendentes=ocs.filter(o=>o.status==='pendente').length;
+  document.getElementById('tabCntHoje').textContent=pendentes;
+  document.getElementById('tabCntHoje').style.display=pendentes?'inline-flex':'none';
+
+  el.innerHTML=ocs.map(o=>`
+    <div class="agenda-item ${o.status}" id="oc${o.id}">
+      <div class="ai-head" onclick="toggleAI('${o.id}')">
+        <div class="ai-icon ${TIPO_CLASS[o.ag.tipo]}">${TIPO_ICON[o.ag.tipo]}</div>
+        <div class="ai-info">
+          <div class="ai-title">${o.ag.nome}</div>
+          <div class="ai-meta">
+            <span>🕐 ${o.ag.hora}</span>
+            <span>⏰ até ${o.ag.prazo}</span>
+            <span>🏪 ${o.ag.loja}</span>
+            <span>👤 ${o.ag.avaliador}</span>
+          </div>
+        </div>
+        <span class="ai-status ${o.status}">${{pendente:'⏳ Pendente',concluido:'✅ Concluído',atrasado:'🚨 Atrasado',agendado:'📅 Agendado'}[o.status]}</span>
+      </div>
+      <div class="ai-body" id="aib${o.id}">
+        <div class="ai-detail-grid">
+          <div class="ai-detail"><div class="ai-detail-lbl">Frequência</div><div class="ai-detail-val">${FREQ_LABEL[o.ag.freq]}</div></div>
+          <div class="ai-detail"><div class="ai-detail-lbl">Avaliador</div><div class="ai-detail-val">${o.ag.avaliador}</div></div>
+          <div class="ai-detail"><div class="ai-detail-lbl">Avisos</div><div class="ai-detail-val">${[o.ag.notifApp?'🔔 App':'',o.ag.notifWa?'💬 WhatsApp':''].filter(Boolean).join(' · ')}</div></div>
+          <div class="ai-detail"><div class="ai-detail-lbl">Tipo</div><div class="ai-detail-val">${o.ag.tipo}</div></div>
+        </div>
+        <div class="ai-actions">${renderAIActions(o)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAIActions(o){
+  if(o.status==='concluido') return `<button class="btn-action ghost" disabled>✅ Já concluído</button>`;
+  if(o.status==='agendado') return `<button class="btn-action ghost" disabled>📅 Ainda não é hora</button>`;
+  let html=`<button class="btn-action primary" onclick="concluirOC('${o.id}')">▶ Iniciar Avaliação</button>`;
+  if(o.status==='atrasado') html+=`<button class="btn-action danger" onclick="concluirOC('${o.id}')">⚠️ Concluir com atraso</button>`;
+  html+=`<button class="btn-action ghost" onclick="renotificar('${o.id}')">🔔 Renotificar</button>`;
+  return html;
+}
+
+function toggleAI(id){document.getElementById('aib'+id).classList.toggle('open');}
+
+function concluirOC(id){
+  const o=OCORRENCIAS.find(x=>x.id===id); if(!o)return;
+  o.status='concluido';
+  renderAgenda(selectedDay);
+  renderVisao();
+  showToast('✅ Avaliação marcada como concluída!','ok');
+  addNotif('✅ Checklist concluído',`${o.ag.nome} — ${o.ag.loja}`,'app');
+}
+function renotificar(id){
+  const o=OCORRENCIAS.find(x=>x.id===id); if(!o)return;
+  showToast('🔔 Notificação reenviada!','info');
+  addNotif('🔔 Lembrete reenviado',`${o.ag.nome} — aguardando conclusão`,'app');
+  if(o.ag.notifWa) addNotif('💬 WhatsApp enviado',`Mensagem enviada para ${o.ag.avaliador}`,'whatsapp');
+}
+
+// ── AGENDAMENTOS ──
+function renderAgendamentos(){
+  const ativos=AGENDAMENTOS.filter(a=>a.ativo).length;
+  document.getElementById('schedSubtitle').textContent=`${ativos} ativo${ativos!==1?'s':''} · ${AGENDAMENTOS.length} total`;
+  const el=document.getElementById('schedList');
+  if(!AGENDAMENTOS.length){
+    el.innerHTML='<div class="empty"><span class="empty-icon">🔁</span><div style="font-size:13px">Nenhum agendamento criado</div></div>';
+    return;
+  }
+  el.innerHTML=AGENDAMENTOS.map(a=>{
+    const proximas=getProximas(a,3);
+    return`<div class="sched-card ${a.ativo?'':'inactive'}">
+      <div class="sc-head" onclick="toggleSC('${a.id}')">
+        <div class="sc-color" style="background:${corFreq(a.freq)}">${TIPO_ICON[a.tipo]}</div>
+        <div class="sc-info">
+          <div class="sc-title">${a.nome}</div>
+          <div class="sc-subtitle">👤 ${a.avaliador} · ⏰ ${a.hora}–${a.prazo}</div>
+          <div class="sc-chips">
+            <span class="sc-chip freq">🔁 ${FREQ_LABEL[a.freq]}</span>
+            <span class="sc-chip loja">🏪 ${a.loja}</span>
+            ${a.notifWa?'<span class="sc-chip" style="background:rgba(37,211,102,.1);color:#1a7a3a">💬 WhatsApp</span>':''}
+            ${a.notifApp?'<span class="sc-chip" style="background:rgba(232,82,42,.1);color:var(--accent)">🔔 App</span>':''}
+          </div>
+        </div>
+        <div class="sc-right">
+          <label class="toggle-switch" onclick="event.stopPropagation()">
+            <input type="checkbox" ${a.ativo?'checked':''} onchange="toggleAgend('${a.id}',this)">
+            <div class="toggle-track"></div><div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+      <div class="sc-body" id="scb${a.id}">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Próximas execuções</div>
+        <div class="proximas">${proximas.map(p=>`
+          <div class="proxima-item">
+            <div class="proxima-dot"></div>
+            <div class="proxima-date">${p.label}</div>
+            <div class="proxima-rel">${p.rel}</div>
+          </div>`).join('')}</div>
+        <div class="ai-actions" style="margin-top:4px">
+          <button class="btn-action primary" onclick="editarAgend('${a.id}')">✎ Editar</button>
+          <button class="btn-action danger" onclick="excluirAgend('${a.id}')">🗑 Excluir</button>
+          <button class="btn-action ghost" onclick="duplicarAgend('${a.id}')">⧉ Duplicar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSC(id){document.getElementById('scb'+id).classList.toggle('open');}
+
+function corFreq(f){return{diario:'#e8522a',semanal:'#2a7d52',quinzenal:'#b07d20',mensal:'#2c3e7a'}[f]||'#8a8478';}
+
+function getProximas(ag,n){
+  const res=[];
+  const hoje=new Date(2026,4,13);
+  const dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago'];
+  for(let d=0;d<=60&&res.length<n;d++){
+    const dt=new Date(hoje); dt.setDate(hoje.getDate()+d);
+    if(ocorrenciaNoDia(ag,dt)){
+      const rel=d===0?'Hoje':d===1?'Amanhã':'em '+d+' dias';
+      res.push({label:`${dias[dt.getDay()]}, ${dt.getDate()} de ${meses[dt.getMonth()]} · ${ag.hora}`,rel});
+    }
+  }
+  return res;
+}
+
+function toggleAgend(id,el){
+  const a=AGENDAMENTOS.find(x=>x.id===id); if(!a)return;
+  a.ativo=el.checked;
+  gerarOcorrencias();
+  renderAgendamentos();
+  renderCal();
+  renderVisao();
+  showToast(a.ativo?`✅ ${a.nome} ativado`:`⛔ ${a.nome} desativado`, a.ativo?'ok':'info');
+}
+
+function editarAgend(id){
+  const a=AGENDAMENTOS.find(x=>x.id===id); if(!a)return;
+  document.getElementById('modalAgendTitle').textContent='Editar Agendamento';
+  document.getElementById('editAgendId').value=id;
+  document.getElementById('aName').value=a.nome;
+  document.getElementById('aTipo').value=a.tipo;
+  document.getElementById('aLoja').value=a.loja;
+  document.getElementById('aAvaliador').value=a.avaliador;
+  document.getElementById('aFreq').value=a.freq;
+  document.getElementById('aHora').value=a.hora;
+  document.getElementById('aPrazo').value=a.prazo;
+  document.getElementById('aInicio').value=a.inicio;
+  document.getElementById('aFim').value=a.fim||'';
+  document.getElementById('notifApp').checked=a.notifApp;
+  document.getElementById('notifWa').checked=a.notifWa;
+  // Dias
+  document.querySelectorAll('.wday-btn').forEach(b=>{
+    b.classList.toggle('active',a.dias.includes(parseInt(b.dataset.day)));
+  });
+  onFreqChange();
+  document.getElementById('modalAgend').classList.add('open');
+}
+
+function excluirAgend(id){
+  AGENDAMENTOS=AGENDAMENTOS.filter(a=>a.id!==id);
+  gerarOcorrencias();
+  renderAgendamentos();
+  renderCal();
+  renderVisao();
+  showToast('🗑 Agendamento excluído','info');
+}
+
+function duplicarAgend(id){
+  const a=AGENDAMENTOS.find(x=>x.id===id); if(!a)return;
+  const novo={...a,id:'ag'+Date.now(),nome:a.nome+' (cópia)',ativo:false};
+  AGENDAMENTOS.push(novo);
+  renderAgendamentos();
+  showToast('⧉ Agendamento duplicado!','ok');
+}
+
+function abrirNovoAgend(){
+  document.getElementById('modalAgendTitle').textContent='Novo Agendamento';
+  document.getElementById('editAgendId').value='';
+  document.getElementById('aName').value='';
+  document.getElementById('aTipo').value='Abertura';
+  document.getElementById('aFreq').value='diario';
+  document.getElementById('aHora').value='07:00';
+  document.getElementById('aPrazo').value='09:00';
+  document.getElementById('aInicio').value='2026-05-13';
+  document.getElementById('aFim').value='';
+  document.getElementById('notifApp').checked=true;
+  document.getElementById('notifWa').checked=true;
+  document.querySelectorAll('.wday-btn').forEach(b=>{
+    b.classList.toggle('active',[1,2,3,4,5].includes(parseInt(b.dataset.day)));
+  });
+  onFreqChange();
+  document.getElementById('modalAgend').classList.add('open');
+}
+
+function onFreqChange(){
+  const freq=document.getElementById('aFreq').value;
+  document.getElementById('diasSemanaWrap').style.display=(freq==='semanal'||freq==='quinzenal')?'block':'none';
+}
+
+function toggleDay(btn){btn.classList.toggle('active');}
+
+function saveAgend(){
+  const nome=document.getElementById('aName').value.trim();
+  if(!nome){showToast('⚠️ Nome obrigatório','warn');return;}
+  const dias=[...document.querySelectorAll('.wday-btn.active')].map(b=>parseInt(b.dataset.day));
+  const freq=document.getElementById('aFreq').value;
+  if((freq==='semanal'||freq==='quinzenal')&&!dias.length){showToast('⚠️ Selecione ao menos um dia','warn');return;}
+
+  const editId=document.getElementById('editAgendId').value;
+  const obj={
+    id:editId||'ag'+Date.now(),
+    nome,
+    tipo:document.getElementById('aTipo').value,
+    loja:document.getElementById('aLoja').value,
+    avaliador:document.getElementById('aAvaliador').value,
+    freq,
+    dias:freq==='diario'?[0,1,2,3,4,5,6]:dias,
+    hora:document.getElementById('aHora').value,
+    prazo:document.getElementById('aPrazo').value,
+    inicio:document.getElementById('aInicio').value,
+    fim:document.getElementById('aFim').value,
+    notifApp:document.getElementById('notifApp').checked,
+    notifWa:document.getElementById('notifWa').checked,
+    ativo:true,
+  };
+
+  if(editId){const i=AGENDAMENTOS.findIndex(a=>a.id===editId);if(i>=0)AGENDAMENTOS[i]=obj;}
+  else AGENDAMENTOS.push(obj);
+
+  gerarOcorrencias();
+  renderAgendamentos();
+  renderCal();
+  renderAgenda(selectedDay);
+  renderVisao();
+  closeModal('modalAgend');
+  showToast(editId?'✅ Agendamento atualizado!':'✅ Agendamento criado!','ok');
+}
+
+// ── VISÃO GERAL ──
+function renderVisao(){
+  const ativos=AGENDAMENTOS.filter(a=>a.ativo).length;
+  const hoje=OCORRENCIAS.filter(o=>{const d=o.data;return d.getFullYear()===2026&&d.getMonth()===4&&d.getDate()===13;});
+  const conc=OCORRENCIAS.filter(o=>{const hoje2=new Date(2026,4,13);const dif=Math.round((hoje2-o.data)/86400000);return dif>=0&&dif<=7&&o.status==='concluido';}).length;
+  const atras=OCORRENCIAS.filter(o=>o.status==='atrasado').length;
+  document.getElementById('vKpiTotal').textContent=ativos;
+  document.getElementById('vKpiHoje').textContent=hoje.length;
+  document.getElementById('vKpiOk').textContent=conc;
+  document.getElementById('vKpiAtrasados').textContent=atras;
+
+  // Por loja
+  const lojaMap={};
+  OCORRENCIAS.forEach(o=>{
+    const l=o.ag.loja;
+    if(!lojaMap[l])lojaMap[l]={total:0,ok:0};
+    lojaMap[l].total++;
+    if(o.status==='concluido')lojaMap[l].ok++;
+  });
+  document.getElementById('visaoLojas').innerHTML=Object.entries(lojaMap).map(([l,v])=>{
+    const pct=v.total?Math.round(v.ok/v.total*100):0;
+    const cor=pct>=80?'var(--ok)':pct>=50?'var(--warn)':'var(--nok)';
+    return`<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:5px">
+        <span>${l}</span><span style="color:${cor};font-family:'Syne',sans-serif;font-weight:800">${pct}%</span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden">
+        <div style="height:100%;border-radius:99px;background:${cor};width:${pct}%;transition:width .4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${v.ok} de ${v.total} concluídos</div>
+    </div>`;
+  }).join('');
+
+  // Por frequência
+  const freqMap={};
+  AGENDAMENTOS.filter(a=>a.ativo).forEach(a=>{
+    freqMap[a.freq]=(freqMap[a.freq]||0)+1;
+  });
+  document.getElementById('visaoFreq').innerHTML=Object.entries(freqMap).map(([f,n])=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${corFreq(f)};flex-shrink:0"></div>
+      <div style="flex:1;font-size:13px;font-weight:600">${FREQ_LABEL[f]}</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px">${n}</div>
+    </div>`).join('');
+}
+
+// ── NOTIFICAÇÕES ──
+function renderNotifPanel(){
+  const naoLidas=NOTIFICACOES.filter(n=>!n.lida).length;
+  const badge=document.getElementById('notifBadge');
+  badge.textContent=naoLidas;
+  badge.style.display=naoLidas?'flex':'none';
+  document.getElementById('notifList').innerHTML=NOTIFICACOES.length
+    ?NOTIFICACOES.map(n=>`
+      <div class="notif-item ${n.lida?'':n.canal==='whatsapp'?'whatsapp':'unread'}" onclick="lerNotif(${n.id})">
+        <div class="notif-title">${n.titulo}${n.canal==='whatsapp'?'<span class="whatsapp-badge">WhatsApp</span>':''}</div>
+        <div class="notif-sub">${n.sub}</div>
+        <div class="notif-time">${n.tempo}</div>
+      </div>`).join('')
+    :'<div class="empty" style="padding:20px"><span class="empty-icon">🔔</span><div style="font-size:13px">Sem notificações</div></div>';
+}
+
+function renderNotifHistorico(){
+  document.getElementById('notifHistorico').innerHTML=NOTIFICACOES.map(n=>`
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:18px;flex-shrink:0">${n.canal==='whatsapp'?'💬':'🔔'}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--dark)">${n.titulo}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${n.sub}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);flex-shrink:0">${n.tempo}</div>
+    </div>`).join('');
+}
+
+function addNotif(titulo,sub,canal){
+  NOTIFICACOES.unshift({id:Date.now(),titulo,sub,tempo:'agora',canal,lida:false});
+  renderNotifPanel();
+  renderNotifHistorico();
+  updateBadges();
+}
+
+function lerNotif(id){
+  const n=NOTIFICACOES.find(x=>x.id===id);if(n)n.lida=true;
+  renderNotifPanel();updateBadges();
+}
+
+function toggleNotif(){document.getElementById('notifPanel').classList.toggle('open');}
+
+function toggleChannel(ch,el){
+  showToast(`${ch==='app'?'🔔 App':'💬 WhatsApp'} ${el.checked?'ativado':'desativado'}`,el.checked?'ok':'info');
+}
+
+function testarWhatsApp(){
+  showToast('💬 Mensagem de teste enviada!','ok');
+  addNotif('💬 Teste WhatsApp enviado',`Mensagem enviada para ${document.getElementById('waNumero').value}`,'whatsapp');
+}
+
+function updateBadges(){
+  const naoLidas=NOTIFICACOES.filter(n=>!n.lida).length;
+  document.getElementById('tabCntNotif').textContent=naoLidas;
+  document.getElementById('tabCntNotif').style.display=naoLidas?'inline-flex':'none';
+}
+
+// ── TABS ──
+function setTab(t,el){
+  const map={agenda:'tabAgenda',agendamentos:'tabAgendamentos',visao:'tabVisao',notif:'tabNotif'};
+  Object.values(map).forEach(id=>document.getElementById(id).style.display='none');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(map[t]).style.display='flex';
+  if(el)el.classList.add('active');
+  if(t==='visao')renderVisao();
+  if(t==='notif'){renderNotifHistorico();renderNotifPanel();}
+}
+
+// ── UTILS ──
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+let _tt;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>

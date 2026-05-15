@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#181820">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SmartCheck">
+<title>SmartCheck</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede6;--border:#e2ddd5;
+  --dark:#181820;--dark2:#23232f;--accent:#e8522a;--gold:#c4a050;
+  --ok:#2a7d52;--nok:#c0392b;--warn:#b07d20;
+  --text:#181820;--muted:#8a8478;--radius:14px;
+  --t-primary:#e8522a;--t-accent:#c4a050;
+  --nav-h:64px;--header-h:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--dark)}
+body{font-family:'DM Sans',sans-serif;color:var(--text)}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;transition:opacity .6s}
+#splash.hide{opacity:0;pointer-events:none}
+.sp-logo{display:flex;flex-direction:column;align-items:center;gap:12px}
+.sp-name{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#fff;letter-spacing:1px}
+.sp-name span{color:var(--gold)}
+.sp-tag{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase}
+.sp-stars{display:flex;gap:10px}
+.sstar{font-size:26px;opacity:0;transform:scale(.3)}
+.sstar.pop{animation:sPop .45s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes sPop{0%{opacity:0;transform:scale(.3)}60%{transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+.sp-bar-wrap{width:220px}
+.sp-track{height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:6px}
+.sp-fill{height:100%;width:0;background:linear-gradient(90deg,#8a6820,#c4a050,#e8d090);border-radius:99px;transition:width .08s linear}
+.sp-bottom{display:flex;justify-content:space-between}
+.sp-msg{font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.5px}
+.sp-pct{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;color:var(--gold)}
+
+/* ── LOGIN ── */
+#login{position:fixed;inset:0;background:var(--dark);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto}
+#login.show{display:flex}
+#login::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(196,160,80,.1),transparent);pointer-events:none}
+.login-logo{text-align:center;margin-bottom:36px;display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;z-index:1}
+#loginAppName{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff}
+#loginAppName span{color:var(--t-primary)}
+#loginTagline{font-size:12px;color:rgba(255,255,255,.35);margin-top:2px}
+.login-box{background:#23232f;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1;border:1px solid rgba(255,255,255,.06)}
+.login-box label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.login-box input{background:#2e2e3e;border:1.5px solid #3a3a4e;border-radius:10px;padding:13px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;width:100%;transition:border-color .2s}
+.login-box input:focus{border-color:var(--t-primary)}
+.login-box input::placeholder{color:rgba(255,255,255,.2)}
+.login-divider{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.15);font-size:11px}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+.btn-login{border:none;border-radius:12px;padding:15px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;width:100%;cursor:pointer;transition:opacity .2s;background:var(--t-primary);color:#fff}
+.btn-login:active{opacity:.85}
+.login-err{color:#ff6b5b;font-size:12px;text-align:center;display:none;padding:8px;background:rgba(255,107,91,.1);border-radius:8px}
+.login-hint{font-size:11px;color:rgba(255,255,255,.2);text-align:center;line-height:1.6}
+
+/* ── APP SHELL ── */
+#shell{position:fixed;inset:0;display:none;flex-direction:column}
+#shell.show{display:flex}
+
+/* ── TOP BAR ── */
+.top-bar{background:var(--dark);height:var(--header-h);padding:0 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:50}
+.top-bar-logo{display:flex;align-items:center;gap:9px;cursor:pointer}
+#topBarAppName{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+#topBarAppName span{color:var(--t-primary)}
+.top-bar-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.tb-actions{display:flex;gap:6px;align-items:center}
+.tb-btn{background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:7px 12px;color:rgba(255,255,255,.65);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s;display:inline-flex;align-items:center;gap:5px}
+.tb-btn:hover{background:rgba(255,255,255,.18)}
+.bell-wrap{position:relative}
+.bell-badge{position:absolute;top:-3px;right:-3px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:9px;padding:0 4px;display:none;align-items:center;justify-content:center;border:2px solid var(--dark);font-family:'Syne',sans-serif}
+
+/* CONN BAR */
+.conn-bar{padding:5px 16px;font-size:10px;font-weight:700;text-align:center;font-family:'Syne',sans-serif;display:none;align-items:center;justify-content:center;gap:6px;flex-shrink:0;letter-spacing:.4px}
+.conn-bar.offline{display:flex;background:rgba(107,45,232,.15);color:#b59cf5;border-bottom:1px solid rgba(107,45,232,.2)}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:#b59cf5;animation:blink 1.4s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.conn-sync-btn{background:rgba(255,255,255,.15);border:none;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;color:#b59cf5;font-family:'Syne',sans-serif}
+
+/* TENANT BANNER */
+.tenant-banner{height:0;overflow:hidden;transition:height .3s;background:var(--dark2);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.tenant-banner.show{height:34px}
+.tb-tenant-name{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.4px}
+.tb-tenant-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;font-family:'Syne',sans-serif;margin-left:auto}
+
+/* FRAME WRAP */
+#frameWrap{flex:1;overflow:hidden;position:relative;background:var(--bg)}
+.module-frame{position:absolute;inset:0;width:100%;height:100%;border:none;display:none;background:var(--bg)}
+.module-frame.active{display:block}
+
+/* FRAME LOADER */
+#frameLoader{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;transition:opacity .3s}
+#frameLoader.hide{opacity:0;pointer-events:none}
+.f-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--t-primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.f-loader-txt{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted)}
+
+/* BOTTOM NAV */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);height:var(--nav-h);padding:8px 4px 10px;display:flex;align-items:flex-start;flex-shrink:0;z-index:50}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:4px 2px;border-radius:10px;transition:background .15s;position:relative;min-width:0}
+.nav-item:hover{background:var(--surface2)}
+.nav-icon{font-size:20px;line-height:1;transition:transform .2s}
+.nav-item.active .nav-icon{transform:translateY(-2px)}
+.nav-label{font-size:9px;font-weight:700;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.nav-item.active .nav-label{color:var(--t-primary)}
+.nav-pip{position:absolute;top:2px;right:calc(50% - 14px);width:6px;height:6px;border-radius:50%;background:var(--t-primary);display:none}
+.nav-item.active .nav-pip{display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--nav-h) + 10px);left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.warn{background:var(--warn);color:#fff}
+.toast.info{background:var(--dark);color:#fff}
+.toast.offline{background:#6b2de8;color:#fff}
+
+/* iOS safe area */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  .bottom-nav{padding-bottom:calc(env(safe-area-inset-bottom) + 8px);height:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="shieldGold" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c4a050"/>
+      <stop offset="50%" stop-color="#e8d090"/>
+      <stop offset="100%" stop-color="#8a6820"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <div class="sp-logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:76px;height:86px;filter:drop-shadow(0 8px 28px rgba(196,160,80,.5))">
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+      <path d="M34 8L60 17V36C60 51 48 64 34 69C20 64 8 51 8 36V17L34 8Z" fill="none" stroke="rgba(196,160,80,.2)" stroke-width=".5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="sp-name">Smart<span>Check</span></div>
+    <div class="sp-tag">Plataforma Operacional</div>
+  </div>
+  <div class="sp-stars">
+    <span class="sstar" id="ss0">⭐</span><span class="sstar" id="ss1">⭐</span>
+    <span class="sstar" id="ss2">⭐</span><span class="sstar" id="ss3">⭐</span>
+    <span class="sstar" id="ss4">⭐</span>
+  </div>
+  <div class="sp-bar-wrap">
+    <div class="sp-track"><div class="sp-fill" id="spFill"></div></div>
+    <div class="sp-bottom">
+      <span class="sp-msg" id="spMsg">Iniciando...</span>
+      <span class="sp-pct" id="spPct">0%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="login">
+  <div class="login-logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:68px;height:76px;filter:drop-shadow(0 6px 24px rgba(196,160,80,.4))" id="loginShield">
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <img id="loginLogoImg" src="" alt="" style="width:68px;height:68px;border-radius:14px;object-fit:contain;display:none">
+    <div id="loginAppName">Smart<span>Check</span></div>
+    <div id="loginTagline">Plataforma de Avaliação Operacional</div>
+  </div>
+  <div class="login-box">
+    <div>
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+    </div>
+    <div>
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-divider">código da empresa</div>
+    <div>
+      <label>Código da rede <span style="font-weight:400;text-transform:none;letter-spacing:0;color:rgba(255,255,255,.2)">(opcional)</span></label>
+      <input type="text" id="loginCodigo" placeholder="Ex: MINHA_REDE" maxlength="20" style="text-transform:uppercase;letter-spacing:1px"
+        oninput="this.value=this.value.toUpperCase();previewTenant(this.value)">
+      <div style="font-size:11px;color:rgba(255,255,255,.18);margin-top:5px;line-height:1.5">
+        Sem código → acesso padrão ou Super Admin
+      </div>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Entrar</button>
+    <div class="login-hint">Não tem código? Peça ao administrador da sua rede.</div>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ══ -->
+<div id="shell">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-logo" onclick="navTo('app')">
+      <svg viewBox="0 0 68 76" fill="none" style="width:26px;height:30px;flex-shrink:0" id="topBarShield">
+        <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#shieldGold)" stroke-width="1.5"/>
+        <path d="M20 38L30 49L48 28" stroke="url(#shieldGold)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <img id="topBarLogoImg" src="" alt="" style="width:26px;height:26px;border-radius:6px;object-fit:contain;display:none">
+      <div>
+        <div id="topBarAppName">Smart<span>Check</span></div>
+        <div class="top-bar-sub" id="topBarSub">Avaliação Operacional</div>
+      </div>
+    </div>
+    <div class="tb-actions">
+      <div class="conn-bar" id="connBar">
+        <div class="conn-dot"></div>
+        <span>OFFLINE</span>
+        <button class="conn-sync-btn" onclick="navTo('offline')">Sync</button>
+      </div>
+      <div class="bell-wrap">
+        <button class="tb-btn" id="btnBell" onclick="navTo('app')" title="Avisos">
+          🔔<span class="bell-badge" id="bellBadge">0</span>
+        </button>
+      </div>
+      <button class="tb-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <!-- TENANT BANNER -->
+  <div class="tenant-banner" id="tenantBanner">
+    <div class="tb-tenant-name" id="tenantBannerName">–</div>
+    <div class="tb-tenant-pill" id="tenantBannerPill">–</div>
+  </div>
+
+  <!-- FRAMES -->
+  <div id="frameWrap">
+    <div id="frameLoader">
+      <div class="f-spinner"></div>
+      <div class="f-loader-txt" id="frameLoaderTxt">Carregando...</div>
+    </div>
+    <iframe class="module-frame" id="frameApp"          title="App Principal"></iframe>
+    <iframe class="module-frame" id="frameDashboard"    title="Dashboard"></iframe>
+    <iframe class="module-frame" id="framePlano"        title="Plano de Ação"></iframe>
+    <iframe class="module-frame" id="frameAgendamentos" title="Agendamentos"></iframe>
+    <iframe class="module-frame" id="frameOffline"      title="Offline"></iframe>
+    <iframe class="module-frame" id="frameMulti"        title="Multi-Cliente"></iframe>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-app" onclick="navTo('app')">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">📋</div>
+      <div class="nav-label">Avaliar</div>
+    </div>
+    <div class="nav-item" id="nav-dashboard" onclick="navTo('dashboard')">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Dashboard</div>
+    </div>
+    <div class="nav-item" id="nav-plano" onclick="navTo('plano')">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">⚠️</div>
+      <div class="nav-label">Plano</div>
+    </div>
+    <div class="nav-item" id="nav-agendamentos" onclick="navTo('agendamentos')">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">📅</div>
+      <div class="nav-label">Agenda</div>
+    </div>
+    <div class="nav-item" id="nav-offline" onclick="navTo('offline')">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">📡</div>
+      <div class="nav-label">Offline</div>
+    </div>
+    <div class="nav-item" id="nav-multi" onclick="navTo('multi')" style="display:none">
+      <div class="nav-pip"></div>
+      <div class="nav-icon">🏢</div>
+      <div class="nav-label">Clientes</div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ─── MÓDULOS — ajuste os nomes se necessário ───
+const MODS = {
+  app:          {file:'index.html',                   label:'Avaliação',     msg:'Carregando app...'},
+  dashboard:    {file:'smartcheck-dashboard.html',    label:'Dashboard',     msg:'Carregando dashboard...'},
+  plano:        {file:'smartcheck-plano-acao.html',   label:'Plano de Ação', msg:'Carregando plano de ação...'},
+  agendamentos: {file:'smartcheck-agendamentos.html', label:'Agendamentos',  msg:'Carregando agenda...'},
+  offline:      {file:'smartcheck-offline.html',      label:'Offline',       msg:'Carregando modo offline...'},
+  multi:        {file:'smartcheck-multitenancy.html', label:'Clientes',      msg:'Carregando clientes...'},
+};
+
+const FRAME = {
+  app:'frameApp', dashboard:'frameDashboard', plano:'framePlano',
+  agendamentos:'frameAgendamentos', offline:'frameOffline', multi:'frameMulti',
+};
+
+// ─── TENANTS (demo) ───
+const TENANTS = [
+  {codigo:'BPALACE', nome:'Burguer Palace',     primary:'#e8522a',accent:'#c4a050',logo:'',plano:'Enterprise'},
+  {codigo:'PMONDO',  nome:'Pizza Mondo',         primary:'#1a6b3c',accent:'#f5a623',logo:'',plano:'Pro'},
+  {codigo:'SUSHIZEN',nome:'Sushi Zen',           primary:'#2c3e7a',accent:'#e74c3c',logo:'',plano:'Starter'},
+  {codigo:'CGAUCHA', nome:'Churrascaria Gaúcha', primary:'#6b2c1a',accent:'#c4a050',logo:'',plano:'Pro'},
+];
+const SUPER = {email:'admin@smartcheck.com.br', senha:'master123'};
+
+let user=null, activeMod='app', loaded=new Set(), online=navigator.onLine;
+
+// ─── SPLASH ───
+;(function(){
+  const msgs=['Verificando conexão...','Carregando módulos...','Aplicando configurações...','Preparando avaliações...','Pronto!'];
+  const fill=document.getElementById('spFill'),msg=document.getElementById('spMsg'),pct=document.getElementById('spPct');
+  let p=0;
+  [0,1,2,3,4].forEach((i)=>setTimeout(()=>document.getElementById('ss'+i).classList.add('pop'),300+i*160));
+  const iv=setInterval(()=>{
+    p=Math.min(p+Math.random()*4+1,100);
+    fill.style.width=p+'%'; pct.textContent=Math.round(p)+'%';
+    msg.textContent=msgs[Math.min(Math.floor(p/22),msgs.length-1)];
+    if(p>=100){clearInterval(iv);setTimeout(()=>{document.getElementById('splash').classList.add('hide');setTimeout(showLogin,600);},400);}
+  },60);
+})();
+
+// ─── LOGIN ───
+function showLogin(){document.getElementById('login').classList.add('show');}
+
+function previewTenant(cod){
+  const t=TENANTS.find(x=>x.codigo===cod);
+  const shield=document.getElementById('loginShield');
+  const img=document.getElementById('loginLogoImg');
+  if(t){
+    setTheme(t.primary,t.accent);
+    if(t.logo){shield.style.display='none';img.style.display='block';img.src=t.logo;}
+    else{shield.style.display='block';img.style.display='none';}
+    document.getElementById('loginAppName').textContent=t.nome;
+    document.getElementById('loginTagline').textContent='Sistema de Avaliação Operacional';
+    document.getElementById('btnLogin').textContent='Entrar como '+t.nome;
+  } else {
+    resetTheme();
+    shield.style.display='block';img.style.display='none';
+    document.getElementById('loginAppName').innerHTML='Smart<span>Check</span>';
+    document.getElementById('loginTagline').textContent='Plataforma de Avaliação Operacional';
+    document.getElementById('btnLogin').textContent='Entrar';
+  }
+}
+
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const senha=document.getElementById('loginPass').value;
+  const cod=document.getElementById('loginCodigo').value.trim().toUpperCase();
+  const err=document.getElementById('loginErr');
+  err.style.display='none';
+
+  if(!cod){
+    // Super admin
+    if(email===SUPER.email&&senha===SUPER.senha){user={email,role:'super',tenant:null};launch();return;}
+    // Usuário normal → vai direto para o index.html
+    if(email&&senha.length>=1){user={email,role:'user',tenant:null};launch();return;}
+    err.textContent='Preencha e-mail e senha.';err.style.display='block';return;
+  }
+  const t=TENANTS.find(x=>x.codigo===cod);
+  if(!t){err.textContent='Código de empresa não encontrado.';err.style.display='block';return;}
+  if(!email||!senha){err.textContent='Preencha e-mail e senha.';err.style.display='block';return;}
+  user={email,role:'tenant',tenant:t};
+  setTheme(t.primary,t.accent);
+  launch();
+}
+
+function launch(){
+  document.getElementById('login').classList.remove('show');
+  document.getElementById('shell').classList.add('show');
+  buildShell();
+  navTo('app');
+  updateConn();
+}
+
+function doLogout(){
+  user=null;resetTheme();
+  Object.values(FRAME).forEach(id=>{const f=document.getElementById(id);if(f){f.src='';f.classList.remove('active');}});
+  loaded.clear();
+  document.getElementById('shell').classList.remove('show');
+  ['loginEmail','loginPass','loginCodigo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('tenantBanner').classList.remove('show');
+  previewTenant('');
+  showLogin();
+}
+
+function buildShell(){
+  const t=user?.tenant, sa=user?.role==='super';
+  // Top bar
+  if(t){
+    document.getElementById('topBarAppName').textContent=t.nome;
+    document.getElementById('topBarSub').textContent='Código: '+t.codigo;
+    if(t.logo){
+      document.getElementById('topBarLogoImg').src=t.logo;
+      document.getElementById('topBarLogoImg').style.display='block';
+      document.getElementById('topBarShield').style.display='none';
+    }
+    const banner=document.getElementById('tenantBanner');
+    banner.classList.add('show');
+    document.getElementById('tenantBannerName').textContent=t.nome.toUpperCase();
+    const pill=document.getElementById('tenantBannerPill');
+    pill.textContent=t.plano;
+    pill.style.cssText=`background:${t.primary}22;color:${t.primary};border:1px solid ${t.primary}44`;
+  } else {
+    document.getElementById('topBarAppName').innerHTML='Smart<span style="color:var(--t-primary)">Check</span>';
+    document.getElementById('topBarSub').textContent=sa?'Super Admin':'Avaliação Operacional';
+  }
+  document.getElementById('nav-multi').style.display=sa?'flex':'none';
+}
+
+// ─── NAVEGAÇÃO ───
+function navTo(mod){
+  if(!MODS[mod])return;
+  activeMod=mod;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.id==='nav-'+mod));
+  document.querySelectorAll('.module-frame').forEach(f=>f.classList.remove('active'));
+
+  const frameId=FRAME[mod], frame=document.getElementById(frameId), cfg=MODS[mod];
+  const loader=document.getElementById('frameLoader');
+  loader.classList.remove('hide');
+  document.getElementById('frameLoaderTxt').textContent=cfg.msg;
+
+  if(!loaded.has(mod)){
+    frame.src=cfg.file;
+    frame.onload=()=>{loaded.add(mod);loader.classList.add('hide');frame.classList.add('active');};
+    frame.onerror=()=>{loader.classList.add('hide');frame.classList.add('active');frame.srcdoc=placeholder(cfg.label,cfg.file);};
+  } else {
+    loader.classList.add('hide');
+    frame.classList.add('active');
+  }
+}
+
+function placeholder(label,file){
+  return`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans&display=swap" rel="stylesheet">
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#f7f6f2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:14px;padding:32px 24px;font-family:'DM Sans',sans-serif;text-align:center}</style>
+  </head><body>
+  <div style="font-size:52px">📄</div>
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#181820">${label}</div>
+  <div style="font-size:13px;color:#8a8478;line-height:1.7;max-width:320px">
+    O arquivo <code style="background:#e2ddd5;padding:2px 7px;border-radius:5px;font-size:12px">${file}</code>
+    não foi encontrado.<br><br>
+    Coloque todos os arquivos do SmartCheck na <b>mesma pasta</b> e abra o <b>shell.html</b> por um servidor local ou hospedagem.
+  </div>
+  <div style="margin-top:8px;background:#e8522a;color:#fff;border-radius:99px;padding:10px 22px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700">
+    📁 Verifique a pasta dos arquivos
+  </div>
+  </body></html>`;
+}
+
+// ─── TEMA ───
+function setTheme(p,a){
+  document.documentElement.style.setProperty('--t-primary',p);
+  document.documentElement.style.setProperty('--t-accent',a);
+}
+function resetTheme(){setTheme('#e8522a','#c4a050');}
+
+// ─── CONECTIVIDADE ───
+function updateConn(){document.getElementById('connBar').classList.toggle('offline',!online);}
+window.addEventListener('online', ()=>{online=true;updateConn();showToast('✅ Conexão restaurada','ok');});
+window.addEventListener('offline',()=>{online=false;updateConn();showToast('📡 Sem internet — modo offline','offline');});
+
+// Enter no login
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('login').classList.contains('show'))doLogin();
+});
+
+// ─── TOAST ───
+let _tt;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
