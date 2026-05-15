@@ -1,70 +1,144 @@
-// Smart Check Service Worker — auto-update (network-first)
-// Versão muda a cada deploy para invalidar caches antigos
-const VERSION = 'sc-' + (self.registration && self.registration.scope ? '' : '') + '20260504-1';
-const CACHE = 'smartcheck-' + VERSION;
+// ─────────────────────────────────────────────────────────────
+// SmartCheck — Service Worker com atualização automática
+//
+// COMO ATUALIZAR: basta mudar o número em CACHE_VERSION abaixo.
+// O app detecta a mudança e se atualiza automaticamente em todos
+// os dispositivos na próxima vez que for aberto.
+// ─────────────────────────────────────────────────────────────
 
-self.addEventListener('install', (event) => {
-  // Não pré-cacheia nada: queremos sempre rede primeiro
+const CACHE_VERSION = 'smartcheck-v10';
+
+// Arquivos que ficam salvos para funcionar offline
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/shell.html',
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/smartcheck-dashboard.html',
+  '/smartcheck-plano-acao.html',
+  '/smartcheck-agendamentos.html',
+  '/smartcheck-offline.html',
+  '/smartcheck-multitenancy.html',
+];
+
+// ── INSTALL: baixa e salva os arquivos estáticos ──
+self.addEventListener('install', event => {
+  // Ativa imediatamente sem esperar tabs antigas fecharem
   self.skipWaiting();
+
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(cache => {
+      return Promise.allSettled(
+        STATIC_ASSETS.map(url =>
+          cache.add(url).catch(err =>
+            console.warn('[SW] Não foi possível cachear:', url, err)
+          )
+        )
+      );
+    })
+  );
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    // Limpa caches antigos
-    const names = await caches.keys();
-    await Promise.all(names.filter(n => n !== CACHE).map(n => caches.delete(n)));
-    await self.clients.claim();
-  })());
+// ── ACTIVATE: remove caches antigos ──
+self.addEventListener('activate', event => {
+  // Toma controle de todas as tabs abertas imediatamente
+  self.clients.claim();
+
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_VERSION)
+          .map(key => {
+            console.log('[SW] Removendo cache antigo:', key);
+            return caches.delete(key);
+          })
+      )
+    )
+  );
 });
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+// ── FETCH: estratégia Network First para HTML, Cache First para assets ──
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-// Estratégia:
-// - Navegações (HTML) e chamadas /api: SEMPRE rede (network-only com fallback offline)
-// - Demais GETs (assets estáticos, fontes, ícones): stale-while-revalidate
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+  // Ignora requisições que não são GET
+  if (request.method !== 'GET') return;
 
-  const url = new URL(req.url);
-
-  // Nunca interceptar APIs nem websocket
+  // Ignora chamadas de API — sempre vai para a rede
   if (url.pathname.startsWith('/api/')) return;
 
-  const isNavigate = req.mode === 'navigate' ||
-    (req.headers.get('accept') || '').includes('text/html');
+  // Ignora serviços externos (fontes, CDN, etc)
+  if (url.origin !== self.location.origin) return;
 
-  if (isNavigate) {
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: 'no-store' });
-        const cache = await caches.open(CACHE);
-        cache.put(req, fresh.clone());
-        return fresh;
-      } catch (e) {
-        const cache = await caches.open(CACHE);
-        const cached = await cache.match(req) || await cache.match('/');
-        if (cached) return cached;
-        return new Response('Sem conexão', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-    })());
+  // Para arquivos HTML → Network First (sempre tenta pegar versão nova)
+  if (request.headers.get('accept')?.includes('text/html') ||
+      url.pathname.endsWith('.html') ||
+      url.pathname === '/') {
+    event.respondWith(networkFirst(request));
     return;
   }
 
-  // Assets: stale-while-revalidate, mas só same-origin
-  if (url.origin !== self.location.origin) return;
+  // Para outros assets → Cache First (rápido, usa cache se existir)
+  event.respondWith(cacheFirst(request));
+});
 
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const cached = await cache.match(req);
-    const network = fetch(req).then((res) => {
-      if (res && res.status === 200) cache.put(req, res.clone());
-      return res;
-    }).catch(() => cached);
-    return cached || network;
-  })());
+// ── Network First: tenta rede, cai no cache se offline ──
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_VERSION);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Fallback para o shell se tudo falhar
+    return caches.match('/shell.html') || caches.match('/index.html');
+  }
+}
+
+// ── Cache First: usa cache, atualiza em background ──
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) {
+    // Atualiza em background sem bloquear
+    fetch(request).then(response => {
+      if (response.ok) {
+        caches.open(CACHE_VERSION).then(cache => cache.put(request, response));
+      }
+    }).catch(() => {});
+    return cached;
+  }
+  // Não tem no cache — busca na rede
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_VERSION);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response('Recurso não disponível offline', { status: 503 });
+  }
+}
+
+// ── Mensagens recebidas do app ──
+self.addEventListener('message', event => {
+  // Comando para forçar atualização imediata
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  // Comando para checar versão
+  if (event.data?.type === 'GET_VERSION') {
+    event.source?.postMessage({
+      type: 'VERSION',
+      version: CACHE_VERSION
+    });
+  }
 });
