@@ -59,7 +59,7 @@ async function consultarIA(pergunta, historico = []) {
         'Authorization': `Bearer ${GROQ_API_KEY.trim()}`,
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'llama-3.3-70b-versatile',
         messages: mensagens,
         max_tokens: 300,
         temperature: 0.7,
