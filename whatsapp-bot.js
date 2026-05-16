@@ -47,49 +47,51 @@ async function enviar(para, mensagem) {
     });
     console.log(`[WA] Enviado para ${para}`);
   } catch (err) {
-    console.error('[WA] Erro ao enviar:', err.message);
-  }
-}
-
-// ── Consulta IA via Groq ──
+    // ── Consulta IA via Groq ──
 async function consultarIA(pergunta, historico = []) {
-  if (!GROQ_API_KEY) return 'Desculpe, o assistente de IA não está disponível no momento.';
+  if (!GROQ_API_KEY) return 'Desculpe, o assistente de IA está sem chave de acesso.';
+  
   try {
+    // Garante que o fetch funcione em versões mais antigas do Node se necessário
+    const nodeFetch = typeof fetch === 'undefined' ? require('node-fetch') : fetch;
+
     const mensagens = [
       {
         role: 'system',
-        content: `Você é o assistente virtual do SmartCheck, uma plataforma de avaliação operacional para restaurantes.
-Responda de forma clara, objetiva e amigável em português brasileiro.
-Você conhece todos os módulos do SmartCheck:
-- Avaliação operacional com checklist
-- Dashboard analítico com scores e rankings
-- Plano de ação para não-conformidades
-- Agendamentos recorrentes de checklists
-- Modo offline com sincronização
-- Sistema multi-cliente com white-label
-Mantenha respostas curtas (máx 3 parágrafos) pois é WhatsApp.
-Nunca invente funcionalidades que não existem.
-Se não souber, diga que vai verificar com a equipe.`,
+        content: `Você é o assistente virtual do SmartCheck, uma plataforma de avaliação operacional para restaurantes. Responda de forma clara e amigável em português brasileiro. Mantenha respostas curtas.`,
       },
-      ...historico.slice(-6), // últimas 6 mensagens para contexto
+      ...historico.slice(-6),
       { role: 'user', content: pergunta },
     ];
 
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await nodeFetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY.trim()}`, // .trim() evita erros de espaço
       },
       body: JSON.stringify({
-        model:       'llama3-8b-8192',
-        messages:    mensagens,
-        max_tokens:  300,
+        model: 'llama3-8b-8192',
+        messages: mensagens,
+        max_tokens: 300,
         temperature: 0.7,
       }),
     });
 
     const data = await resp.json();
+
+    // Se a Groq responder com erro (ex: chave inválida), isso vai aparecer no Log do Render
+    if (data.error) {
+      console.error('[GROQ API ERROR]:', data.error.message);
+      return 'Tive um problema ao consultar a IA. Por favor, tente novamente.';
+    }
+
+    return data.choices?.[0]?.message?.content || 'Não consegui processar sua pergunta agora.';
+  } catch (err) {
+    console.error('[IA EXCEPTION]:', err.message);
+    return 'Tive um problema técnico na conexão com a inteligência artificial.';
+  }
+}    const data = await resp.json();
     return data.choices?.[0]?.message?.content || 'Não consegui processar sua pergunta agora.';
   } catch (err) {
     console.error('[IA] Erro:', err.message);
