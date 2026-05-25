@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartCheck — Pesos e Penalidades</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede6;--border:#e2ddd5;
+  --dark:#181820;--accent:#e8522a;--gold:#c4a050;
+  --ok:#2a7d52;--nok:#c0392b;--warn:#b07d20;
+  --leve:#b07d20;--medio:#e8522a;--critico:#6b2de8;
+  --text:#181820;--muted:#8a8478;--radius:14px;
+  --shadow:0 2px 14px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* HEADER */
+.app-header{background:var(--dark);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
+.logo h1 span{color:var(--accent)}
+.logo p{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.role-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer}
+
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1.5px solid var(--border);display:flex;position:sticky;top:51px;z-index:99;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* PAGE */
+.page{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-width:720px;margin:0 auto}
+
+/* CARD */
+.card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1.5px solid var(--border)}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+
+/* BLOCO DE AVALIAÇÃO */
+.bloco{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px}
+.bloco-header{padding:13px 15px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s}
+.bloco-header:hover{background:var(--surface2)}
+.bloco-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.bloco-info{flex:1;min-width:0}
+.bloco-nome{font-size:14px;font-weight:700;color:var(--dark)}
+.bloco-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.bloco-score{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;flex-shrink:0}
+.bloco-score.ok{color:var(--ok)}.bloco-score.warn{color:var(--warn)}.bloco-score.nok{color:var(--nok)}.bloco-score.zero{color:var(--critico)}
+
+/* STATUS TAGS DO BLOCO */
+.bloco-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.btag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.3px}
+.btag.zerado{background:rgba(107,45,232,.1);color:var(--critico);border:1px solid rgba(107,45,232,.2)}
+.btag.bonus{background:rgba(42,125,82,.1);color:var(--ok);border:1px solid rgba(42,125,82,.2)}
+.btag.penalidade{background:rgba(232,82,42,.1);color:var(--accent);border:1px solid rgba(232,82,42,.2)}
+
+/* QUESTÕES DO BLOCO */
+.bloco-body{display:none;border-top:1px solid var(--border);padding:12px 15px;flex-direction:column;gap:8px}
+.bloco-body.open{display:flex}
+
+.questao{background:var(--surface2);border-radius:10px;padding:11px 13px;border:1.5px solid transparent;transition:all .15s}
+.questao.conformidade{background:rgba(42,125,82,.06);border-color:rgba(42,125,82,.2)}
+.questao.nc-leve{background:rgba(176,125,32,.06);border-color:rgba(176,125,32,.2)}
+.questao.nc-medio{background:rgba(232,82,42,.06);border-color:rgba(232,82,42,.2)}
+.questao.nc-critico{background:rgba(107,45,232,.06);border-color:rgba(107,45,232,.2)}
+.questao.na{background:rgba(138,132,120,.06);border-color:rgba(138,132,120,.15)}
+
+.q-texto{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px;line-height:1.4}
+
+/* BOTÕES DE RESPOSTA */
+.q-btns{display:flex;gap:6px;flex-wrap:wrap}
+.q-btn{border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--muted);transition:all .15s;display:flex;align-items:center;gap:5px}
+.q-btn:active{opacity:.8}
+.q-btn.c.active{background:var(--ok);border-color:var(--ok);color:#fff}
+.q-btn.na.active{background:var(--muted);border-color:var(--muted);color:#fff}
+
+/* SUB-BOTÕES NC */
+.nc-sub{display:none;gap:5px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+.nc-sub.show{display:flex}
+.nc-sub-btn{border:1.5px solid var(--border);border-radius:7px;padding:6px 11px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;background:var(--surface);transition:all .15s;display:flex;align-items:center;gap:4px}
+.nc-sub-btn.leve.active{background:var(--leve);border-color:var(--leve);color:#fff}
+.nc-sub-btn.medio.active{background:var(--medio);border-color:var(--medio);color:#fff}
+.nc-sub-btn.critico.active{background:var(--critico);border-color:var(--critico);color:#fff}
+.nc-sub-btn.leve{color:var(--leve)}.nc-sub-btn.medio{color:var(--medio)}.nc-sub-btn.critico{color:var(--critico)}
+
+/* IMPACTO TAG */
+.q-impacto{font-size:10px;font-weight:600;margin-top:5px;display:none;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;width:fit-content}
+.q-impacto.show{display:flex}
+.q-impacto.leve{background:rgba(176,125,32,.1);color:var(--leve)}
+.q-impacto.medio{background:rgba(232,82,42,.1);color:var(--medio)}
+.q-impacto.critico{background:rgba(107,45,232,.1);color:var(--critico)}
+.q-impacto.bonus{background:rgba(42,125,82,.1);color:var(--ok)}
+
+/* BARRA DE PROGRESSO DO BLOCO */
+.bloco-prog{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:6px}
+.bloco-prog-fill{height:100%;border-radius:99px;transition:width .4s,background .4s}
+
+/* SCORE CARD */
+.score-card{background:linear-gradient(135deg,var(--dark),#23232f);border-radius:var(--radius);padding:20px;color:#fff}
+.score-main{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;line-height:1}
+.score-label{font-size:12px;opacity:.5;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.score-breakdown{display:flex;flex-direction:column;gap:6px;margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px}
+.score-row{display:flex;justify-content:space-between;font-size:12px;align-items:center}
+.score-row .lbl{opacity:.6}
+.score-row .val{font-family:'Syne',sans-serif;font-weight:700}
+.score-row .val.pos{color:#6ee7a0}.score-row .val.neg{color:#fca5a5}.score-row .val.zero{color:#c4b5fd}
+
+/* ADMIN PAINEL */
+.admin-section{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;margin-top:4px}
+.penalidade-row{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border);margin-bottom:6px}
+.pen-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.pen-dot.leve{background:var(--leve)}.pen-dot.medio{background:var(--medio)}.pen-dot.critico{background:var(--critico)}.pen-dot.bonus{background:var(--ok)}
+.pen-label{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
+.pen-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.pen-input-wrap{display:flex;align-items:center;gap:5px}
+.pen-input{width:60px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-align:center;color:var(--dark);outline:none}
+.pen-input:focus{border-color:var(--dark)}
+.pen-input:disabled{opacity:.5;cursor:not-allowed}
+.pen-unit{font-size:11px;color:var(--muted);font-weight:600}
+
+/* BLOCO PESO */
+.peso-row{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border);margin-bottom:6px}
+.peso-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.peso-label{flex:1;font-size:13px;font-weight:600;color:var(--dark)}
+.peso-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.peso-total-warn{font-size:11px;color:var(--nok);font-weight:600;padding:8px 12px;background:rgba(192,57,43,.08);border-radius:8px;border:1px solid rgba(192,57,43,.2);display:none}
+.peso-total-ok{font-size:11px;color:var(--ok);font-weight:600;padding:8px 12px;background:rgba(42,125,82,.08);border-radius:8px;border:1px solid rgba(42,125,82,.2)}
+
+/* RELATÓRIO */
+.relatorio-bloco{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--border)}
+.relatorio-bloco.bonus-bl{border-left-color:var(--ok)}
+.relatorio-bloco.penalidade-bl{border-left-color:var(--accent)}
+.relatorio-bloco.critico-bl{border-left-color:var(--critico)}
+.rel-bloco-nome{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--dark);margin-bottom:6px;display:flex;justify-content:space-between}
+.rel-item{font-size:12px;color:var(--dark);line-height:1.6;display:flex;gap:6px;align-items:flex-start;margin-bottom:3px}
+.rel-item-dot{flex-shrink:0;margin-top:3px}
+
+/* BOTÕES */
+.btn-primary{background:var(--dark);color:#fff;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:opacity .2s}
+.btn-primary:active{opacity:.85}
+.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s}
+.btn-sm:active{opacity:.8}
+.btn-ghost{background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;color:var(--muted);transition:background .2s}
+
+/* ADMIN LOCK */
+.admin-lock{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:8px 12px;border:1px solid var(--border)}
+.lock-icon{font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:11px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.warn{background:var(--warn);color:#fff}
+.toast.info{background:var(--dark);color:#fff}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.bloco,.card{animation:fadeUp .3s ease both}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="logo">
+    <svg viewBox="0 0 68 76" fill="none" style="width:26px;height:30px;flex-shrink:0">
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="68" y2="76" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4a050"/><stop offset="50%" stop-color="#e8d090"/><stop offset="100%" stop-color="#8a6820"/></linearGradient></defs>
+      <path d="M34 2L66 13V36C66 53 51 68 34 74C17 68 2 53 2 36V13L34 2Z" fill="#100d00" stroke="url(#sg)" stroke-width="1.5"/>
+      <path d="M20 38L30 49L48 28" stroke="url(#sg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div><h1>Smart<span>Check</span></h1><p>Pesos e Penalidades</p></div>
+  </div>
+  <div class="role-pill" onclick="cycleRole()">
+    <span id="roleLabel">👤 Admin</span> ↕
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="setTab('avaliacao',this)">📋 Avaliação</div>
+  <div class="tab" onclick="setTab('relatorio',this)">📄 Relatório</div>
+  <div class="tab" onclick="setTab('admin',this)">⚙️ Config Admin</div>
+</div>
+
+<!-- ══ TAB AVALIAÇÃO ══ -->
+<div id="tabAvaliacao" class="page">
+
+  <!-- SCORE CARD -->
+  <div class="score-card" id="scoreCard">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="score-main" id="scoreMain">–</div>
+        <div class="score-label">Nota final</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.5px">Tipo</div>
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-top:2px">Avaliação Geral</div>
+      </div>
+    </div>
+    <div class="score-breakdown" id="scoreBreakdown"></div>
+  </div>
+
+  <!-- BLOCOS -->
+  <div id="blocosLista"></div>
+
+  <button class="btn-primary" onclick="gerarRelatorio()">📄 Gerar Relatório</button>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ══ TAB RELATÓRIO ══ -->
+<div id="tabRelatorio" class="page" style="display:none">
+  <div class="card">
+    <div class="card-title">📄 Relatório de Penalidades e Bonificações</div>
+    <div id="relatorioConteudo"><div class="empty">Preencha a avaliação e clique em "Gerar Relatório"</div></div>
+  </div>
+</div>
+
+<!-- ══ TAB ADMIN ══ -->
+<div id="tabAdmin" class="page" style="display:none">
+
+  <!-- ACESSO RESTRITO -->
+  <div class="admin-lock" id="adminLock" style="display:none">
+    <span class="lock-icon">🔒</span>
+    <span>Apenas o <b>Admin</b> pode editar estas configurações.</span>
+  </div>
+
+  <!-- PENALIDADES -->
+  <div id="adminConteudo">
+    <div class="card">
+      <div class="card-title">⚠️ Penalidades por Grau de NC</div>
+      <div class="admin-section">Desconto aplicado na nota do bloco</div>
+
+      <div class="penalidade-row">
+        <div class="pen-dot leve"></div>
+        <div style="flex:1">
+          <div class="pen-label">NC Leve</div>
+          <div class="pen-desc">Desconto aplicado à nota do bloco</div>
+        </div>
+        <div class="pen-input-wrap">
+          <input type="number" class="pen-input" id="pLeve" value="5" min="0" max="100">
+          <span class="pen-unit">% desconto</span>
+        </div>
+      </div>
+
+      <div class="penalidade-row">
+        <div class="pen-dot medio"></div>
+        <div style="flex:1">
+          <div class="pen-label">NC Médio</div>
+          <div class="pen-desc">Desconto aplicado à nota do bloco</div>
+        </div>
+        <div class="pen-input-wrap">
+          <input type="number" class="pen-input" id="pMedio" value="15" min="0" max="100">
+          <span class="pen-unit">% desconto</span>
+        </div>
+      </div>
+
+      <div class="penalidade-row">
+        <div class="pen-dot critico"></div>
+        <div style="flex:1">
+          <div class="pen-label">NC Crítico</div>
+          <div class="pen-desc">Zera a nota do bloco inteiro</div>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--critico);padding:7px 12px;background:rgba(107,45,232,.1);border-radius:8px">
+          Zera bloco
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="admin-section">Bonificação por bloco perfeito</div>
+        <div class="penalidade-row">
+          <div class="pen-dot bonus"></div>
+          <div style="flex:1">
+            <div class="pen-label">Bloco 100% (sem NCs)</div>
+            <div class="pen-desc">Bônus aplicado à nota final</div>
+          </div>
+          <div class="pen-input-wrap">
+            <input type="number" class="pen-input" id="pBonus" value="5" min="0" max="20">
+            <span class="pen-unit">% bônus</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" style="margin-top:10px" onclick="salvarPenalidades()">💾 Salvar penalidades</button>
+    </div>
+
+    <!-- PESOS DOS BLOCOS -->
+    <div class="card">
+      <div class="card-title">
+        ⚖️ Peso de cada bloco na nota final
+        <span id="pesoTotalLabel" style="font-size:12px;font-weight:700;color:var(--ok)">Total: 100%</span>
+      </div>
+      <div class="admin-section">A soma deve ser exatamente 100%</div>
+      <div id="pesosAdmin"></div>
+      <div class="peso-total-ok" id="pesoTotalOk">✅ Pesos somam exatamente 100%</div>
+      <div class="peso-total-warn" id="pesoTotalWarn">⚠️ Os pesos precisam somar 100%</div>
+      <button class="btn-primary" style="margin-top:12px" onclick="salvarPesos()">💾 Salvar pesos</button>
+    </div>
+
+    <!-- AVALIAÇÕES COM PESO ATIVO -->
+    <div class="card">
+      <div class="card-title">📋 Tipos de avaliação com pesos ativos</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px">
+        Penalidades e bonificações só se aplicam nos tipos marcados abaixo.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600">📋 Avaliação Geral</div>
+            <div style="font-size:11px;color:var(--muted)">Avaliação completa de todos os blocos</div>
+          </div>
+          <label class="toggle-sw">
+            <input type="checkbox" checked disabled>
+            <div class="tsw-track" style="background:var(--ok)"></div><div class="tsw-thumb" style="transform:translateX(18px)"></div>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600">📆 Avaliação Semanal</div>
+            <div style="font-size:11px;color:var(--muted)">Checklist semanal de conformidade</div>
+          </div>
+          <label class="toggle-sw">
+            <input type="checkbox" checked disabled>
+            <div class="tsw-track" style="background:var(--ok)"></div><div class="tsw-thumb" style="transform:translateX(18px)"></div>
+          </label>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
+        ℹ️ Avaliações de Abertura, Fechamento e Sanitária <b>não</b> aplicam pesos — são checklists operacionais simples.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+.toggle-sw{position:relative;width:42px;height:24px;cursor:not-allowed;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+.tsw-track{position:absolute;inset:0;border-radius:99px;background:var(--border);transition:background .2s}
+.tsw-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+</style>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG — Editável pelo Admin
+// ─────────────────────────────────────────────
+let CONFIG = {
+  penalidades: { leve: 5, medio: 15 }, // % de desconto no bloco
+  bonus: 5,                             // % de bônus na nota FINAL por bloco perfeito
+};
+
+// BLOCOS com pesos (soma = 100%)
+let BLOCOS = [
+  { id:'higiene',      nome:'Higiene e Manipulação', icon:'🧼', cor:'#2a7d52', peso:25, questoes:[
+    'Higienização das mãos conforme protocolo',
+    'Funcionários com EPIs completos',
+    'Superfícies de trabalho limpas e sanitizadas',
+    'Lixeiras com tampa e saco plástico',
+  ]},
+  { id:'estoque',      nome:'Estoque e Validade',    icon:'📦', cor:'#b07d20', peso:20, questoes:[
+    'Validade de todos os insumos em conformidade',
+    'Organização e limpeza da câmara fria',
+    'Temperatura da câmara fria ≤ 4°C',
+    'PVPS (primeiro que vence, primeiro que sai)',
+  ]},
+  { id:'documentacao', nome:'Documentação',          icon:'📄', cor:'#0077cc', peso:20, questoes:[
+    'Planilha de temperatura atualizada',
+    'Alvará sanitário dentro da validade',
+    'Treinamentos em dia',
+  ]},
+  { id:'atendimento',  nome:'Atendimento',           icon:'😊', cor:'#e8522a', peso:15, questoes:[
+    'Uniformes limpos e completos',
+    'Postura e cordialidade no atendimento',
+    'Tempo de espera dentro do padrão',
+  ]},
+  { id:'equipamentos', nome:'Equipamentos',          icon:'⚙️',  cor:'#6b2de8', peso:10, questoes:[
+    'Equipamentos em funcionamento e calibrados',
+    'Limpeza e manutenção dos equipamentos',
+  ]},
+  { id:'producao',     nome:'Área de Produção',      icon:'🍳', cor:'#c0392b', peso:10, questoes:[
+    'Área de produção limpa e organizada',
+    'Separação de alimentos crus e cozidos',
+    'Utensílios higienizados e armazenados corretamente',
+  ]},
+];
+
+// Estado das respostas: { blocoId: { qIdx: { resp:'c'|'nc'|'na', grau:'leve'|'medio'|'critico'|null } } }
+let RESPOSTAS = {};
+BLOCOS.forEach(b => {
+  RESPOSTAS[b.id] = {};
+  b.questoes.forEach((_, i) => { RESPOSTAS[b.id][i] = { resp: null, grau: null }; });
+});
+
+// Roles
+const ROLES = ['👤 Admin','👤 Avaliador','👤 Gerente'];
+let roleIdx = 0, isAdmin = true;
+
+// ─────────────────────────────────────────────
+// ROLE
+// ─────────────────────────────────────────────
+function cycleRole(){
+  roleIdx = (roleIdx+1) % ROLES.length;
+  isAdmin = roleIdx === 0;
+  document.getElementById('roleLabel').textContent = ROLES[roleIdx];
+  renderAdminLock();
+  showToast(`Visualizando como: ${ROLES[roleIdx].replace(/👤 /,'')}`, 'info');
+}
+function renderAdminLock(){
+  document.getElementById('adminLock').style.display = isAdmin ? 'none' : 'flex';
+  document.getElementById('adminConteudo').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('adminConteudo').style.flexDirection = 'column';
+  document.getElementById('adminConteudo').style.gap = '14px';
+  // Desabilita inputs se não for admin
+  document.querySelectorAll('.pen-input').forEach(el => el.disabled = !isAdmin);
+}
+
+// ─────────────────────────────────────────────
+// CALCULAR SCORE DO BLOCO
+// ─────────────────────────────────────────────
+function calcBloco(bloco){
+  const resps = RESPOSTAS[bloco.id];
+  let temCritico = false, totalDesconto = 0, totalRespondidas = 0, temNC = false;
+
+  bloco.questoes.forEach((_, i) => {
+    const r = resps[i];
+    if(!r || r.resp === null) return;
+    if(r.resp === 'na') return;
+    totalRespondidas++;
+    if(r.resp === 'nc'){
+      temNC = true;
+      if(r.grau === 'critico') temCritico = true;
+      else if(r.grau === 'leve') totalDesconto += CONFIG.penalidades.leve;
+      else if(r.grau === 'medio') totalDesconto += CONFIG.penalidades.medio;
+    }
+  });
+
+  if(temCritico) return { score: 0, zerado: true, temNC: true, desconto: 0, bonus: false, respondidas: totalRespondidas };
+
+  const scoreBase = totalRespondidas > 0
+    ? Math.max(0, 100 - totalDesconto)
+    : 0;
+
+  const bonus = !temNC && totalRespondidas > 0;
+
+  return { score: scoreBase, zerado: false, temNC, desconto: totalDesconto, bonus, respondidas: totalRespondidas };
+}
+
+// ─────────────────────────────────────────────
+// CALCULAR NOTA FINAL
+// ─────────────────────────────────────────────
+function calcNotaFinal(){
+  let notaBase = 0, totalBonusAplicado = 0, totalPeso = 0;
+  const detalhes = [];
+
+  BLOCOS.forEach(b => {
+    const res = calcBloco(b);
+    const pesoDecimal = b.peso / 100;
+    const contribuicao = res.score * pesoDecimal;
+    notaBase += contribuicao;
+    totalPeso += b.peso;
+
+    if(res.bonus){
+      totalBonusAplicado += CONFIG.bonus;
+    }
+
+    detalhes.push({ bloco: b, ...res, contribuicao });
+  });
+
+  const notaFinal = Math.min(100, notaBase + totalBonusAplicado);
+
+  return { notaFinal: parseFloat(notaFinal.toFixed(1)), notaBase: parseFloat(notaBase.toFixed(1)), totalBonus: totalBonusAplicado, detalhes };
+}
+
+// ─────────────────────────────────────────────
+// RENDER BLOCOS
+// ─────────────────────────────────────────────
+function renderBlocos(){
+  const lista = document.getElementById('blocosLista');
+  lista.innerHTML = BLOCOS.map(b => renderBloco(b)).join('');
+  atualizarScore();
+}
+
+function renderBloco(b){
+  const res = calcBloco(b);
+  const scoreCl = res.zerado ? 'zero' : res.score >= 85 ? 'ok' : res.score >= 70 ? 'warn' : 'nok';
+  const scoreStr = res.respondidas > 0 ? res.score + '%' : '–';
+
+  const tags = [];
+  if(res.zerado) tags.push('<span class="btag zerado">🚨 NC Crítico — Bloco zerado</span>');
+  else if(res.temNC && res.desconto > 0) tags.push(`<span class="btag penalidade">⬇ -${res.desconto}% penalidade</span>`);
+  if(res.bonus) tags.push(`<span class="btag bonus">⬆ +${CONFIG.bonus}% bônus (bloco perfeito)</span>`);
+
+  const progWidth = res.respondidas > 0 ? res.score : 0;
+  const progCor = res.zerado ? 'var(--critico)' : res.score >= 85 ? 'var(--ok)' : res.score >= 70 ? 'var(--warn)' : 'var(--nok)';
+
+  const questoesHtml = b.questoes.map((q, i) => renderQuestao(b, q, i)).join('');
+
+  return `<div class="bloco" id="bloco_${b.id}">
+    <div class="bloco-header" onclick="toggleBloco('${b.id}')">
+      <div class="bloco-icon" style="background:${b.cor}22">${b.icon}</div>
+      <div class="bloco-info">
+        <div class="bloco-nome">${b.nome}</div>
+        <div class="bloco-meta">
+          <span>⚖️ Peso: ${b.peso}%</span>
+          <span>📝 ${b.questoes.length} questões</span>
+        </div>
+        ${tags.length ? `<div class="bloco-tags">${tags.join('')}</div>` : ''}
+        <div class="bloco-prog">
+          <div class="bloco-prog-fill" style="width:${progWidth}%;background:${progCor}"></div>
+        </div>
+      </div>
+      <div class="bloco-score ${scoreCl}">${scoreStr}</div>
+    </div>
+    <div class="bloco-body" id="body_${b.id}">${questoesHtml}</div>
+  </div>`;
+}
+
+function renderQuestao(b, q, i){
+  const r = RESPOSTAS[b.id][i];
+  let cls = '';
+  if(r.resp === 'c') cls = 'conformidade';
+  else if(r.resp === 'nc'){
+    if(r.grau === 'leve') cls = 'nc-leve';
+    else if(r.grau === 'medio') cls = 'nc-medio';
+    else if(r.grau === 'critico') cls = 'nc-critico';
+  }
+  else if(r.resp === 'na') cls = 'na';
+
+  const ncSubShow = r.resp === 'nc' ? 'show' : '';
+
+  const impactoHtml = (() => {
+    if(r.resp === 'nc' && r.grau){
+      if(r.grau === 'critico') return `<div class="q-impacto critico show">🚨 NC Crítico — zera o bloco inteiro</div>`;
+      const pct = r.grau === 'leve' ? CONFIG.penalidades.leve : CONFIG.penalidades.medio;
+      return `<div class="q-impacto ${r.grau} show">${r.grau === 'leve' ? '🟡' : '🔴'} NC ${r.grau.charAt(0).toUpperCase()+r.grau.slice(1)} — penalidade de ${pct}% no bloco</div>`;
+    }
+    if(r.resp === 'c'){
+      const res = calcBloco(b);
+      if(res.bonus) return `<div class="q-impacto bonus show">✅ Conformidade — bloco sem NCs gera +${CONFIG.bonus}% bônus na nota final</div>`;
+    }
+    return '';
+  })();
+
+  return `<div class="questao ${cls}" id="q_${b.id}_${i}">
+    <div class="q-texto">${i+1}. ${q}</div>
+    <div class="q-btns">
+      <button class="q-btn c ${r.resp==='c'?'active':''}" onclick="setResp('${b.id}',${i},'c')">✅ Conformidade</button>
+      <button class="q-btn nc ${r.resp==='nc'?'active':''}" style="${r.resp==='nc'?`background:${r.grau==='critico'?'var(--critico)':r.grau==='medio'?'var(--medio)':'var(--leve)'};border-color:${r.grau==='critico'?'var(--critico)':r.grau==='medio'?'var(--medio)':'var(--leve)'};color:#fff`:''}" onclick="setResp('${b.id}',${i},'nc')">⚠️ NC</button>
+      <button class="q-btn na ${r.resp==='na'?'active':''}" onclick="setResp('${b.id}',${i},'na')">N/A</button>
+    </div>
+    <div class="nc-sub ${ncSubShow}" id="ncsub_${b.id}_${i}">
+      <button class="nc-sub-btn leve ${r.grau==='leve'?'active':''}" onclick="setGrau('${b.id}',${i},'leve')">🟡 Leve (-${CONFIG.penalidades.leve}%)</button>
+      <button class="nc-sub-btn medio ${r.grau==='medio'?'active':''}" onclick="setGrau('${b.id}',${i},'medio')">🔴 Médio (-${CONFIG.penalidades.medio}%)</button>
+      <button class="nc-sub-btn critico ${r.grau==='critico'?'active':''}" onclick="setGrau('${b.id}',${i},'critico')">🚨 Crítico (zera bloco)</button>
+    </div>
+    ${impactoHtml}
+  </div>`;
+}
+
+function toggleBloco(id){
+  document.getElementById('body_'+id).classList.toggle('open');
+}
+
+// ─────────────────────────────────────────────
+// INTERAÇÃO
+// ─────────────────────────────────────────────
+function setResp(blocoId, qIdx, resp){
+  const r = RESPOSTAS[blocoId][qIdx];
+  // Toggle
+  if(r.resp === resp && resp !== 'nc'){
+    r.resp = null; r.grau = null;
+  } else {
+    r.resp = resp;
+    if(resp !== 'nc') r.grau = null;
+  }
+  rerenderBloco(blocoId);
+  atualizarScore();
+}
+
+function setGrau(blocoId, qIdx, grau){
+  RESPOSTAS[blocoId][qIdx].grau = grau;
+  RESPOSTAS[blocoId][qIdx].resp = 'nc';
+  rerenderBloco(blocoId);
+  atualizarScore();
+}
+
+function rerenderBloco(blocoId){
+  const bloco = BLOCOS.find(b => b.id === blocoId);
+  const el = document.getElementById('bloco_'+blocoId);
+  const wasOpen = document.getElementById('body_'+blocoId)?.classList.contains('open');
+  el.outerHTML = renderBloco(bloco);
+  // Reaponta o elemento pois foi substituído
+  if(wasOpen){
+    setTimeout(()=>document.getElementById('body_'+blocoId)?.classList.add('open'), 0);
+  }
+}
+
+function atualizarScore(){
+  const { notaFinal, notaBase, totalBonus, detalhes } = calcNotaFinal();
+  const el = document.getElementById('scoreMain');
+  const cor = notaFinal >= 85 ? '#6ee7a0' : notaFinal >= 70 ? '#fcd34d' : '#fca5a5';
+  el.textContent = notaFinal > 0 ? notaFinal+'%' : '–';
+  el.style.color = cor;
+
+  const bd = document.getElementById('scoreBreakdown');
+  let html = detalhes.map(d => {
+    const cor2 = d.zerado ? 'zero' : d.score >= 85 ? 'pos' : 'neg';
+    const extra = d.zerado ? ' 🚨' : d.bonus ? ` +${CONFIG.bonus}%🎯` : '';
+    return `<div class="score-row">
+      <span class="lbl">${d.bloco.icon} ${d.bloco.nome} (${d.bloco.peso}%)</span>
+      <span class="val ${cor2}">${d.score}%${extra}</span>
+    </div>`;
+  }).join('');
+
+  if(totalBonus > 0){
+    html += `<div class="score-row" style="border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:8px">
+      <span class="lbl">🎯 Bônus por blocos perfeitos</span>
+      <span class="val pos">+${totalBonus}%</span>
+    </div>`;
+  }
+  html += `<div class="score-row" style="border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:8px;font-size:13px">
+    <span style="font-weight:700;color:#fff">Nota final</span>
+    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:${cor}">${notaFinal > 0 ? notaFinal+'%' : '–'}</span>
+  </div>`;
+
+  bd.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// RELATÓRIO
+// ─────────────────────────────────────────────
+function gerarRelatorio(){
+  const { notaFinal, notaBase, totalBonus, detalhes } = calcNotaFinal();
+  const hoje = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:14px">Gerado em ${hoje} · Avaliação Geral</div>`;
+
+  // Resumo
+  html += `<div style="background:var(--dark);border-radius:12px;padding:16px;color:#fff;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800">Nota Final</div>
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:${notaFinal>=85?'#6ee7a0':notaFinal>=70?'#fcd34d':'#fca5a5'}">${notaFinal}%</div>
+    </div>
+    <div style="font-size:12px;opacity:.5">Nota base: ${notaBase}% · Bônus total: +${totalBonus}%</div>
+  </div>`;
+
+  // Penalidades
+  const comPenalidade = detalhes.filter(d => d.temNC);
+  if(comPenalidade.length){
+    html += `<div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠️ Penalidades Aplicadas</div>`;
+    comPenalidade.forEach(d => {
+      const cls = d.zerado ? 'critico-bl' : 'penalidade-bl';
+      let itens = '';
+      d.bloco.questoes.forEach((q, i) => {
+        const r = RESPOSTAS[d.bloco.id][i];
+        if(r.resp === 'nc' && r.grau){
+          const pct = r.grau === 'critico' ? 'Zera bloco' : `-${r.grau === 'leve' ? CONFIG.penalidades.leve : CONFIG.penalidades.medio}%`;
+          const icon = r.grau === 'critico' ? '🚨' : r.grau === 'medio' ? '🔴' : '🟡';
+          itens += `<div class="rel-item"><span class="rel-item-dot">${icon}</span><span><b>${q}</b> — NC ${r.grau.charAt(0).toUpperCase()+r.grau.slice(1)}: <b>${pct}</b></span></div>`;
+        }
+      });
+      const impact = d.zerado ? '<b style="color:var(--critico)">Bloco zerado por NC Crítico</b>' : `Desconto total: <b>-${d.desconto}%</b> → Nota do bloco: <b>${d.score}%</b>`;
+      html += `<div class="relatorio-bloco ${cls}">
+        <div class="rel-bloco-nome"><span>${d.bloco.icon} ${d.bloco.nome}</span><span style="font-weight:400;color:var(--muted)">Peso: ${d.bloco.peso}%</span></div>
+        ${itens}
+        <div style="margin-top:6px;font-size:12px;color:var(--dark);padding-top:6px;border-top:1px solid var(--border)">${impact}</div>
+      </div>`;
+    });
+  }
+
+  // Bonificações
+  const comBonus = detalhes.filter(d => d.bonus);
+  if(comBonus.length){
+    html += `<div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">🎯 Bonificações Aplicadas</div>`;
+    comBonus.forEach(d => {
+      html += `<div class="relatorio-bloco bonus-bl">
+        <div class="rel-bloco-nome"><span>${d.bloco.icon} ${d.bloco.nome}</span><span style="font-weight:400;color:var(--muted)">Peso: ${d.bloco.peso}%</span></div>
+        <div class="rel-item"><span class="rel-item-dot">✅</span><span>Bloco 100% sem NCs — <b>bônus de +${CONFIG.bonus}% aplicado à nota final</b></span></div>
+      </div>`;
+    });
+    html += `<div style="background:rgba(42,125,82,.08);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--ok);font-weight:600;border:1px solid rgba(42,125,82,.2)">
+      🎯 Total de bônus aplicado: <b>+${totalBonus}%</b> à nota final
+    </div>`;
+  }
+
+  if(!comPenalidade.length && !comBonus.length){
+    html += `<div class="empty">Nenhuma penalidade ou bonificação aplicada até o momento.</div>`;
+  }
+
+  document.getElementById('relatorioConteudo').innerHTML = html;
+  setTab('relatorio', document.querySelectorAll('.tab')[1]);
+  showToast('📄 Relatório gerado!','ok');
+}
+
+// ─────────────────────────────────────────────
+// ADMIN — SALVAR
+// ─────────────────────────────────────────────
+function salvarPenalidades(){
+  CONFIG.penalidades.leve  = parseInt(document.getElementById('pLeve').value)  || 5;
+  CONFIG.penalidades.medio = parseInt(document.getElementById('pMedio').value) || 15;
+  CONFIG.bonus             = parseInt(document.getElementById('pBonus').value) || 5;
+  renderBlocos();
+  showToast('✅ Penalidades salvas!','ok');
+}
+
+function renderPesosAdmin(){
+  document.getElementById('pesosAdmin').innerHTML = BLOCOS.map(b => `
+    <div class="peso-row">
+      <div class="peso-icon" style="background:${b.cor}22">${b.icon}</div>
+      <div style="flex:1">
+        <div class="peso-label">${b.nome}</div>
+        <div class="peso-sub">${b.questoes.length} questões</div>
+      </div>
+      <div class="pen-input-wrap">
+        <input type="number" class="pen-input peso-inp" data-id="${b.id}" value="${b.peso}" min="0" max="100" oninput="atualizarTotalPeso()">
+        <span class="pen-unit">%</span>
+      </div>
+    </div>`).join('');
+  atualizarTotalPeso();
+}
+
+function atualizarTotalPeso(){
+  const inputs = document.querySelectorAll('.peso-inp');
+  let total = 0;
+  inputs.forEach(el => total += parseInt(el.value)||0);
+  const lbl = document.getElementById('pesoTotalLabel');
+  const ok  = document.getElementById('pesoTotalOk');
+  const warn= document.getElementById('pesoTotalWarn');
+  lbl.textContent = `Total: ${total}%`;
+  lbl.style.color = total === 100 ? 'var(--ok)' : 'var(--nok)';
+  ok.style.display  = total === 100 ? 'block' : 'none';
+  warn.style.display= total !== 100 ? 'block' : 'none';
+}
+
+function salvarPesos(){
+  const inputs = document.querySelectorAll('.peso-inp');
+  let total = 0;
+  inputs.forEach(el => total += parseInt(el.value)||0);
+  if(total !== 100){ showToast('⚠️ A soma dos pesos deve ser 100%','warn'); return; }
+  inputs.forEach(el => {
+    const b = BLOCOS.find(x => x.id === el.dataset.id);
+    if(b) b.peso = parseInt(el.value);
+  });
+  renderBlocos();
+  showToast('✅ Pesos salvos!','ok');
+}
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+function setTab(t, el){
+  document.querySelectorAll('[id^="tab"]').forEach(x => x.style.display='none');
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  const map = {avaliacao:'tabAvaliacao',relatorio:'tabRelatorio',admin:'tabAdmin'};
+  document.getElementById(map[t]).style.display='flex';
+  if(el) el.classList.add('active');
+  if(t==='admin'){ renderPesosAdmin(); renderAdminLock(); }
+}
+
+// UTILS
+let _tt;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// INIT
+renderBlocos();
+</script>
+</body>
+</html>
