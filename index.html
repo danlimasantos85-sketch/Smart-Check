@@ -1116,7 +1116,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card">
       <div class="manual-section">
         <h3>📊 Entendendo o Resultado</h3>
-        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> vai de 1 a 5 estrelas e é calculada com base na proporção de itens conformes.</div></div>
+        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> é exibida em <b>porcentagem (%)</b>. Calculamos a base pela proporção de itens conformes (ponderada pelos pesos das categorias) e aplicamos descontos por NC (Leve/Médio), zeramos blocos com NC Crítico e somamos bônus quando o bloco fica 100% conforme. Faixas: <b>≥90% Padrão (verde)</b>, <b>&gt;70% Regular (laranja)</b>, <b>&gt;50% Atenção (amarelo)</b>, <b>≤50% Crítico (vermelho)</b>.</div></div>
         <div class="manual-step"><div class="manual-num">2</div><div class="manual-txt">O <b>Plano de Ação</b> é gerado automaticamente listando as ações corretivas para cada não conformidade com prazo e prioridade.</div></div>
         <div class="manual-step"><div class="manual-num">3</div><div class="manual-txt">Use <b>📥 Baixar PDF</b> para salvar o relatório ou <b>💬 WhatsApp</b> para compartilhar.</div></div>
         <div class="manual-step"><div class="manual-num">4</div><div class="manual-txt">Seu <b>superior imediato</b> recebe automaticamente uma notificação com o resultado e o plano de ação assim que você finalizar.</div></div>
@@ -1238,6 +1238,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <div class="stat-row"><span>✅ Conformes</span><span class="val ok" id="rOk"></span></div>
       <div class="stat-row"><span>❌ Não conformes</span><span class="val nok" id="rNok"></span></div>
       <div class="stat-row"><span>— Não avaliados</span><span class="val" id="rNa" style="color:var(--warn);font-weight:600"></span></div>
+      <div class="stat-row"><span>🔒 Bloqueados (NC Crítico)</span><span class="val" id="rBloq" style="color:#6b2de8;font-weight:700">0</span></div>
       <div class="stat-row"><span>Sem resposta</span><span class="val" id="rPend" style="color:var(--muted)"></span></div>
       <div class="stat-row"><span>📍 GPS</span><span class="val" id="rGps" style="font-size:11px"></span></div>
     </div>
@@ -2550,7 +2551,7 @@ function renderHistItem(v) {
   return `<div class="history-item" onclick="abrirDetalhe('${v.id}')">
     <div class="hi-top">
       <div class="hi-name">${v.restaurante}</div>
-      <div class="hi-score">${(v.nota||0).toFixed(1)}★</div>
+      <div class="hi-score">${(() => { let n = v.nota||0; if (n<=5 && n>0) n*=20; return n.toFixed(1).replace('.', ',') + '%'; })()}</div>
     </div>
     <div class="hi-meta">
       <span class="hi-badge ok">${v.conformes}✓</span>
@@ -2566,14 +2567,20 @@ function abrirDetalhe(id) {
   const v = hist.find(x=>x.id===id);
   if (!v) return;
   const cats = LS.get('vo_cats')||[];
-  const nota = v.nota||0;
+  let nota = v.nota||0;
+  if (nota <= 5 && nota > 0) nota = nota * 20; // compat legado
+  const clsH = classificarPct(nota);
 
   let html = `
-    <div class="score-hero" style="border-radius:18px">
-      <div class="lbl">Avaliação — ${v.restaurante}</div>
-      <div class="stars-row">${[1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('')}</div>
-      <div class="score-num">${nota.toFixed(1)} / 5.0</div>
-      <div class="score-classif">${classificar(nota)}</div>
+    <div class="score-hero" style="border-radius:18px;background:${clsH.cor};color:#fff">
+      <div class="lbl" style="color:rgba(255,255,255,.75)">Avaliação — ${v.restaurante}</div>
+      ${(v.notaBase!=null) ? `<div style="background:rgba(0,0,0,.18);border-radius:10px;padding:8px 12px;margin:8px auto 10px;max-width:320px;text-align:left">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span style="font-size:12px;opacity:.85">Nota base</span><span style="font-size:13px;font-weight:700">${Number(v.notaBase).toFixed(2).replace('.', ',')}%</span></div>
+        ${(v.totalDesconto>0.01) ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span style="font-size:12px;opacity:.85">⬇ Descontos</span><span style="font-size:13px;font-weight:700;color:#ffb3a8">-${Number(v.totalDesconto).toFixed(2).replace('.', ',')}%</span></div>` : ''}
+        ${(v.totalBonus>0.01) ? `<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="font-size:12px;opacity:.85">🎯 Bônus</span><span style="font-size:13px;font-weight:700;color:#b8f5c9">+${Number(v.totalBonus).toFixed(2).replace('.', ',')}%</span></div>` : ''}
+      </div>` : ''}
+      <div class="score-num" style="color:#fff">${nota.toFixed(2).replace('.', ',')}%</div>
+      <div class="score-classif" style="color:rgba(255,255,255,.92)">${clsH.txt}</div>
     </div>`;
 
   if (v.frentePhoto) {
@@ -3899,6 +3906,25 @@ function renderDetalhesPesos(detalhes, totalBonus, cfg) {
   return html;
 }
 
+// Breakdown visual (Nota base → Descontos/Bônus → Nota final)
+function renderNotaBreakdown(notaBase, desconto, bonus, notaFinal) {
+  const fmt = (v) => (Math.round(v*100)/100).toFixed(2).replace('.', ',') + '%';
+  const linhas = [];
+  linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
+    <span style="font-size:12px;opacity:.85">Nota base (sem pesos)</span>
+    <span style="font-size:14px;font-weight:700">${fmt(notaBase)}</span>
+  </div>`);
+  if (desconto && desconto > 0.01) linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
+    <span style="font-size:12px;opacity:.85">⬇ Descontos por NC</span>
+    <span style="font-size:14px;font-weight:700;color:#ffb3a8">-${fmt(desconto)}</span>
+  </div>`);
+  if (bonus && bonus > 0.01) linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
+    <span style="font-size:12px;opacity:.85">🎯 Bônus (blocos 100%)</span>
+    <span style="font-size:14px;font-weight:700;color:#b8f5c9">+${fmt(bonus)}</span>
+  </div>`);
+  return `<div style="background:rgba(0,0,0,.18);border-radius:10px;padding:8px 12px;margin:8px auto 12px;max-width:320px;text-align:left">${linhas.join('')}</div>`;
+}
+
 // Admin — renderiza pesos das categorias
 function renderAdminPesos() {
   const cfg  = getPConfigPesos();
@@ -4056,6 +4082,7 @@ function finalizarVistoria() {
   document.getElementById('rNok').textContent=naoConformes;
   document.getElementById('rNa').textContent=naoAvaliados;
   document.getElementById('rPend').textContent=pendentes;
+  const rBloqEl = document.getElementById('rBloq'); if (rBloqEl) rBloqEl.textContent = bloqueados;
   if (VS.gps) document.getElementById('rGps').innerHTML=`<a href="https://www.google.com/maps?q=${VS.gps.lat},${VS.gps.lng}" target="_blank" style="color:var(--ok)">${VS.gps.lat},${VS.gps.lng} ↗</a>`;
 
   document.getElementById('rCatList').innerHTML = cats.map(cat=>{
@@ -4165,7 +4192,7 @@ async function gerarPlanoIA(forceRegen) {
     '',
     'Restaurante: '+(VS.restaurante||''),
     'Tipo de avaliação: '+(VS.tipoNome||''),
-    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
+    'Nota geral: '+((VS.nota||0).toFixed(2).replace('.', ','))+'%',
     '',
     'NÃO CONFORMIDADES:',
     ncTxt||'(nenhuma)',
@@ -4334,7 +4361,10 @@ async function buildPDFDoc() {
   const naoConformes=Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados=Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados=total-naoAvaliados;
-  const nota=avaliados>0?(conformes/avaliados)*5:0;
+  const notaPct = (typeof VS.nota === 'number' && VS.nota > 5)
+    ? VS.nota
+    : (avaliados>0?(conformes/avaliados)*100:0);
+  const notaBasePct = (typeof VS.notaBase === 'number') ? VS.notaBase : notaPct;
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4362,13 +4392,17 @@ async function buildPDFDoc() {
   if (VS.gps) { doc.setTextColor(42,125,82); doc.text(`GPS: ${VS.gps.lat}, ${VS.gps.lng}  (+-${VS.gps.acc}m)`, M+5, y+37); }
   y+=46;
 
-  // Score
+  // Score (em %)
   doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
   doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
+  doc.text(notaPct.toFixed(2).replace('.', ',')+'%', M+5, y+12);
   doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
+  const cl = notaPct>=90?'Padrao':notaPct>70?'Regular':notaPct>50?'Atencao':'Critico';
   doc.text(`Classificacao: ${cl}`, M+5, y+21);
+  if (Math.abs(notaPct - notaBasePct) > 0.05) {
+    doc.setFontSize(7.5); doc.setTextColor(180,180,180);
+    doc.text(`Nota base: ${notaBasePct.toFixed(2).replace('.', ',')}%  |  Final: ${notaPct.toFixed(2).replace('.', ',')}%`, M+5, y+26);
+  }
   doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
   doc.setTextColor(176,125,32); doc.text(`Nao aval.: ${naoAvaliados}`, W-M-55, y+25);
@@ -4489,7 +4523,10 @@ async function buildPDFDocFromRegistro(v) {
   const naoAvaliados= Object.values(v.respostas||{}).filter(r=>r==='na').length;
   const total = v.total || (conformes+naoConformes+naoAvaliados);
   const avaliados = total - naoAvaliados;
-  const nota = v.nota || (avaliados>0?(conformes/avaliados)*5:0);
+  let notaPct = v.nota || 0;
+  if (notaPct <= 5 && notaPct > 0) notaPct = notaPct * 20;
+  if (!notaPct) notaPct = avaliados>0?(conformes/avaliados)*100:0;
+  const notaBasePct = (typeof v.notaBase === 'number') ? v.notaBase : notaPct;
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4510,12 +4547,17 @@ async function buildPDFDocFromRegistro(v) {
   if (v.gpsLat) { doc.setTextColor(42,125,82); doc.text(`GPS: ${v.gpsLat}, ${v.gpsLng}`, M+5, y+37); }
   y+=46;
 
-  // Score
+  // Score (em %)
   doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
   doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
+  doc.text(notaPct.toFixed(2).replace('.', ',')+'%', M+5, y+12);
   doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
+  const cl = notaPct>=90?'Padrao':notaPct>70?'Regular':notaPct>50?'Atencao':'Critico';
+  if (Math.abs(notaPct - notaBasePct) > 0.05) {
+    doc.setFontSize(7.5); doc.setTextColor(180,180,180);
+    doc.text(`Nota base: ${notaBasePct.toFixed(2).replace('.', ',')}%  |  Final: ${notaPct.toFixed(2).replace('.', ',')}%`, M+5, y+26);
+    doc.setFontSize(9); doc.setTextColor(200,200,200);
+  }
   doc.text(`Classificacao: ${cl}`, M+5, y+21);
   doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
@@ -6382,13 +6424,15 @@ function finalizarQuiz() {
   // Calcular nova posição
   const novaPosicao = ranking.findIndex(r => r.userId === currentUser.id) + 1;
 
-  // Preencher tela de resultado
-  const nEstrelas = Math.round(pct * 5);
-  document.getElementById('qrStars').innerHTML = [1,2,3,4,5].map(i =>
-    `<span class="star-big ${i <= nEstrelas ? 'lit' : ''}">⭐</span>`).join('');
+  // Preencher tela de resultado (sem estrelas — exibe em %)
+  const pct100 = Math.round(pct * 1000) / 10; // pct vem em 0–1
+  const cls = classificarPct(pct100);
+  const qrStarsEl = document.getElementById('qrStars');
+  if (qrStarsEl) qrStarsEl.innerHTML = `<div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff">${pct100.toFixed(1).replace('.', ',')}%</div>`;
   document.getElementById('qrNota').textContent = `${acertos} / ${total}`;
-  const classifs = ['Precisa melhorar','Regular','Bom','Muito Bom','Excelente!'];
-  document.getElementById('qrClassif').textContent = classifs[Math.min(nEstrelas, 4)];
+  document.getElementById('qrClassif').textContent = cls.txt;
+  const qrHero = document.querySelector('#screenQuizResult .score-hero');
+  if (qrHero) qrHero.style.background = cls.cor;
   document.getElementById('qrAcertos').textContent = acertos;
   document.getElementById('qrErros').textContent = total - acertos;
   document.getElementById('qrTempo').textContent = tempoStr;
