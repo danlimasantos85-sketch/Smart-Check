@@ -1116,7 +1116,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card">
       <div class="manual-section">
         <h3>📊 Entendendo o Resultado</h3>
-        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> é exibida em <b>porcentagem (%)</b>. Calculamos a base pela proporção de itens conformes (ponderada pelos pesos das categorias) e aplicamos descontos por NC (Leve/Médio), zeramos blocos com NC Crítico e somamos bônus quando o bloco fica 100% conforme. Faixas: <b>≥90% Padrão (verde)</b>, <b>&gt;70% Regular (laranja)</b>, <b>&gt;50% Atenção (amarelo)</b>, <b>≤50% Crítico (vermelho)</b>.</div></div>
+        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> vai de 1 a 5 estrelas e é calculada com base na proporção de itens conformes.</div></div>
         <div class="manual-step"><div class="manual-num">2</div><div class="manual-txt">O <b>Plano de Ação</b> é gerado automaticamente listando as ações corretivas para cada não conformidade com prazo e prioridade.</div></div>
         <div class="manual-step"><div class="manual-num">3</div><div class="manual-txt">Use <b>📥 Baixar PDF</b> para salvar o relatório ou <b>💬 WhatsApp</b> para compartilhar.</div></div>
         <div class="manual-step"><div class="manual-num">4</div><div class="manual-txt">Seu <b>superior imediato</b> recebe automaticamente uma notificação com o resultado e o plano de ação assim que você finalizar.</div></div>
@@ -1238,7 +1238,6 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <div class="stat-row"><span>✅ Conformes</span><span class="val ok" id="rOk"></span></div>
       <div class="stat-row"><span>❌ Não conformes</span><span class="val nok" id="rNok"></span></div>
       <div class="stat-row"><span>— Não avaliados</span><span class="val" id="rNa" style="color:var(--warn);font-weight:600"></span></div>
-      <div class="stat-row"><span>🔒 Bloqueados (NC Crítico)</span><span class="val" id="rBloq" style="color:#6b2de8;font-weight:700">0</span></div>
       <div class="stat-row"><span>Sem resposta</span><span class="val" id="rPend" style="color:var(--muted)"></span></div>
       <div class="stat-row"><span>📍 GPS</span><span class="val" id="rGps" style="font-size:11px"></span></div>
     </div>
@@ -1452,8 +1451,14 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 // ══════════════════════════════════════════
 // VERSÃO DO APP — edite apenas estas 2 linhas a cada atualização
 // ══════════════════════════════════════════
-const APP_VERSION = 3;
-const APP_CHANGELOG = `Novas questões adicionadas às avaliações Geral e Semanal:
+const APP_VERSION = 4;
+const APP_CHANGELOG = `Revisão do checklist — remoção de questões duplicadas:
+• Lavagem de mãos: unificada em 1 questão (era 4)
+• Temperatura de equipamentos: consolidada em Operação com faixas específicas
+• Uniformes: unificada em 1 questão na Operação
+• Extintores/AVCB: unificada em Qualidade Assegurada
+• PVPS e caixas de papelão: unificadas em Estoque
+• Total: de 102 para 90 questões, sem perda de cobertura`;
 
 📋 Qualidade Assegurada: +7 itens (álcool 70%, timer, máscara, álcool gel clientes, embalagens descartáveis, produtos não homologados, certificado CIVP)
 
@@ -2243,7 +2248,6 @@ const defaultCats = [
     'Separação adequada entre alimentos crus e cozidos',
     'Embalagens íntegras e sem sinais de violação',
     'Estoque seco organizado, limpo e ventilado',
-    'Temperaturas das câmaras dentro do padrão (registro atualizado)',
     'Ausência de produtos vencidos ou sem sinalização',
     'Controle de estoque atualizado e alinhado ao físico',
     'Insumos de limpeza armazenados separados dos alimentos'
@@ -2258,8 +2262,6 @@ const defaultCats = [
     'Pisos, paredes e tetos sem rachaduras ou danos',
     'Ralos com proteção e em bom estado',
     'Banheiros em bom estado de conservação',
-    'Ausência de pragas ou sinais de infestação',
-    'Extintor(es) com acesso livre e dentro da validade',
     'Saídas de emergência sinalizadas e desobstruídas',
     'Luminárias protegidas contra quebra e queda, bem conservadas em toda a loja',
     'Aberturas protegidas por telas milimétricas e bem conservadas',
@@ -2267,17 +2269,11 @@ const defaultCats = [
     'Produção e utilização de água quente para limpeza dos utensílios',
     'Caixa de gordura/esgoto vedados (não exala odor e não favorece acesso de pragas)',
     'Conservação geral dos mobiliários de apoio (prateleiras, estantes e bancadas)',
-    'Temperatura dos equipamentos de congelamento dentro do padrão - ITEM DE ADVERTÊNCIA - perde 1 estrela',
-    'Temperatura correta dos Equipamentos de Exposição Fria - ITEM DE ADVERTÊNCIA - perde 1 estrela',
-    'Temperatura correta dos Equipamentos de Cadeia Quente - ITEM DE ADVERTÊNCIA - perde 1 estrela',
-    'Todas as temperaturas (equipamentos e alimentos) são registradas conforme padrão estabelecido',
     'Equipamentos de refrigeração (geladeira e freezer) com borracha em bom estado de conservação, permitindo vedação da porta'
   ]},
   { id:'cozinha', nome:'Operação de Cozinha', emoji:'🍳', sub:'Processos, higiene e fluxo operacional', itens:[
-    'Equipe com uniforme completo, limpo e adequado',
     'Uso correto de EPI (luvas, toucas, aventais)',
     'Higiene pessoal adequada (unhas, cabelos, sem adornos)',
-    'Lavagem de mãos realizada nos momentos corretos',
     'Bancadas e superfícies de trabalho limpas e organizadas',
     'Tábuas de corte higienizadas e codificadas por cor',
     'Controle de temperatura dos alimentos durante preparo',
@@ -2316,9 +2312,7 @@ const defaultCats = [
   { id:'prevencao', nome:'Prevenção de Contaminação Microbiológica', emoji:'🦠', sub:'Higienização e controle microbiológico', itens:[
     'Presença de água filtrada em torneira',
     'Presença de produto de higienização de hortifrutis (hortifruticidas) e sabonete bactericida',
-    'Pia de higienização das mãos com sabonete bactericida, álcool gel, papel toalha não reciclado, lixeira com pedal e procedimento afixado junto à pia',
     'Presença de máquina de gelo ou gelo comprado com certificado de potabilidade',
-    'Ausência de caixas de papelão ou madeira (salvo nos momentos de recebimento de mercadorias)',
     'Apresentação das latas (não amassadas e sem ferrugem) e processo de higienização adequado para latas de bebidas e de alimentos'
   ]},
   { id:'operacao', nome:'Operação', emoji:'⚙️', sub:'Equipamentos, utensílios e conformidade operacional', itens:[
@@ -2329,7 +2323,6 @@ const defaultCats = [
     'Freezer funcionando e atingindo a temperatura de -11°C a -18°C',
     'Telas de Makeline e Takeaway instaladas e funcionando',
     'Totens de autoatendimento instalados e funcionando',
-    'Estoque organizado: produtos em prateleiras/paletes, PVPS aplicado e ausência de caixas de papelão',
     'Restaurante contém forno Rational, tacho ou cooktop em funcionamento',
     'Restaurante contém etiquetadora de validade em funcionamento',
     'Utensílios presentes e em bom estado — marque os disponíveis: ✅ Faca de cozinha | ✅ Faca para sushi | ✅ Manaita verde | ✅ Manaita branca | ✅ Manaita vermelha | ✅ Manaita amarela | ✅ Pegador para GNs Quentes | ✅ Espátula de silicone | ✅ GNs padrões para Forno | ✅ GNs padrões para Pistas Frias | ✅ Balança de precisão | ✅ Domburis | ✅ Louças padrões Gendai | ✅ Cutelo | ✅ Garfo para massas',
@@ -2338,7 +2331,7 @@ const defaultCats = [
   ]}
 ];
 
-const CATS_SEED_VERSION = 3;
+const CATS_SEED_VERSION = 4;
 
 // ══════════════════════════════════════════
 // INIT
@@ -2551,7 +2544,7 @@ function renderHistItem(v) {
   return `<div class="history-item" onclick="abrirDetalhe('${v.id}')">
     <div class="hi-top">
       <div class="hi-name">${v.restaurante}</div>
-      <div class="hi-score">${(() => { let n = v.nota||0; if (n<=5 && n>0) n*=20; return n.toFixed(1).replace('.', ',') + '%'; })()}</div>
+      <div class="hi-score">${(v.nota||0).toFixed(1)}★</div>
     </div>
     <div class="hi-meta">
       <span class="hi-badge ok">${v.conformes}✓</span>
@@ -2567,20 +2560,14 @@ function abrirDetalhe(id) {
   const v = hist.find(x=>x.id===id);
   if (!v) return;
   const cats = LS.get('vo_cats')||[];
-  let nota = v.nota||0;
-  if (nota <= 5 && nota > 0) nota = nota * 20; // compat legado
-  const clsH = classificarPct(nota);
+  const nota = v.nota||0;
 
   let html = `
-    <div class="score-hero" style="border-radius:18px;background:${clsH.cor};color:#fff">
-      <div class="lbl" style="color:rgba(255,255,255,.75)">Avaliação — ${v.restaurante}</div>
-      ${(v.notaBase!=null) ? `<div style="background:rgba(0,0,0,.18);border-radius:10px;padding:8px 12px;margin:8px auto 10px;max-width:320px;text-align:left">
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span style="font-size:12px;opacity:.85">Nota base</span><span style="font-size:13px;font-weight:700">${Number(v.notaBase).toFixed(2).replace('.', ',')}%</span></div>
-        ${(v.totalDesconto>0.01) ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span style="font-size:12px;opacity:.85">⬇ Descontos</span><span style="font-size:13px;font-weight:700;color:#ffb3a8">-${Number(v.totalDesconto).toFixed(2).replace('.', ',')}%</span></div>` : ''}
-        ${(v.totalBonus>0.01) ? `<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="font-size:12px;opacity:.85">🎯 Bônus</span><span style="font-size:13px;font-weight:700;color:#b8f5c9">+${Number(v.totalBonus).toFixed(2).replace('.', ',')}%</span></div>` : ''}
-      </div>` : ''}
-      <div class="score-num" style="color:#fff">${nota.toFixed(2).replace('.', ',')}%</div>
-      <div class="score-classif" style="color:rgba(255,255,255,.92)">${clsH.txt}</div>
+    <div class="score-hero" style="border-radius:18px">
+      <div class="lbl">Avaliação — ${v.restaurante}</div>
+      <div class="stars-row">${[1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('')}</div>
+      <div class="score-num">${nota.toFixed(1)} / 5.0</div>
+      <div class="score-classif">${classificar(nota)}</div>
     </div>`;
 
   if (v.frentePhoto) {
@@ -3559,26 +3546,16 @@ function renderChecklist() {
       else if (isNok) cls+=' nao-conform';
       else if (isNa) cls+=' nao-avaliado';
 
-      // Bloqueio por NC Crítico no mesmo bloco/categoria
-      const catHasCritico = cat.itens.some((_,j) => {
-        const k2 = `${cat.id}_${j}`;
-        return VS.respostas[k2]==='nao' && VS.graus && VS.graus[k2]==='critico';
-      });
-      const isCriticoItem = isNok && VS.graus && VS.graus[key]==='critico';
-      const isBlocked = catHasCritico && !isCriticoItem;
-      if (isBlocked) cls += ' blocked';
-
-      return `<div class="${cls}" id="item_${key}"${isBlocked?' style="opacity:.55;position:relative"':''}>
+      return `<div class="${cls}" id="item_${key}">
         <div class="check-header">
           <div class="check-question">${item}</div>
-          <div class="check-buttons"${isBlocked?' style="pointer-events:none;filter:grayscale(1)"':''}>
-            <button class="check-btn ok ${isSim?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','sim')">✓ Conforme</button>
-            <button class="check-btn nok ${isNok?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','nao')">✗ Não conforme</button>
-            <button class="check-btn na ${isNa?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','na')">— N/Aval.</button>
+          <div class="check-buttons">
+            <button class="check-btn ok ${isSim?'selected':''}" onclick="responder('${key}','sim')">✓ Conforme</button>
+            <button class="check-btn nok ${isNok?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
+            <button class="check-btn na ${isNa?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
           </div>
         </div>
-        ${isBlocked?`<div style="margin-top:8px;font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:8px 10px;display:flex;align-items:center;gap:6px">🚨 Bloqueado — há NC Crítico neste bloco</div>`:''}
-        <div class="resp-area area-sim ${isSim && !isBlocked?'visible':''}" id="area_sim_${key}">
+        <div class="resp-area area-sim ${isSim?'visible':''}" id="area_sim_${key}">
           <span class="area-label">📷 Foto (opcional)</span>
           <div class="photo-grid" id="pg_sim_${key}">
             ${fotos.map((f,fi)=>`<div class="photo-thumb-wrap"><img src="${f}"/><button class="remove-photo" onclick="removerFotoSim('${key}',${fi})">×</button></div>`).join('')}
@@ -3586,7 +3563,7 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_sim" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'sim')"/>
         </div>
-        <div class="resp-area area-nok ${isNok && !isBlocked?'visible':''}" id="area_nok_${key}">
+        <div class="resp-area area-nok ${isNok?'visible':''}" id="area_nok_${key}">
           <textarea placeholder="Descreva a não conformidade (opcional)..." onchange="VS.notas['${key}']=this.value">${notaTxt}</textarea>
           <div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Grau da não conformidade</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
@@ -3594,7 +3571,7 @@ function renderChecklist() {
             <button id="grau_medio_${key}" class="btn-grau-medio ${(VS.graus&&VS.graus[key])==='medio'?'grau-active-medio':''}" onclick="setGrauNC('${key}','medio')" style="border:1.5px solid #e8522a;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='medio'?'#e8522a':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='medio'?'#fff':'#e8522a'}">🔴 Médio</button>
             <button id="grau_critico_${key}" class="btn-grau-critico ${(VS.graus&&VS.graus[key])==='critico'?'grau-active-critico':''}" onclick="setGrauNC('${key}','critico')" style="border:1.5px solid #6b2de8;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='critico'?'#6b2de8':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='critico'?'#fff':'#6b2de8'}">🚨 Crítico</button>
           </div>
-          ${(VS.graus&&VS.graus[key])==='critico'?`<div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">⚠️ NC Crítico zera a nota desta categoria e bloqueia os demais itens deste bloco</div>`:''}
+          ${(VS.graus&&VS.graus[key])==='critico'?`<div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">⚠️ NC Crítico zera a nota desta categoria</div>`:''}
           ${(VS.graus&&VS.graus[key])==='leve'?`<div style="font-size:11px;font-weight:600;color:#b07d20;background:rgba(176,125,32,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🟡 NC Leve — penalidade de ${getPConfigPesos().penalidades.leve}% na categoria</div>`:''}
           ${(VS.graus&&VS.graus[key])==='medio'?`<div style="font-size:11px;font-weight:600;color:#e8522a;background:rgba(232,82,42,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🔴 NC Médio — penalidade de ${getPConfigPesos().penalidades.medio}% na categoria</div>`:''}
           <span class="area-label">📷 Foto obrigatória</span>
@@ -3607,7 +3584,7 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_nok" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'nok')"/>
         </div>
-        <div class="resp-area area-na ${isNa && !isBlocked?'visible':''}" id="area_na_${key}">
+        <div class="resp-area area-na ${isNa?'visible':''}" id="area_na_${key}">
           <span class="area-label">⚠️ Motivo obrigatório</span>
           ${isNa && !motivoTxt ? `<div class="obrig-alert motivo" id="motivo_alert_${key}">Informe o motivo de não ter avaliado este item</div>` : ''}
           <textarea placeholder="Ex: equipamento desligado, área inacessível, item não aplicável..." onchange="salvarMotivo('${key}',this.value)">${motivoTxt}</textarea>
@@ -3658,18 +3635,7 @@ function removerFotoAcomp(key, idx) {
 }
 
 function responder(key, valor) {
-  const valorAnterior = VS.respostas[key];
-  const eraCriticoNao = valorAnterior === 'nao' && VS.graus && VS.graus[key] === 'critico';
   VS.respostas[key] = valor;
-  if (valor !== 'nao' && VS.graus) { delete VS.graus[key]; }
-  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; }
-  if (valor!=='na')  { delete VS.motivos[key]; }
-  if (valor==='sim') { delete VS.fotos[key]; }
-  // Se este item era a NC crítica do bloco (e agora deixou de ser), re-renderiza para desbloquear os demais
-  if (eraCriticoNao) {
-    renderChecklist(); renderNav(); updateProgress();
-    return;
-  }
   const itemEl = document.getElementById(`item_${key}`);
   itemEl.className = `check-item ${valor==='sim'?'conform':valor==='nao'?'nao-conform':valor==='na'?'nao-avaliado':''}`;
   itemEl.querySelectorAll('.check-btn').forEach(b=>b.classList.remove('selected'));
@@ -3677,6 +3643,9 @@ function responder(key, valor) {
   document.getElementById(`area_sim_${key}`).classList.toggle('visible', valor==='sim');
   document.getElementById(`area_nok_${key}`).classList.toggle('visible', valor==='nao');
   document.getElementById(`area_na_${key}`).classList.toggle('visible', valor==='na');
+  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; }
+  if (valor!=='na')  { delete VS.motivos[key]; }
+  if (valor==='sim') { delete VS.fotos[key]; }
   itemEl.classList.remove('sem-foto','sem-motivo');
   updateProgress(); renderNav();
 }
@@ -3796,15 +3765,8 @@ function tipoUsaPesos() {
 // Seta grau da NC
 function setGrauNC(key, grau) {
   if (!VS.graus) VS.graus = {};
-  const grauAnterior = VS.graus[key];
   VS.graus[key] = grau;
-  // Se mudou para/de "crítico", re-renderiza o checklist inteiro para aplicar/remover o bloqueio dos demais itens
-  if (grau === 'critico' || grauAnterior === 'critico') {
-    renderChecklist();
-    renderNav();
-    updateProgress();
-    return;
-  }
+  // Re-renderiza só o item atual
   const catIdx = VS.catAtual;
   const cats = getCatsAtivas();
   const cat = cats[catIdx];
@@ -3929,25 +3891,6 @@ function renderDetalhesPesos(detalhes, totalBonus, cfg) {
   }
   html += '</div>';
   return html;
-}
-
-// Breakdown visual (Nota base → Descontos/Bônus → Nota final)
-function renderNotaBreakdown(notaBase, desconto, bonus, notaFinal) {
-  const fmt = (v) => (Math.round(v*100)/100).toFixed(2).replace('.', ',') + '%';
-  const linhas = [];
-  linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
-    <span style="font-size:12px;opacity:.85">Nota base (sem pesos)</span>
-    <span style="font-size:14px;font-weight:700">${fmt(notaBase)}</span>
-  </div>`);
-  if (desconto && desconto > 0.01) linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
-    <span style="font-size:12px;opacity:.85">⬇ Descontos por NC</span>
-    <span style="font-size:14px;font-weight:700;color:#ffb3a8">-${fmt(desconto)}</span>
-  </div>`);
-  if (bonus && bonus > 0.01) linhas.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15)">
-    <span style="font-size:12px;opacity:.85">🎯 Bônus (blocos 100%)</span>
-    <span style="font-size:14px;font-weight:700;color:#b8f5c9">+${fmt(bonus)}</span>
-  </div>`);
-  return `<div style="background:rgba(0,0,0,.18);border-radius:10px;padding:8px 12px;margin:8px auto 12px;max-width:320px;text-align:left">${linhas.join('')}</div>`;
 }
 
 // Admin — renderiza pesos das categorias
@@ -4107,7 +4050,6 @@ function finalizarVistoria() {
   document.getElementById('rNok').textContent=naoConformes;
   document.getElementById('rNa').textContent=naoAvaliados;
   document.getElementById('rPend').textContent=pendentes;
-  const rBloqEl = document.getElementById('rBloq'); if (rBloqEl) rBloqEl.textContent = bloqueados;
   if (VS.gps) document.getElementById('rGps').innerHTML=`<a href="https://www.google.com/maps?q=${VS.gps.lat},${VS.gps.lng}" target="_blank" style="color:var(--ok)">${VS.gps.lat},${VS.gps.lng} ↗</a>`;
 
   document.getElementById('rCatList').innerHTML = cats.map(cat=>{
@@ -4217,7 +4159,7 @@ async function gerarPlanoIA(forceRegen) {
     '',
     'Restaurante: '+(VS.restaurante||''),
     'Tipo de avaliação: '+(VS.tipoNome||''),
-    'Nota geral: '+((VS.nota||0).toFixed(2).replace('.', ','))+'%',
+    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
     '',
     'NÃO CONFORMIDADES:',
     ncTxt||'(nenhuma)',
@@ -4386,10 +4328,7 @@ async function buildPDFDoc() {
   const naoConformes=Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados=Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados=total-naoAvaliados;
-  const notaPct = (typeof VS.nota === 'number' && VS.nota > 5)
-    ? VS.nota
-    : (avaliados>0?(conformes/avaliados)*100:0);
-  const notaBasePct = (typeof VS.notaBase === 'number') ? VS.notaBase : notaPct;
+  const nota=avaliados>0?(conformes/avaliados)*5:0;
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4417,17 +4356,13 @@ async function buildPDFDoc() {
   if (VS.gps) { doc.setTextColor(42,125,82); doc.text(`GPS: ${VS.gps.lat}, ${VS.gps.lng}  (+-${VS.gps.acc}m)`, M+5, y+37); }
   y+=46;
 
-  // Score (em %)
+  // Score
   doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
   doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(notaPct.toFixed(2).replace('.', ',')+'%', M+5, y+12);
+  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
   doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl = notaPct>=90?'Padrao':notaPct>70?'Regular':notaPct>50?'Atencao':'Critico';
+  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
   doc.text(`Classificacao: ${cl}`, M+5, y+21);
-  if (Math.abs(notaPct - notaBasePct) > 0.05) {
-    doc.setFontSize(7.5); doc.setTextColor(180,180,180);
-    doc.text(`Nota base: ${notaBasePct.toFixed(2).replace('.', ',')}%  |  Final: ${notaPct.toFixed(2).replace('.', ',')}%`, M+5, y+26);
-  }
   doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
   doc.setTextColor(176,125,32); doc.text(`Nao aval.: ${naoAvaliados}`, W-M-55, y+25);
@@ -4548,10 +4483,7 @@ async function buildPDFDocFromRegistro(v) {
   const naoAvaliados= Object.values(v.respostas||{}).filter(r=>r==='na').length;
   const total = v.total || (conformes+naoConformes+naoAvaliados);
   const avaliados = total - naoAvaliados;
-  let notaPct = v.nota || 0;
-  if (notaPct <= 5 && notaPct > 0) notaPct = notaPct * 20;
-  if (!notaPct) notaPct = avaliados>0?(conformes/avaliados)*100:0;
-  const notaBasePct = (typeof v.notaBase === 'number') ? v.notaBase : notaPct;
+  const nota = v.nota || (avaliados>0?(conformes/avaliados)*5:0);
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4572,17 +4504,12 @@ async function buildPDFDocFromRegistro(v) {
   if (v.gpsLat) { doc.setTextColor(42,125,82); doc.text(`GPS: ${v.gpsLat}, ${v.gpsLng}`, M+5, y+37); }
   y+=46;
 
-  // Score (em %)
+  // Score
   doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
   doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(notaPct.toFixed(2).replace('.', ',')+'%', M+5, y+12);
+  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
   doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl = notaPct>=90?'Padrao':notaPct>70?'Regular':notaPct>50?'Atencao':'Critico';
-  if (Math.abs(notaPct - notaBasePct) > 0.05) {
-    doc.setFontSize(7.5); doc.setTextColor(180,180,180);
-    doc.text(`Nota base: ${notaBasePct.toFixed(2).replace('.', ',')}%  |  Final: ${notaPct.toFixed(2).replace('.', ',')}%`, M+5, y+26);
-    doc.setFontSize(9); doc.setTextColor(200,200,200);
-  }
+  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
   doc.text(`Classificacao: ${cl}`, M+5, y+21);
   doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
@@ -6449,15 +6376,13 @@ function finalizarQuiz() {
   // Calcular nova posição
   const novaPosicao = ranking.findIndex(r => r.userId === currentUser.id) + 1;
 
-  // Preencher tela de resultado (sem estrelas — exibe em %)
-  const pct100 = Math.round(pct * 1000) / 10; // pct vem em 0–1
-  const cls = classificarPct(pct100);
-  const qrStarsEl = document.getElementById('qrStars');
-  if (qrStarsEl) qrStarsEl.innerHTML = `<div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff">${pct100.toFixed(1).replace('.', ',')}%</div>`;
+  // Preencher tela de resultado
+  const nEstrelas = Math.round(pct * 5);
+  document.getElementById('qrStars').innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="star-big ${i <= nEstrelas ? 'lit' : ''}">⭐</span>`).join('');
   document.getElementById('qrNota').textContent = `${acertos} / ${total}`;
-  document.getElementById('qrClassif').textContent = cls.txt;
-  const qrHero = document.querySelector('#screenQuizResult .score-hero');
-  if (qrHero) qrHero.style.background = cls.cor;
+  const classifs = ['Precisa melhorar','Regular','Bom','Muito Bom','Excelente!'];
+  document.getElementById('qrClassif').textContent = classifs[Math.min(nEstrelas, 4)];
   document.getElementById('qrAcertos').textContent = acertos;
   document.getElementById('qrErros').textContent = total - acertos;
   document.getElementById('qrTempo').textContent = tempoStr;
