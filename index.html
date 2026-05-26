@@ -658,12 +658,12 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="tab-item" onclick="switchTab('tabUsers')" id="tabBtnUsers"><span class="tab-icon">👥</span><span class="tab-label">Usuários</span></div>
     <div class="tab-item" onclick="switchTab('tabQuestions')" id="tabBtnQuestions"><span class="tab-icon">✏️</span><span class="tab-label">Questões</span></div>
     <div class="tab-item" onclick="switchTab('tabTypes')" id="tabBtnTypes"><span class="tab-icon">🗂️</span><span class="tab-label">Tipos</span></div>
-    <div class="tab-item" onclick="switchTab('tabPesos');renderPesosAdmin()" id="tabBtnPesos"><span class="tab-icon">⚖️</span><span class="tab-label">Pesos</span></div>
     <div class="tab-item" onclick="switchTab('tabAvisos')" id="tabBtnAvisos"><span class="tab-icon">📢</span><span class="tab-label">Avisos</span></div>
     <div class="tab-item" onclick="switchTab('tabRelatos')" id="tabBtnRelatos"><span class="tab-icon">🐛</span><span class="tab-label">Relatos</span></div>
     <div class="tab-item" onclick="switchTab('tabConfig')" id="tabBtnConfig"><span class="tab-icon">⚙️</span><span class="tab-label">Config</span></div>
     <div class="tab-item" onclick="switchTab('tabNotifsSuperior')" id="tabBtnNotifsSuperior"><span class="tab-icon">🔔</span><span class="tab-label">Avisos<span id="badgeNotifSuperior"></span></span></div>
     <div class="tab-item" onclick="switchTab('tabQuizAdmin')" id="tabBtnQuizAdmin"><span class="tab-icon">🎮</span><span class="tab-label">Quiz</span></div>
+    <div class="tab-item" onclick="switchTab('tabPesos')" id="tabBtnPesos"><span class="tab-icon">⚖️</span><span class="tab-label">Pesos</span></div>
   </div>
 
   <!-- PAINEL -->
@@ -758,41 +758,6 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       <p style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5">Após criar, marque abaixo quais categorias farão parte deste tipo de avaliação.</p>
     </div>
     <div id="tiposEditor"></div>
-  </div>
-
-  <!-- PESOS & PENALIDADES (admin) -->
-  <div class="tab-content page" id="tabPesos">
-    <div class="section-title">Pesos & Penalidades</div>
-    <div class="section-sub">Configure o impacto das NCs e o peso de cada bloco. Aplica-se apenas às avaliações <b>Geral</b> e <b>Semanal</b>.</div>
-
-    <div class="card">
-      <div class="card-title">⚠️ Penalidades por grau de NC</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div class="stat-row"><span>🟡 NC Leve — desconto no bloco</span>
-          <span><input type="number" id="cfgPenLeve" min="0" max="100" style="width:70px;text-align:center"/> %</span></div>
-        <div class="stat-row"><span>🔴 NC Médio — desconto no bloco</span>
-          <span><input type="number" id="cfgPenMedio" min="0" max="100" style="width:70px;text-align:center"/> %</span></div>
-        <div class="stat-row"><span>🚨 NC Crítico</span>
-          <span style="font-weight:700;color:#6b2de8">Zera o bloco</span></div>
-        <div class="stat-row"><span>🎯 Bônus por bloco 100% sem NCs</span>
-          <span><input type="number" id="cfgBonus" min="0" max="50" style="width:70px;text-align:center"/> %</span></div>
-      </div>
-      <button class="btn-sm" style="margin-top:10px;width:100%" onclick="salvarPenalidadesCfg()">💾 Salvar penalidades</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">⚖️ Peso de cada bloco
-        <span id="pesoTotalLbl" style="font-size:11px;font-weight:700;color:var(--ok);float:right">Total: 100%</span>
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">A soma deve ser exatamente 100%.</p>
-      <div id="pesosBlocosList"></div>
-      <button class="btn-sm" style="margin-top:10px;width:100%" onclick="salvarPesosBlocos()">💾 Salvar pesos</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📋 Onde aplica</div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.5">Pesos e penalidades são aplicados nas avaliações <b>Geral</b> e <b>Semanal</b>. As demais (Abertura, Fechamento, Sanitária etc.) seguem o cálculo padrão de conformidade.</p>
-    </div>
   </div>
 
   <!-- AVISOS (admin) -->
@@ -925,8 +890,61 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">🍱 Engenharia de Alimentos</div>
+  <!-- PESOS E PENALIDADES -->
+  <div class="tab-content page" id="tabPesos">
+    <div class="section-title">⚖️ Pesos e Penalidades</div>
+    <div class="section-sub">Aplicado somente nas avaliações Geral e Semanal.</div>
+
+    <div class="card">
+      <div class="card-title">⚠️ Penalidades por grau de NC</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+        Ao marcar "Não conforme", o avaliador escolhe o grau. O desconto é aplicado na nota do bloco (categoria).
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)">
+          <div style="width:10px;height:10px;border-radius:50%;background:#b07d20;flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">NC Leve</div><div style="font-size:11px;color:var(--muted)">Desconto na nota do bloco</div></div>
+          <input type="number" id="adminPLeve" value="5" min="0" max="100" style="width:60px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-align:center;outline:none">
+          <span style="font-size:11px;color:var(--muted)">%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)">
+          <div style="width:10px;height:10px;border-radius:50%;background:#e8522a;flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600">NC Médio</div><div style="font-size:11px;color:var(--muted)">Desconto na nota do bloco</div></div>
+          <input type="number" id="adminPMedio" value="15" min="0" max="100" style="width:60px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-align:center;outline:none">
+          <span style="font-size:11px;color:var(--muted)">%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:rgba(107,45,232,.06);border-radius:10px;border:1.5px solid rgba(107,45,232,.2)">
+          <div style="width:10px;height:10px;border-radius:50%;background:#6b2de8;flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#6b2de8">NC Crítico</div><div style="font-size:11px;color:var(--muted)">Zera a nota do bloco inteiro</div></div>
+          <span style="font-size:12px;font-weight:800;color:#6b2de8;padding:6px 10px;background:rgba(107,45,232,.1);border-radius:7px">Zera bloco</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 Bonificação por bloco perfeito</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+        Se uma categoria não tiver nenhuma NC, aplica-se um bônus na nota final.
+      </p>
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border-radius:10px;border:1.5px solid var(--border)">
+        <div style="width:10px;height:10px;border-radius:50%;background:#2a7d52;flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Bônus por categoria 100% conforme</div><div style="font-size:11px;color:var(--muted)">Adicionado à nota final por bloco perfeito</div></div>
+        <input type="number" id="adminPBonus" value="5" min="0" max="20" style="width:60px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;text-align:center;outline:none">
+        <span style="font-size:11px;color:var(--muted)">%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚖️ Peso de cada categoria na nota final</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.5">A soma deve ser exatamente 100%.</p>
+      <div id="adminPesosLista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <div id="adminPesoTotal" style="font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;background:rgba(42,125,82,.08);color:#2a7d52;border:1px solid rgba(42,125,82,.2)">✅ Total: 100%</div>
+    </div>
+
+    <button class="btn-primary" onclick="salvarConfigPesos()">💾 Salvar configurações</button>
+  </div>
+
+
     <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Disponível para Admin, Consultor, Supervisor e Franqueado.</p>
 
     <div style="margin-bottom:14px">
@@ -2325,160 +2343,6 @@ const CATS_SEED_VERSION = 3;
 // INIT
 // ══════════════════════════════════════════
 let currentUser = null;
-
-// ═══════════════════════════════════════════════════════════
-// PESOS & PENALIDADES — config, persistência e cálculo
-// ═══════════════════════════════════════════════════════════
-const PESOS_DEFAULT = { penLeve:5, penMedio:15, bonus:5, blocos:{} };
-let PESOS_CFG = Object.assign({}, PESOS_DEFAULT, LS.get('vo_pesos_cfg')||{});
-PESOS_CFG.blocos = PESOS_CFG.blocos || {};
-
-function pesosAtivos(vs){
-  if(!vs) return false;
-  const t = (vs.tipoId||'').toLowerCase();
-  const n = (vs.tipoNome||'').toLowerCase();
-  return t==='geral' || t==='semanal' || n.includes('geral') || n.includes('semanal');
-}
-
-function getPesoBloco(catId){
-  // Se não há peso configurado, divide igualmente entre as categorias do tipo
-  const cats = getCatsAtivas();
-  if(!cats.length) return 0;
-  const configurados = cats.filter(c => PESOS_CFG.blocos[c.id] != null);
-  if(configurados.length === cats.length){
-    return Number(PESOS_CFG.blocos[catId]) || 0;
-  }
-  // fallback igualitário
-  return Math.round((100/cats.length)*100)/100;
-}
-
-function setGrau(key, grau){
-  if(!VS.graus) VS.graus = {};
-  // toggle: clicar no mesmo desfaz
-  if(VS.graus[key] === grau){ delete VS.graus[key]; }
-  else { VS.graus[key] = grau; }
-  // atualiza UI sem re-render completo
-  const row = document.getElementById('grau_row_'+key);
-  if(row){
-    row.querySelectorAll('.grau-btn').forEach(b=>b.classList.remove('active'));
-    if(VS.graus[key]){
-      const sel = row.querySelector('.grau-btn.'+VS.graus[key]);
-      if(sel) sel.classList.add('active');
-    }
-  }
-  const imp = document.getElementById('grau_imp_'+key);
-  if(imp){
-    if(VS.graus[key]){ imp.style.display='block'; imp.innerHTML = renderImpactoGrau(VS.graus[key]); }
-    else { imp.style.display='none'; imp.innerHTML=''; }
-  }
-}
-
-function renderImpactoGrau(g){
-  if(g==='leve')    return `<span style="color:#b07d20">🟡 NC Leve — penalidade de ${PESOS_CFG.penLeve}% no bloco</span>`;
-  if(g==='medio')   return `<span style="color:#e8522a">🔴 NC Médio — penalidade de ${PESOS_CFG.penMedio}% no bloco</span>`;
-  if(g==='critico') return `<span style="color:#6b2de8">🚨 NC Crítico — zera a nota deste bloco</span>`;
-  return '';
-}
-
-function calcBlocoPesos(cat, vs){
-  let temCritico=false, desconto=0, respondidas=0, temNC=false, ncDetalhe=[];
-  cat.itens.forEach((item, i) => {
-    const k = `${cat.id}_${i}`;
-    const r = vs.respostas[k];
-    if(!r || r==='na') return;
-    respondidas++;
-    if(r==='nao'){
-      temNC = true;
-      const g = (vs.graus||{})[k];
-      if(g==='critico'){ temCritico = true; ncDetalhe.push({item, grau:'critico', pct:'Zera bloco'}); }
-      else if(g==='medio'){ desconto += PESOS_CFG.penMedio; ncDetalhe.push({item, grau:'medio', pct:PESOS_CFG.penMedio}); }
-      else if(g==='leve'){ desconto += PESOS_CFG.penLeve; ncDetalhe.push({item, grau:'leve', pct:PESOS_CFG.penLeve}); }
-      else { /* NC sem grau marcado: trata como leve por padrão */ desconto += PESOS_CFG.penLeve; ncDetalhe.push({item, grau:'leve', pct:PESOS_CFG.penLeve, default:true}); }
-    }
-  });
-  if(temCritico) return { score:0, zerado:true, temNC:true, desconto:0, bonus:false, respondidas, ncDetalhe };
-  const score = respondidas>0 ? Math.max(0, 100 - desconto) : 0;
-  const bonus = !temNC && respondidas>0;
-  return { score, zerado:false, temNC, desconto, bonus, respondidas, ncDetalhe };
-}
-
-function calcNotaPesos(cats, vs){
-  let notaBase=0, totalBonus=0, detalhes=[];
-  cats.forEach(cat => {
-    const res = calcBlocoPesos(cat, vs);
-    const peso = getPesoBloco(cat.id);
-    const pesoDec = peso/100;
-    notaBase += res.score * pesoDec;
-    if(res.bonus) totalBonus += PESOS_CFG.bonus;
-    detalhes.push({ cat, peso, ...res });
-  });
-  const notaFinal = Math.min(100, notaBase + totalBonus);
-  return {
-    notaFinal: Math.round(notaFinal*10)/10,
-    notaBase: Math.round(notaBase*10)/10,
-    totalBonus,
-    detalhes
-  };
-}
-
-// ── ADMIN UI ──
-function renderPesosAdmin(){
-  document.getElementById('cfgPenLeve').value  = PESOS_CFG.penLeve;
-  document.getElementById('cfgPenMedio').value = PESOS_CFG.penMedio;
-  document.getElementById('cfgBonus').value    = PESOS_CFG.bonus;
-  const cats = LS.get('vo_cats')||[];
-  // garante que todos os blocos tenham peso (split igualitário se vazio)
-  const faltam = cats.filter(c => PESOS_CFG.blocos[c.id] == null);
-  if(faltam.length === cats.length && cats.length){
-    const eq = Math.floor(100/cats.length);
-    const resto = 100 - eq*cats.length;
-    cats.forEach((c,i) => PESOS_CFG.blocos[c.id] = eq + (i===0?resto:0));
-  }
-  const html = cats.map(c => `
-    <div class="stat-row" style="padding:10px;border-radius:10px;background:var(--surface2);margin-bottom:6px">
-      <span>${c.emoji||'📋'} ${c.nome}</span>
-      <span><input type="number" class="peso-inp" data-id="${c.id}" min="0" max="100" value="${PESOS_CFG.blocos[c.id]||0}" oninput="atualizarTotalPesoBlocos()" style="width:70px;text-align:center"/> %</span>
-    </div>
-  `).join('');
-  document.getElementById('pesosBlocosList').innerHTML = html || '<div class="empty-state">Crie categorias primeiro na aba Questões.</div>';
-  atualizarTotalPesoBlocos();
-}
-function atualizarTotalPesoBlocos(){
-  const inps = document.querySelectorAll('#pesosBlocosList .peso-inp');
-  let tot = 0; inps.forEach(i => tot += parseInt(i.value)||0);
-  const lbl = document.getElementById('pesoTotalLbl');
-  lbl.textContent = `Total: ${tot}%`;
-  lbl.style.color = tot===100 ? 'var(--ok)' : 'var(--nok)';
-}
-function salvarPenalidadesCfg(){
-  PESOS_CFG.penLeve  = Math.max(0, parseInt(document.getElementById('cfgPenLeve').value)||0);
-  PESOS_CFG.penMedio = Math.max(0, parseInt(document.getElementById('cfgPenMedio').value)||0);
-  PESOS_CFG.bonus    = Math.max(0, parseInt(document.getElementById('cfgBonus').value)||0);
-  LS.set('vo_pesos_cfg', PESOS_CFG);
-  showToast('✅ Penalidades salvas!');
-}
-function salvarPesosBlocos(){
-  const inps = document.querySelectorAll('#pesosBlocosList .peso-inp');
-  let tot = 0, novos = {};
-  inps.forEach(i => { const v = parseInt(i.value)||0; novos[i.dataset.id] = v; tot += v; });
-  if(tot !== 100){ showToast('⚠️ A soma dos pesos deve ser exatamente 100% (atual: '+tot+'%)'); return; }
-  PESOS_CFG.blocos = novos;
-  LS.set('vo_pesos_cfg', PESOS_CFG);
-  showToast('✅ Pesos salvos!');
-}
-
-// estilos dos botões de grau
-(function(){
-  const css = `
-    .grau-btn{border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--muted);transition:all .15s;font-family:inherit}
-    .grau-btn.leve.active{background:#b07d20;border-color:#b07d20;color:#fff}
-    .grau-btn.medio.active{background:#e8522a;border-color:#e8522a;color:#fff}
-    .grau-btn.critico.active{background:#6b2de8;border-color:#6b2de8;color:#fff}
-    .grau-impacto{padding:6px 10px;border-radius:6px;background:var(--surface2)}
-  `;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
 let VS = {}; // vistoria state
 let gpsCapturado = null;
 let frentePhotoData = null;
@@ -2563,6 +2427,7 @@ function switchTab(id) {
   if (id === 'tabRelatos') carregarRelatosAdmin();
   if (id === 'tabNotifsSuperior') { renderNotifsSuperior(); renderBadgeNotifSuperior(); }
   if (id === 'tabQuizAdmin') renderQuizAdmin();
+  if (id === 'tabPesos') renderAdminPesos();
 }
 
 async function carregarAdmin() {
@@ -3705,15 +3570,16 @@ function renderChecklist() {
           <input class="hidden-file" id="${fileId}_sim" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'sim')"/>
         </div>
         <div class="resp-area area-nok ${isNok?'visible':''}" id="area_nok_${key}">
-          ${pesosAtivos(VS) ? `
-            <div class="grau-row" id="grau_row_${key}" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <button type="button" class="grau-btn leve ${(VS.graus||{})[key]==='leve'?'active':''}" onclick="setGrau('${key}','leve')">🟡 Leve (-${PESOS_CFG.penLeve}%)</button>
-              <button type="button" class="grau-btn medio ${(VS.graus||{})[key]==='medio'?'active':''}" onclick="setGrau('${key}','medio')">🔴 Médio (-${PESOS_CFG.penMedio}%)</button>
-              <button type="button" class="grau-btn critico ${(VS.graus||{})[key]==='critico'?'active':''}" onclick="setGrau('${key}','critico')">🚨 Crítico (zera bloco)</button>
-            </div>
-            <div class="grau-impacto" id="grau_imp_${key}" style="font-size:11px;font-weight:600;margin-bottom:8px;${(VS.graus||{})[key]?'display:block':'display:none'}">${renderImpactoGrau((VS.graus||{})[key])}</div>
-          ` : ''}
           <textarea placeholder="Descreva a não conformidade (opcional)..." onchange="VS.notas['${key}']=this.value">${notaTxt}</textarea>
+          <div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Grau da não conformidade</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button id="grau_leve_${key}" class="btn-grau-leve ${(VS.graus&&VS.graus[key])==='leve'?'grau-active-leve':''}" onclick="setGrauNC('${key}','leve')" style="border:1.5px solid #b07d20;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='leve'?'#b07d20':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='leve'?'#fff':'#b07d20'}">🟡 Leve</button>
+            <button id="grau_medio_${key}" class="btn-grau-medio ${(VS.graus&&VS.graus[key])==='medio'?'grau-active-medio':''}" onclick="setGrauNC('${key}','medio')" style="border:1.5px solid #e8522a;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='medio'?'#e8522a':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='medio'?'#fff':'#e8522a'}">🔴 Médio</button>
+            <button id="grau_critico_${key}" class="btn-grau-critico ${(VS.graus&&VS.graus[key])==='critico'?'grau-active-critico':''}" onclick="setGrauNC('${key}','critico')" style="border:1.5px solid #6b2de8;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='critico'?'#6b2de8':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='critico'?'#fff':'#6b2de8'}">🚨 Crítico</button>
+          </div>
+          ${(VS.graus&&VS.graus[key])==='critico'?`<div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">⚠️ NC Crítico zera a nota desta categoria</div>`:''}
+          ${(VS.graus&&VS.graus[key])==='leve'?`<div style="font-size:11px;font-weight:600;color:#b07d20;background:rgba(176,125,32,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🟡 NC Leve — penalidade de ${getPConfigPesos().penalidades.leve}% na categoria</div>`:''}
+          ${(VS.graus&&VS.graus[key])==='medio'?`<div style="font-size:11px;font-weight:600;color:#e8522a;background:rgba(232,82,42,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🔴 NC Médio — penalidade de ${getPConfigPesos().penalidades.medio}% na categoria</div>`:''}
           <span class="area-label">📷 Foto obrigatória</span>
           ${isNok && fotos.length===0 ? `<div class="obrig-alert foto" id="alert_${key}">⚠️ Adicione ao menos 1 foto para continuar</div>` : ''}
           <div class="photo-grid" id="pg_nok_${key}">
@@ -3783,7 +3649,7 @@ function responder(key, valor) {
   document.getElementById(`area_sim_${key}`).classList.toggle('visible', valor==='sim');
   document.getElementById(`area_nok_${key}`).classList.toggle('visible', valor==='nao');
   document.getElementById(`area_na_${key}`).classList.toggle('visible', valor==='na');
-  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; if(VS.graus) delete VS.graus[key]; }
+  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; }
   if (valor!=='na')  { delete VS.motivos[key]; }
   if (valor==='sim') { delete VS.fotos[key]; }
   itemEl.classList.remove('sem-foto','sem-motivo');
@@ -3881,6 +3747,225 @@ function getNaSemMotivoAll() {
 // ══════════════════════════════════════════
 // RESULTADO
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// PESOS E PENALIDADES
+// Aplicado somente em avaliações Geral e Semanal
+// ══════════════════════════════════════════
+
+// Retorna config salva ou defaults
+function getPConfigPesos() {
+  return LS.get('sc_config_pesos') || {
+    penalidades: { leve: 5, medio: 15 },
+    bonus: 5,
+    pesos: {} // catId → peso (%)
+  };
+}
+
+// Verifica se tipo atual usa pesos
+function tipoUsaPesos() {
+  const id   = (VS.tipoId   || '').toLowerCase();
+  const nome = (VS.tipoNome || '').toLowerCase();
+  return id === 'geral' || nome.includes('geral') || id === 'semanal' || nome.includes('semanal');
+}
+
+// Seta grau da NC
+function setGrauNC(key, grau) {
+  if (!VS.graus) VS.graus = {};
+  VS.graus[key] = grau;
+  // Re-renderiza só o item atual
+  const catIdx = VS.catAtual;
+  const cats = getCatsAtivas();
+  const cat = cats[catIdx];
+  if (!cat) return;
+  const idx = parseInt(key.split('_').pop());
+  const item = cat.itens[idx];
+  // Atualiza visual dos botões sem re-renderizar tudo
+  const cfg = getPConfigPesos();
+  ['leve','medio','critico'].forEach(g => {
+    const btn = document.getElementById(`grau_${g}_${key}`);
+    if (!btn) return;
+    const ativo = grau === g;
+    const cores = {leve:['#b07d20','#b07d20'],medio:['#e8522a','#e8522a'],critico:['#6b2de8','#6b2de8']};
+    btn.style.background = ativo ? cores[g][0] : 'var(--surface)';
+    btn.style.color = ativo ? '#fff' : cores[g][1];
+  });
+  // Atualiza aviso de impacto
+  const area = document.getElementById(`area_nok_${key}`);
+  if (area) {
+    // Remove avisos antigos
+    area.querySelectorAll('.grau-impacto').forEach(el => el.remove());
+    const div = document.createElement('div');
+    div.className = 'grau-impacto';
+    div.style.cssText = 'font-size:11px;font-weight:600;border-radius:7px;padding:6px 10px;margin-bottom:6px';
+    if (grau === 'critico') {
+      div.style.cssText += ';color:#6b2de8;background:rgba(107,45,232,.08)';
+      div.textContent = '⚠️ NC Crítico — zera a nota desta categoria';
+    } else if (grau === 'leve') {
+      div.style.cssText += ';color:#b07d20;background:rgba(176,125,32,.08)';
+      div.textContent = `🟡 NC Leve — penalidade de ${cfg.penalidades.leve}% na categoria`;
+    } else if (grau === 'medio') {
+      div.style.cssText += ';color:#e8522a;background:rgba(232,82,42,.08)';
+      div.textContent = `🔴 NC Médio — penalidade de ${cfg.penalidades.medio}% na categoria`;
+    }
+    // Insere antes do label da foto
+    const fotoLabel = area.querySelector('.area-label');
+    if (fotoLabel) area.insertBefore(div, fotoLabel);
+    else area.prepend(div);
+  }
+}
+
+// Calcula nota COM pesos e penalidades (retorna nota 0–5 + detalhes)
+function calcNotaComPesos(cats, respostas, graus) {
+  const cfg = getPConfigPesos();
+  let notaFinalPonderada = 0;
+  let totalBonus = 0;
+  const detalhes = [];
+
+  cats.forEach(cat => {
+    const peso = (cfg.pesos && cfg.pesos[cat.id]) != null ? cfg.pesos[cat.id] : (100 / cats.length);
+    let temCritico = false, totalDesconto = 0, temNC = false, respondidas = 0;
+
+    cat.itens.forEach((_, i) => {
+      const key = `${cat.id}_${i}`;
+      const resp = respostas[key];
+      if (!resp || resp === 'na') return;
+      respondidas++;
+      if (resp === 'nao') {
+        temNC = true;
+        const grau = graus && graus[key];
+        if (grau === 'critico') temCritico = true;
+        else if (grau === 'leve')  totalDesconto += cfg.penalidades.leve;
+        else if (grau === 'medio') totalDesconto += cfg.penalidades.medio;
+        else totalDesconto += cfg.penalidades.leve; // default leve se não escolheu
+      }
+    });
+
+    let scoreCat; // 0–100
+    if (respondidas === 0) {
+      scoreCat = 0;
+    } else if (temCritico) {
+      scoreCat = 0;
+    } else {
+      const conformes = cat.itens.filter((_, i) => respostas[`${cat.id}_${i}`] === 'sim').length;
+      const avaliados = cat.itens.filter((_, i) => { const r = respostas[`${cat.id}_${i}`]; return r && r !== 'na'; }).length;
+      const baseScore = avaliados > 0 ? (conformes / avaliados) * 100 : 0;
+      scoreCat = Math.max(0, baseScore - totalDesconto);
+    }
+
+    const bonus = !temNC && respondidas > 0;
+    if (bonus) totalBonus += cfg.bonus;
+
+    notaFinalPonderada += scoreCat * (peso / 100);
+    detalhes.push({ cat, scoreCat, peso, temCritico, temNC, totalDesconto, bonus });
+  });
+
+  // Converte de 0–100 para 0–5 e aplica bônus
+  const notaBase5   = (notaFinalPonderada / 100) * 5;
+  const bonusEm5    = (totalBonus / 100) * 5;
+  const notaFinal5  = Math.min(5, notaBase5 + bonusEm5);
+
+  return { nota: notaFinal5, notaBase: notaBase5, totalBonus, detalhes };
+}
+
+// Renderiza blocos de penalidades/bonificações no resultado
+function renderDetalhesPesos(detalhes, totalBonus, cfg) {
+  const comPen = detalhes.filter(d => d.temNC);
+  const comBonus = detalhes.filter(d => d.bonus);
+  if (!comPen.length && !comBonus.length) return '';
+
+  let html = '<div style="margin-top:14px">';
+  html += '<div style="font-family:\'Syne\',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚖️ Pesos e Penalidades</div>';
+
+  if (comPen.length) {
+    comPen.forEach(d => {
+      const cor = d.temCritico ? '#6b2de8' : '#e8522a';
+      const bg  = d.temCritico ? 'rgba(107,45,232,.06)' : 'rgba(232,82,42,.06)';
+      html += `<div style="background:${bg};border-left:3px solid ${cor};border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:${cor}">${d.cat.emoji} ${d.cat.nome}</div>
+        <div style="font-size:11px;color:var(--dark);margin-top:3px">${d.temCritico ? '🚨 NC Crítico — bloco zerado' : `⬇ Desconto de ${d.totalDesconto}% → Score: ${Math.round(d.scoreCat)}%`}</div>
+      </div>`;
+    });
+  }
+  if (comBonus.length) {
+    comBonus.forEach(d => {
+      html += `<div style="background:rgba(42,125,82,.06);border-left:3px solid #2a7d52;border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:#2a7d52">${d.cat.emoji} ${d.cat.nome}</div>
+        <div style="font-size:11px;color:var(--dark);margin-top:3px">🎯 Bloco 100% sem NCs — bônus de +${cfg.bonus}% na nota final</div>
+      </div>`;
+    });
+    html += `<div style="font-size:12px;font-weight:700;color:#2a7d52;padding:8px 12px;background:rgba(42,125,82,.08);border-radius:8px;margin-bottom:6px">🎯 Bônus total aplicado: +${totalBonus}%</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+// Admin — renderiza pesos das categorias
+function renderAdminPesos() {
+  const cfg  = getPConfigPesos();
+  const cats = LS.get('vo_cats') || [];
+
+  // Carrega valores salvos nos inputs de penalidade
+  document.getElementById('adminPLeve').value  = cfg.penalidades?.leve  ?? 5;
+  document.getElementById('adminPMedio').value = cfg.penalidades?.medio ?? 15;
+  document.getElementById('adminPBonus').value = cfg.bonus ?? 5;
+
+  const totalCats = cats.length || 1;
+  const lista = document.getElementById('adminPesosLista');
+  if (!lista) return;
+
+  lista.innerHTML = cats.map(c => {
+    const pesoPadrao = Math.round(100 / totalCats);
+    const pesoSalvo  = (cfg.pesos && cfg.pesos[c.id] != null) ? cfg.pesos[c.id] : pesoPadrao;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border-radius:9px;border:1.5px solid var(--border)">
+      <span style="flex:1;font-size:13px;font-weight:600">${c.emoji} ${c.nome}</span>
+      <input type="number" data-catid="${c.id}" value="${pesoSalvo}" min="0" max="100"
+        style="width:55px;background:var(--surface);border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;font-size:13px;font-weight:700;text-align:center;font-family:'Syne',sans-serif;outline:none"
+        oninput="atualizarTotalPesosAdmin()">
+      <span style="font-size:11px;color:var(--muted)">%</span>
+    </div>`;
+  }).join('');
+
+  atualizarTotalPesosAdmin();
+}
+
+function atualizarTotalPesosAdmin() {
+  const inputs = document.querySelectorAll('#adminPesosLista input[data-catid]');
+  let total = 0;
+  inputs.forEach(el => total += parseInt(el.value) || 0);
+  const el = document.getElementById('adminPesoTotal');
+  if (!el) return;
+  if (total === 100) {
+    el.style.cssText = 'font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;background:rgba(42,125,82,.08);color:#2a7d52;border:1px solid rgba(42,125,82,.2)';
+    el.textContent = `✅ Total: ${total}%`;
+  } else {
+    el.style.cssText = 'font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;background:rgba(192,57,43,.08);color:#c0392b;border:1px solid rgba(192,57,43,.2)';
+    el.textContent = `⚠️ Total: ${total}% — deve ser exatamente 100%`;
+  }
+}
+
+function salvarConfigPesos() {
+  const inputs  = document.querySelectorAll('#adminPesosLista input[data-catid]');
+  let total = 0;
+  const pesos = {};
+  inputs.forEach(el => {
+    const v = parseInt(el.value) || 0;
+    pesos[el.dataset.catid] = v;
+    total += v;
+  });
+  if (total !== 100) { showToast('⚠️ A soma dos pesos deve ser 100%'); return; }
+
+  const cfg = {
+    penalidades: {
+      leve:  parseInt(document.getElementById('adminPLeve').value)  || 5,
+      medio: parseInt(document.getElementById('adminPMedio').value) || 15,
+    },
+    bonus: parseInt(document.getElementById('adminPBonus').value) || 5,
+    pesos,
+  };
+  LS.set('sc_config_pesos', cfg);
+  showToast('✅ Configurações de pesos salvas!');
+}
+
 function classificar(nota) {
   return nota>=4.5?'🏆 Excelente — Operação em conformidade':nota>=3.5?'✅ Bom — Ajustes pontuais necessários':nota>=2.5?'⚠️ Regular — Atenção necessária':nota>=1.5?'🚨 Ruim — Ação imediata recomendada':'🔴 Crítico — Intervenção urgente';
 }
@@ -3915,16 +4000,17 @@ function finalizarVistoria() {
   const naoConformes = Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados = Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados    = total - naoAvaliados;
-  let nota, pesosResultado = null;
-  if (pesosAtivos(VS)) {
-    pesosResultado = calcNotaPesos(cats, VS);
-    nota = (pesosResultado.notaFinal/100) * 5; // converte 0-100 para 0-5★
-    VS.nota100 = pesosResultado.notaFinal;
-    VS.notaBase100 = pesosResultado.notaBase;
-    VS.bonusTotal = pesosResultado.totalBonus;
-    VS.pesosDetalhes = pesosResultado.detalhes;
+
+  // ── Calcula nota: com pesos (Geral/Semanal) ou simples (outros tipos)
+  let nota, pesoDetalhes = null, pesoCfg = null, pesoTotalBonus = 0;
+  if (tipoUsaPesos() && cats.length > 0) {
+    pesoCfg = getPConfigPesos();
+    const res = calcNotaComPesos(cats, VS.respostas, VS.graus || {});
+    nota = res.nota;
+    pesoDetalhes = res.detalhes;
+    pesoTotalBonus = res.totalBonus;
   } else {
-    nota = avaliados>0 ? (conformes/avaliados)*5 : 0;
+    nota = avaliados > 0 ? (conformes / avaliados) * 5 : 0;
   }
   const tsFim = Date.now();
   const durMin = Math.round((tsFim-VS.tsInicio)/60000);
@@ -3942,7 +4028,7 @@ function finalizarVistoria() {
     gpsLat:VS.gps?.lat||'', gpsLng:VS.gps?.lng||'', gpsAcc:VS.gps?.acc||'',
     gpsMapsUrl:VS.gps?`https://www.google.com/maps?q=${VS.gps.lat},${VS.gps.lng}`:'',
     frentePhoto:VS.frentePhoto||null,
-    respostas:{...VS.respostas}, notas:{...VS.notas}, fotos:{...VS.fotos}, motivos:{...VS.motivos}, graus:{...(VS.graus||{})}, nota100:VS.nota100||null, notaBase100:VS.notaBase100||null, bonusTotal:VS.bonusTotal||0, pesosCfgSnap:JSON.parse(JSON.stringify(PESOS_CFG))
+    respostas:{...VS.respostas}, notas:{...VS.notas}, fotos:{...VS.fotos}, motivos:{...VS.motivos}
   };
   const hist = LS.get('vo_historico')||[];
   const registroSemFotos = {...registro, fotos:{}, frentePhoto:null};
@@ -3978,14 +4064,28 @@ function finalizarVistoria() {
     const na=cat.itens.filter((_,i)=>VS.respostas[`${cat.id}_${i}`]==='na').length;
     const av=cat.itens.length-na;
     const pct=av>0?Math.round((ok/av)*100):0;
-    return `<div class="stat-row"><span>${cat.emoji} ${cat.nome}</span>
+    // Adiciona score com penalidade se for geral/semanal
+    let pctDisplay = pct;
+    let pesoTag = '';
+    if (pesoDetalhes) {
+      const d = pesoDetalhes.find(d => d.cat.id === cat.id);
+      if (d) {
+        pctDisplay = Math.round(d.scoreCat);
+        const cfg2 = getPConfigPesos();
+        pesoTag = `<span style="font-size:10px;color:var(--muted);margin-left:4px">(peso ${d.peso}%)</span>`;
+        if (d.temCritico) pesoTag += `<span style="font-size:10px;color:#6b2de8;font-weight:700;margin-left:4px">🚨 Zerado</span>`;
+        else if (d.temNC && d.totalDesconto > 0) pesoTag += `<span style="font-size:10px;color:#e8522a;font-weight:700;margin-left:4px">-${d.totalDesconto}%</span>`;
+        else if (d.bonus) pesoTag += `<span style="font-size:10px;color:#2a7d52;font-weight:700;margin-left:4px">+${cfg2.bonus}%🎯</span>`;
+      }
+    }
+    return `<div class="stat-row"><span>${cat.emoji} ${cat.nome}${pesoTag}</span>
       <span style="display:flex;gap:6px;align-items:center">
         <span style="font-size:11px;color:var(--ok);font-weight:600">${ok}✓</span>
         ${nok>0?`<span style="font-size:11px;color:var(--nok);font-weight:600">${nok}✗</span>`:''}
         ${na>0?`<span style="font-size:11px;color:var(--warn);font-weight:600">${na}—</span>`:''}
-        <span class="val">${pct}%</span>
+        <span class="val">${pctDisplay}%</span>
       </span></div>`;
-  }).join('');
+  }).join('') + (pesoDetalhes ? renderDetalhesPesos(pesoDetalhes, pesoTotalBonus, pesoCfg) : '');
 
   let ncHtml = '';
   cats.forEach(cat=>{
@@ -4008,28 +4108,6 @@ function finalizarVistoria() {
     });
   });
   if (ncHtml) { document.getElementById('rNcCard').style.display='block'; document.getElementById('rNcList').innerHTML=ncHtml; }
-
-  // PESOS — anexa breakdown ao resultado, se aplicável
-  if (pesosResultado) {
-    const breakdownHtml = pesosResultado.detalhes.map(d => {
-      const cor = d.zerado ? '#6b2de8' : d.score>=85 ? 'var(--ok)' : d.score>=70 ? 'var(--warn)' : 'var(--nok)';
-      const tag = d.zerado ? ' 🚨 zerado' : d.bonus ? ` +${PESOS_CFG.bonus}% bônus` : (d.desconto>0?` (-${d.desconto}%)`:'');
-      return `<div class="stat-row"><span>${d.cat.emoji||'📋'} ${d.cat.nome} <span style="font-size:10px;color:var(--muted)">(peso ${d.peso}%)</span></span><span style="color:${cor};font-weight:700">${d.score}%${tag}</span></div>`;
-    }).join('');
-    const summary = `
-      <div class="card" style="margin-top:14px">
-        <div class="card-title">⚖️ Nota por Pesos & Penalidades</div>
-        <div class="stat-row"><span>Nota base (somatório ponderado)</span><span class="val">${pesosResultado.notaBase}%</span></div>
-        <div class="stat-row"><span>🎯 Bônus aplicado</span><span class="val ok">+${pesosResultado.totalBonus}%</span></div>
-        <div class="stat-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px"><span><b>Nota final</b></span><span class="val" style="font-size:18px;color:var(--accent)"><b>${pesosResultado.notaFinal}%</b></span></div>
-        <div style="height:10px"></div>
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px">Detalhamento por bloco</div>
-        ${breakdownHtml}
-      </div>`;
-    const rNcCard = document.getElementById('rNcCard');
-    if (rNcCard && rNcCard.parentNode) rNcCard.insertAdjacentHTML('beforebegin', summary);
-    else document.querySelector('#screenResult .page')?.insertAdjacentHTML('beforeend', summary);
-  }
 
   // Snapshot dos pontos não atingidos para a IA e o e-mail à loja
   VS.registroId = registro.id;
