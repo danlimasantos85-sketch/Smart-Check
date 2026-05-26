@@ -3559,16 +3559,26 @@ function renderChecklist() {
       else if (isNok) cls+=' nao-conform';
       else if (isNa) cls+=' nao-avaliado';
 
-      return `<div class="${cls}" id="item_${key}">
+      // Bloqueio por NC Crítico no mesmo bloco/categoria
+      const catHasCritico = cat.itens.some((_,j) => {
+        const k2 = `${cat.id}_${j}`;
+        return VS.respostas[k2]==='nao' && VS.graus && VS.graus[k2]==='critico';
+      });
+      const isCriticoItem = isNok && VS.graus && VS.graus[key]==='critico';
+      const isBlocked = catHasCritico && !isCriticoItem;
+      if (isBlocked) cls += ' blocked';
+
+      return `<div class="${cls}" id="item_${key}"${isBlocked?' style="opacity:.55;position:relative"':''}>
         <div class="check-header">
           <div class="check-question">${item}</div>
-          <div class="check-buttons">
-            <button class="check-btn ok ${isSim?'selected':''}" onclick="responder('${key}','sim')">✓ Conforme</button>
-            <button class="check-btn nok ${isNok?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
-            <button class="check-btn na ${isNa?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
+          <div class="check-buttons"${isBlocked?' style="pointer-events:none;filter:grayscale(1)"':''}>
+            <button class="check-btn ok ${isSim?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','sim')">✓ Conforme</button>
+            <button class="check-btn nok ${isNok?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','nao')">✗ Não conforme</button>
+            <button class="check-btn na ${isNa?'selected':''}" ${isBlocked?'disabled':''} onclick="responder('${key}','na')">— N/Aval.</button>
           </div>
         </div>
-        <div class="resp-area area-sim ${isSim?'visible':''}" id="area_sim_${key}">
+        ${isBlocked?`<div style="margin-top:8px;font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:8px 10px;display:flex;align-items:center;gap:6px">🚨 Bloqueado — há NC Crítico neste bloco</div>`:''}
+        <div class="resp-area area-sim ${isSim && !isBlocked?'visible':''}" id="area_sim_${key}">
           <span class="area-label">📷 Foto (opcional)</span>
           <div class="photo-grid" id="pg_sim_${key}">
             ${fotos.map((f,fi)=>`<div class="photo-thumb-wrap"><img src="${f}"/><button class="remove-photo" onclick="removerFotoSim('${key}',${fi})">×</button></div>`).join('')}
@@ -3576,7 +3586,7 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_sim" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'sim')"/>
         </div>
-        <div class="resp-area area-nok ${isNok?'visible':''}" id="area_nok_${key}">
+        <div class="resp-area area-nok ${isNok && !isBlocked?'visible':''}" id="area_nok_${key}">
           <textarea placeholder="Descreva a não conformidade (opcional)..." onchange="VS.notas['${key}']=this.value">${notaTxt}</textarea>
           <div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Grau da não conformidade</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
@@ -3584,7 +3594,7 @@ function renderChecklist() {
             <button id="grau_medio_${key}" class="btn-grau-medio ${(VS.graus&&VS.graus[key])==='medio'?'grau-active-medio':''}" onclick="setGrauNC('${key}','medio')" style="border:1.5px solid #e8522a;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='medio'?'#e8522a':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='medio'?'#fff':'#e8522a'}">🔴 Médio</button>
             <button id="grau_critico_${key}" class="btn-grau-critico ${(VS.graus&&VS.graus[key])==='critico'?'grau-active-critico':''}" onclick="setGrauNC('${key}','critico')" style="border:1.5px solid #6b2de8;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;background:${(VS.graus&&VS.graus[key])==='critico'?'#6b2de8':'var(--surface)'};color:${(VS.graus&&VS.graus[key])==='critico'?'#fff':'#6b2de8'}">🚨 Crítico</button>
           </div>
-          ${(VS.graus&&VS.graus[key])==='critico'?`<div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">⚠️ NC Crítico zera a nota desta categoria</div>`:''}
+          ${(VS.graus&&VS.graus[key])==='critico'?`<div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">⚠️ NC Crítico zera a nota desta categoria e bloqueia os demais itens deste bloco</div>`:''}
           ${(VS.graus&&VS.graus[key])==='leve'?`<div style="font-size:11px;font-weight:600;color:#b07d20;background:rgba(176,125,32,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🟡 NC Leve — penalidade de ${getPConfigPesos().penalidades.leve}% na categoria</div>`:''}
           ${(VS.graus&&VS.graus[key])==='medio'?`<div style="font-size:11px;font-weight:600;color:#e8522a;background:rgba(232,82,42,.08);border-radius:7px;padding:6px 10px;margin-bottom:6px">🔴 NC Médio — penalidade de ${getPConfigPesos().penalidades.medio}% na categoria</div>`:''}
           <span class="area-label">📷 Foto obrigatória</span>
@@ -3597,7 +3607,7 @@ function renderChecklist() {
           </div>
           <input class="hidden-file" id="${fileId}_nok" type="file" accept="image/*" capture="environment" onchange="adicionarFoto('${key}',this,'nok')"/>
         </div>
-        <div class="resp-area area-na ${isNa?'visible':''}" id="area_na_${key}">
+        <div class="resp-area area-na ${isNa && !isBlocked?'visible':''}" id="area_na_${key}">
           <span class="area-label">⚠️ Motivo obrigatório</span>
           ${isNa && !motivoTxt ? `<div class="obrig-alert motivo" id="motivo_alert_${key}">Informe o motivo de não ter avaliado este item</div>` : ''}
           <textarea placeholder="Ex: equipamento desligado, área inacessível, item não aplicável..." onchange="salvarMotivo('${key}',this.value)">${motivoTxt}</textarea>
@@ -3648,7 +3658,18 @@ function removerFotoAcomp(key, idx) {
 }
 
 function responder(key, valor) {
+  const valorAnterior = VS.respostas[key];
+  const eraCriticoNao = valorAnterior === 'nao' && VS.graus && VS.graus[key] === 'critico';
   VS.respostas[key] = valor;
+  if (valor !== 'nao' && VS.graus) { delete VS.graus[key]; }
+  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; }
+  if (valor!=='na')  { delete VS.motivos[key]; }
+  if (valor==='sim') { delete VS.fotos[key]; }
+  // Se este item era a NC crítica do bloco (e agora deixou de ser), re-renderiza para desbloquear os demais
+  if (eraCriticoNao) {
+    renderChecklist(); renderNav(); updateProgress();
+    return;
+  }
   const itemEl = document.getElementById(`item_${key}`);
   itemEl.className = `check-item ${valor==='sim'?'conform':valor==='nao'?'nao-conform':valor==='na'?'nao-avaliado':''}`;
   itemEl.querySelectorAll('.check-btn').forEach(b=>b.classList.remove('selected'));
@@ -3656,9 +3677,6 @@ function responder(key, valor) {
   document.getElementById(`area_sim_${key}`).classList.toggle('visible', valor==='sim');
   document.getElementById(`area_nok_${key}`).classList.toggle('visible', valor==='nao');
   document.getElementById(`area_na_${key}`).classList.toggle('visible', valor==='na');
-  if (valor!=='nao') { delete VS.notas[key]; delete VS.fotos[key]; }
-  if (valor!=='na')  { delete VS.motivos[key]; }
-  if (valor==='sim') { delete VS.fotos[key]; }
   itemEl.classList.remove('sem-foto','sem-motivo');
   updateProgress(); renderNav();
 }
@@ -3778,8 +3796,15 @@ function tipoUsaPesos() {
 // Seta grau da NC
 function setGrauNC(key, grau) {
   if (!VS.graus) VS.graus = {};
+  const grauAnterior = VS.graus[key];
   VS.graus[key] = grau;
-  // Re-renderiza só o item atual
+  // Se mudou para/de "crítico", re-renderiza o checklist inteiro para aplicar/remover o bloqueio dos demais itens
+  if (grau === 'critico' || grauAnterior === 'critico') {
+    renderChecklist();
+    renderNav();
+    updateProgress();
+    return;
+  }
   const catIdx = VS.catAtual;
   const cats = getCatsAtivas();
   const cat = cats[catIdx];
