@@ -3508,16 +3508,51 @@ function renderChecklist() {
   const cat = cats[VS.catAtual];
   const modoAcomp = isAcompanhamento({id: VS.tipoId, nome: VS.tipoNome});
 
+  // Verifica se há NC Crítico neste bloco
+  const temCriticoNaBloco = cat.itens.some((_, i) => {
+    const k = `${cat.id}_${i}`;
+    return VS.graus && VS.graus[k] === 'critico';
+  });
+
+  // Banner de bloco zerado
+  const bannerCritico = temCriticoNaBloco
+    ? `<div style="background:rgba(107,45,232,.1);border:1.5px solid rgba(107,45,232,.3);border-radius:10px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">🚨</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#6b2de8">Bloco zerado por NC Crítico</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">As demais questões foram preenchidas automaticamente como NC.</div>
+        </div>
+      </div>` : '';
+
   document.getElementById('checklistWrap').innerHTML =
-    `<div class="cat-title">${cat.emoji} ${cat.nome}</div><div class="cat-subtitle">${cat.sub}</div>` +
+    `<div class="cat-title">${cat.emoji} ${cat.nome}</div><div class="cat-subtitle">${cat.sub}</div>${bannerCritico}` +
     cat.itens.map((item,idx) => {
       const key = `${cat.id}_${idx}`;
       const resp = VS.respostas[key];
+      const grauItem = VS.graus && VS.graus[key];
+      const isCriticoAuto = grauItem === 'critico-auto';
       const notaTxt = VS.notas[key]||'';
       const motivoTxt = VS.motivos[key]||'';
       const fotos = VS.fotos[key]||[];
       const isSim = resp==='sim', isNok=resp==='nao', isNa=resp==='na';
       const fileId = `file_${key}`;
+
+      // Item auto-preenchido por NC Crítico — renderiza bloqueado
+      if (isCriticoAuto) {
+        return `<div class="check-item nao-conform" id="item_${key}" style="opacity:.65;pointer-events:none">
+          <div class="check-header">
+            <div class="check-question">${item}</div>
+            <div class="check-buttons">
+              <button class="check-btn nok selected" disabled>✗ Não conforme</button>
+            </div>
+          </div>
+          <div class="resp-area" style="display:block;padding:8px 12px">
+            <div style="font-size:11px;font-weight:600;color:#6b2de8;background:rgba(107,45,232,.08);border-radius:7px;padding:5px 9px">
+              🚨 Preenchido automaticamente — bloco zerado por NC Crítico
+            </div>
+          </div>
+        </div>`;
+      }
 
       if (modoAcomp) {
         // MODO ACOMPANHAMENTO: apenas check ✔️ + foto opcional + observação opcional
@@ -3766,13 +3801,43 @@ function tipoUsaPesos() {
 function setGrauNC(key, grau) {
   if (!VS.graus) VS.graus = {};
   VS.graus[key] = grau;
-  // Re-renderiza só o item atual
+
+  // ── CRÍTICO: preenche automaticamente todas as outras questões do bloco ──
   const catIdx = VS.catAtual;
-  const cats = getCatsAtivas();
-  const cat = cats[catIdx];
+  const cats   = getCatsAtivas();
+  const cat    = cats[catIdx];
   if (!cat) return;
-  const idx = parseInt(key.split('_').pop());
-  const item = cat.itens[idx];
+
+  if (grau === 'critico') {
+    cat.itens.forEach((_, i) => {
+      const k = `${cat.id}_${i}`;
+      if (k === key) return; // pula a questão que o avaliador marcou
+      // Só preenche se ainda não foi respondida ou se era auto
+      if (!VS.respostas[k] || VS.graus[k] === 'critico-auto') {
+        VS.respostas[k] = 'nao';
+        VS.graus[k]     = 'critico-auto';
+      }
+    });
+    // Re-renderiza o bloco inteiro para mostrar o estado
+    renderChecklist();
+    updateProgress(); renderNav();
+    showToast('🚨 Bloco zerado — demais questões preenchidas automaticamente');
+    return;
+  }
+
+  // Se estava como critico e mudou para outro grau, desfaz os auto
+  const eraGrauCritico = Object.entries(VS.graus).some(([k,g]) => k !== key && g === 'critico-auto' && k.startsWith(cat.id+'_'));
+  if (!eraGrauCritico) {
+    // Nenhum outro crítico no bloco — remove os auto-preenchidos
+    cat.itens.forEach((_, i) => {
+      const k = `${cat.id}_${i}`;
+      if (VS.graus[k] === 'critico-auto') {
+        delete VS.respostas[k];
+        delete VS.graus[k];
+      }
+    });
+  }
+
   // Atualiza visual dos botões sem re-renderizar tudo
   const cfg = getPConfigPesos();
   ['leve','medio','critico'].forEach(g => {
@@ -3786,26 +3851,22 @@ function setGrauNC(key, grau) {
   // Atualiza aviso de impacto
   const area = document.getElementById(`area_nok_${key}`);
   if (area) {
-    // Remove avisos antigos
     area.querySelectorAll('.grau-impacto').forEach(el => el.remove());
     const div = document.createElement('div');
     div.className = 'grau-impacto';
     div.style.cssText = 'font-size:11px;font-weight:600;border-radius:7px;padding:6px 10px;margin-bottom:6px';
-    if (grau === 'critico') {
-      div.style.cssText += ';color:#6b2de8;background:rgba(107,45,232,.08)';
-      div.textContent = '⚠️ NC Crítico — zera a nota desta categoria';
-    } else if (grau === 'leve') {
+    if (grau === 'leve') {
       div.style.cssText += ';color:#b07d20;background:rgba(176,125,32,.08)';
       div.textContent = `🟡 NC Leve — penalidade de ${cfg.penalidades.leve}% na categoria`;
     } else if (grau === 'medio') {
       div.style.cssText += ';color:#e8522a;background:rgba(232,82,42,.08)';
       div.textContent = `🔴 NC Médio — penalidade de ${cfg.penalidades.medio}% na categoria`;
     }
-    // Insere antes do label da foto
     const fotoLabel = area.querySelector('.area-label');
     if (fotoLabel) area.insertBefore(div, fotoLabel);
     else area.prepend(div);
   }
+  updateProgress(); renderNav();
 }
 
 // Calcula nota COM pesos e penalidades (retorna nota 0–5 + detalhes)
@@ -3827,7 +3888,7 @@ function calcNotaComPesos(cats, respostas, graus) {
       if (resp === 'nao') {
         temNC = true;
         const grau = graus && graus[key];
-        if (grau === 'critico') temCritico = true;
+        if (grau === 'critico' || grau === 'critico-auto') temCritico = true;
         else if (grau === 'leve')  totalDesconto += cfg.penalidades.leve;
         else if (grau === 'medio') totalDesconto += cfg.penalidades.medio;
         else totalDesconto += cfg.penalidades.leve; // default leve se não escolheu
@@ -3967,20 +4028,39 @@ function classificar(nota) {
 function finalizarVistoria() {
   const cats = getCatsAtivas();
   const total = getTotalItens();
-  const pendentes = total - Object.keys(VS.respostas).length;
+
+  // Pendentes: ignora itens auto-preenchidos por NC Crítico
+  const pendentes = cats.reduce((acc, cat) => {
+    cat.itens.forEach((_, idx) => {
+      const k = `${cat.id}_${idx}`;
+      const grauItem = VS.graus && VS.graus[k];
+      if (VS.respostas[k] === undefined && grauItem !== 'critico-auto') acc++;
+    });
+    return acc;
+  }, 0);
+
   if (pendentes > 0) {
-    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => VS.respostas[`${cat.id}_${idx}`] === undefined));
+    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => {
+      const k = `${cat.id}_${idx}`;
+      return VS.respostas[k] === undefined && (VS.graus&&VS.graus[k]) !== 'critico-auto';
+    }));
     if (catIdx >= 0) irPara(catIdx);
     showToast(`⚠️ ${pendentes} item${pendentes>1?'ns':''} sem resposta — avalie todos para continuar`);
     return;
   }
-  const sf = getNokSemFotoAll();
+
+  // Fotos: ignora itens auto-preenchidos por NC Crítico
+  const sf = getNokSemFotoAll().filter(k => (VS.graus&&VS.graus[k]) !== 'critico-auto');
   if (sf.length) {
-    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => { const k=`${cat.id}_${idx}`; return VS.respostas[k]==='nao' && !(VS.fotos[k]||[]).length; }));
+    const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => {
+      const k=`${cat.id}_${idx}`;
+      return VS.respostas[k]==='nao' && !(VS.fotos[k]||[]).length && (VS.graus&&VS.graus[k]) !== 'critico-auto';
+    }));
     if (catIdx >= 0) irPara(catIdx);
     showToast(`📷 ${sf.length} não conformidade${sf.length>1?'s':''} sem foto — revise as categorias`);
     return;
   }
+
   const sm = getNaSemMotivoAll();
   if (sm.length) {
     const catIdx = cats.findIndex(cat => cat.itens.some((_,idx) => { const k=`${cat.id}_${idx}`; return VS.respostas[k]==='na' && !(VS.motivos[k]||'').trim(); }));
@@ -4111,7 +4191,15 @@ function finalizarVistoria() {
     cat.itens.forEach((item, idx) => {
       const k = `${cat.id}_${idx}`;
       if (VS.respostas[k] === 'nao') {
-        VS.planoNcSnapshot.push({ categoria: cat.nome, item, observacao: VS.notas[k] || '' });
+        const grauItem = VS.graus && VS.graus[k];
+        const isCriticoAuto = grauItem === 'critico-auto';
+        const grauLabel = grauItem === 'critico' ? 'Crítico' : grauItem === 'medio' ? 'Médio' : grauItem === 'leve' ? 'Leve' : isCriticoAuto ? 'Crítico (bloco zerado)' : '';
+        VS.planoNcSnapshot.push({
+          categoria: cat.nome, item,
+          observacao: isCriticoAuto ? '⚠️ Item zerado automaticamente — bloco com NC Crítico' : (VS.notas[k] || ''),
+          grau: grauLabel,
+          autoCritico: isCriticoAuto,
+        });
       } else if (VS.respostas[k] === 'na') {
         VS.planoNaSnapshot.push({ categoria: cat.nome, item, motivo: VS.motivos[k] || '' });
       }
