@@ -1062,7 +1062,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
   <div class="page">
     <div class="score-hero" style="border-radius:18px;margin-bottom:0">
       <div class="lbl">Resultado do Quiz</div>
-      <div class="stars-row" id="qrStars"></div>
+      <div id="qrPctBig" style="font-family:'Syne',sans-serif;font-size:38px;font-weight:800;color:var(--accent);margin-bottom:6px"></div>
       <div class="score-num" id="qrNota"></div>
       <div class="score-classif" id="qrClassif"></div>
     </div>
@@ -1116,7 +1116,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card">
       <div class="manual-section">
         <h3>📊 Entendendo o Resultado</h3>
-        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> vai de 1 a 5 estrelas e é calculada com base na proporção de itens conformes.</div></div>
+        <div class="manual-step"><div class="manual-num">1</div><div class="manual-txt">A <b>nota</b> é exibida em <b>percentual (0% a 100%)</b>, podendo ultrapassar 100% com bonificações. Classificação: 🔴 Crítico (&lt;50%), 🟡 Atenção (50–69,99%), 🟠 Regular (70–89,99%), 🟢 Padrão (≥90%).</div></div>
         <div class="manual-step"><div class="manual-num">2</div><div class="manual-txt">O <b>Plano de Ação</b> é gerado automaticamente listando as ações corretivas para cada não conformidade com prazo e prioridade.</div></div>
         <div class="manual-step"><div class="manual-num">3</div><div class="manual-txt">Use <b>📥 Baixar PDF</b> para salvar o relatório ou <b>💬 WhatsApp</b> para compartilhar.</div></div>
         <div class="manual-step"><div class="manual-num">4</div><div class="manual-txt">Seu <b>superior imediato</b> recebe automaticamente uma notificação com o resultado e o plano de ação assim que você finalizar.</div></div>
@@ -1226,10 +1226,12 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 <!-- RESULT -->
 <div class="screen" id="screenResult">
   <div class="page">
-    <div class="score-hero" style="border-radius:18px">
+    <div class="score-hero" id="scoreHero" style="border-radius:18px">
       <div class="lbl">Resultado da Avaliação</div>
-      <div class="stars-row" id="starsDisplay"></div>
-      <div class="score-num" id="scoreNum"></div>
+      <div id="scoreBase" style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:4px">Nota Total (sem pesos): <span id="scoreBaseVal" style="color:#fff;font-weight:700">–</span></div>
+      <div class="score-num" id="scoreNum" style="margin-top:6px"></div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Nota Real (com pesos e bonificações)</div>
+      <div id="scoreDelta" style="font-size:12px;color:rgba(255,255,255,.7);margin-top:6px"></div>
       <div class="score-classif" id="scoreClassif"></div>
     </div>
     <div class="card">
@@ -2520,7 +2522,7 @@ function renderAdminDash() {
   const hist = LS.get('vo_historico')||[];
   const users = usersCache.filter(u=>u.role!=='admin');
   const totalNC = hist.reduce((t,v)=>t+(v.naoConformes||0),0);
-  const media = hist.length ? (hist.reduce((t,v)=>t+(v.nota||0),0)/hist.length).toFixed(1) : '–';
+  const media = hist.length ? (hist.reduce((t,v)=>t+notaToPct(v.nota||0),0)/hist.length).toFixed(1)+'%' : '–';
   document.getElementById('statVistorias').textContent = hist.length;
   document.getElementById('statUsuarios').textContent = users.length;
   document.getElementById('statMediaNota').textContent = media;
@@ -2535,10 +2537,11 @@ function renderAdminDash() {
 }
 
 function renderHistItem(v) {
+  const pct = notaToPct(v.nota||0);
   return `<div class="history-item" onclick="abrirDetalhe('${v.id}')">
     <div class="hi-top">
       <div class="hi-name">${v.restaurante}</div>
-      <div class="hi-score">${(v.nota||0).toFixed(1)}★</div>
+      <div class="hi-score" style="color:${corClassif(pct)}">${fmtNota(pct)}</div>
     </div>
     <div class="hi-meta">
       <span class="hi-badge ok">${v.conformes}✓</span>
@@ -2554,14 +2557,17 @@ function abrirDetalhe(id) {
   const v = hist.find(x=>x.id===id);
   if (!v) return;
   const cats = LS.get('vo_cats')||[];
-  const nota = v.nota||0;
+  const pct = notaToPct(v.nota||0);
+  const pctBase = v.notaSemPesos != null ? Number(v.notaSemPesos) : pct;
+  const cor = corClassif(pct);
 
   let html = `
     <div class="score-hero" style="border-radius:18px">
       <div class="lbl">Avaliação — ${v.restaurante}</div>
-      <div class="stars-row">${[1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('')}</div>
-      <div class="score-num">${nota.toFixed(1)} / 5.0</div>
-      <div class="score-classif">${classificar(nota)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:4px">Nota Total (sem pesos): <span style="color:#fff;font-weight:700">${fmtNota(pctBase)}</span></div>
+      <div class="score-num" style="color:${cor}">${fmtNota(pct)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Nota Real (com pesos e bonificações)</div>
+      <div class="score-classif" style="color:${cor};font-weight:700">${classificar(pct)}</div>
     </div>`;
 
   if (v.frentePhoto) {
@@ -3866,12 +3872,18 @@ function setGrauNC(key, grau) {
   }
 }
 
-// Calcula nota COM pesos e penalidades (retorna nota 0–5 + detalhes)
+// Calcula nota COM pesos e penalidades (retorna percentuais 0–100+ + detalhes)
+// - notaSemPesos: % puro de conformidade global (ok / avaliados) * 100
+// - notaReal: média ponderada por categoria (com descontos por NC e crítico)
+//             + bônus por bloco 100% conforme — pode passar de 100%
 function calcNotaComPesos(cats, respostas, graus) {
   const cfg = getPConfigPesos();
-  let notaFinalPonderada = 0;
-  let totalBonus = 0;
+  let notaPonderada = 0;        // 0–100
+  let totalBonus = 0;           // % a adicionar
+  let totalDescontoGlobal = 0;  // soma dos descontos por NC (informativo)
   const detalhes = [];
+
+  let okGlobal = 0, avalGlobal = 0;
 
   cats.forEach(cat => {
     const peso = (cfg.pesos && cfg.pesos[cat.id]) != null ? cfg.pesos[cat.id] : (100 / cats.length);
@@ -3882,17 +3894,19 @@ function calcNotaComPesos(cats, respostas, graus) {
       const resp = respostas[key];
       if (!resp || resp === 'na') return;
       respondidas++;
+      if (resp === 'sim') okGlobal++;
+      avalGlobal++;
       if (resp === 'nao') {
         temNC = true;
         const grau = graus && graus[key];
         if (grau === 'critico') temCritico = true;
         else if (grau === 'leve')  totalDesconto += cfg.penalidades.leve;
         else if (grau === 'medio') totalDesconto += cfg.penalidades.medio;
-        else totalDesconto += cfg.penalidades.leve; // default leve se não escolheu
+        else totalDesconto += cfg.penalidades.leve;
       }
     });
 
-    let scoreCat; // 0–100
+    let scoreCat;
     if (respondidas === 0) {
       scoreCat = 0;
     } else if (temCritico) {
@@ -3906,17 +3920,16 @@ function calcNotaComPesos(cats, respostas, graus) {
 
     const bonus = !temNC && respondidas > 0;
     if (bonus) totalBonus += cfg.bonus;
+    totalDescontoGlobal += totalDesconto;
 
-    notaFinalPonderada += scoreCat * (peso / 100);
+    notaPonderada += scoreCat * (peso / 100);
     detalhes.push({ cat, scoreCat, peso, temCritico, temNC, totalDesconto, bonus });
   });
 
-  // Converte de 0–100 para 0–5 e aplica bônus
-  const notaBase5   = (notaFinalPonderada / 100) * 5;
-  const bonusEm5    = (totalBonus / 100) * 5;
-  const notaFinal5  = Math.min(5, notaBase5 + bonusEm5);
+  const notaSemPesos = avalGlobal > 0 ? (okGlobal / avalGlobal) * 100 : 0;
+  const notaReal = Math.max(0, notaPonderada + totalBonus); // pode exceder 100%
 
-  return { nota: notaFinal5, notaBase: notaBase5, totalBonus, detalhes };
+  return { nota: notaReal, notaSemPesos, notaReal, totalBonus, totalDesconto: totalDescontoGlobal, detalhes };
 }
 
 // Renderiza blocos de penalidades/bonificações no resultado
@@ -4018,8 +4031,30 @@ function salvarConfigPesos() {
   showToast('✅ Configurações de pesos salvas!');
 }
 
-function classificar(nota) {
-  return nota>=4.5?'🏆 Excelente — Operação em conformidade':nota>=3.5?'✅ Bom — Ajustes pontuais necessários':nota>=2.5?'⚠️ Regular — Atenção necessária':nota>=1.5?'🚨 Ruim — Ação imediata recomendada':'🔴 Crítico — Intervenção urgente';
+// ── Classificação por % (0–100+)
+function classificar(pct) {
+  pct = Number(pct) || 0;
+  if (pct < 50)  return '🔴 Crítico — Intervenção urgente';
+  if (pct < 70)  return '🟡 Atenção — Ajustes necessários';
+  if (pct < 90)  return '🟠 Regular — Melhorias recomendadas';
+  return '🟢 Padrão — Operação em conformidade';
+}
+function corClassif(pct) {
+  pct = Number(pct) || 0;
+  if (pct < 50)  return '#c0392b'; // vermelho
+  if (pct < 70)  return '#d4a017'; // amarelo
+  if (pct < 90)  return '#e8722a'; // laranja
+  return '#2a7d52';                // verde
+}
+function fmtNota(pct) {
+  if (pct == null || isNaN(pct)) return '0.00%';
+  return (Math.round(pct * 100) / 100).toFixed(2) + '%';
+}
+// Compat: notas antigas no histórico estavam em 0–5; converter quando aplicável
+function notaToPct(n) {
+  if (n == null || isNaN(n)) return 0;
+  n = Number(n);
+  return n <= 5.5 ? n * 20 : n;
 }
 
 function finalizarVistoria() {
@@ -4053,30 +4088,34 @@ function finalizarVistoria() {
   const naoAvaliados = Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados    = total - naoAvaliados;
 
-  // ── Calcula nota: com pesos (Geral/Semanal) ou simples (outros tipos)
-  let nota, pesoDetalhes = null, pesoCfg = null, pesoTotalBonus = 0;
+  // ── Calcula nota em PERCENTUAL (0–100+): base sem pesos + real com pesos/bonificações
+  let nota, notaSemPesos, pesoDetalhes = null, pesoCfg = null, pesoTotalBonus = 0, pesoTotalDesconto = 0;
   if (tipoUsaPesos() && cats.length > 0) {
     pesoCfg = getPConfigPesos();
     const res = calcNotaComPesos(cats, VS.respostas, VS.graus || {});
-    nota = res.nota;
+    nota = res.notaReal;
+    notaSemPesos = res.notaSemPesos;
     pesoDetalhes = res.detalhes;
     pesoTotalBonus = res.totalBonus;
+    pesoTotalDesconto = res.totalDesconto;
   } else {
-    nota = avaliados > 0 ? (conformes / avaliados) * 5 : 0;
+    notaSemPesos = avaliados > 0 ? (conformes / avaliados) * 100 : 0;
+    nota = notaSemPesos;
   }
   const tsFim = Date.now();
   const durMin = Math.round((tsFim-VS.tsInicio)/60000);
   const durStr = durMin<60?`${durMin} min`:`${Math.floor(durMin/60)}h ${durMin%60}min`;
 
   VS.dataFim = new Date().toLocaleString('pt-BR');
-  VS.nota = nota; VS.conformes=conformes; VS.naoConformes=naoConformes; VS.naoAvaliados=naoAvaliados;
+  VS.nota = nota; VS.notaSemPesos = notaSemPesos; VS.conformes=conformes; VS.naoConformes=naoConformes; VS.naoAvaliados=naoAvaliados;
 
   const registro = {
     id:'v'+Date.now(), restaurante:VS.restaurante,
     tipoId:VS.tipoId||'', tipoNome:VS.tipoNome||'', lojaEmail:VS.lojaEmail||'',
     vistoriador:VS.vistoriador, cargo:VS.cargo, userId:VS.userId,
     dataInicio:VS.dataInicio, dataFim:VS.dataFim, duracao:durStr,
-    nota:parseFloat(nota.toFixed(2)), conformes, naoConformes, naoAvaliados, pendentes, total,
+    nota:parseFloat(nota.toFixed(2)), notaSemPesos:parseFloat(notaSemPesos.toFixed(2)), notaScale:'pct',
+    conformes, naoConformes, naoAvaliados, pendentes, total,
     gpsLat:VS.gps?.lat||'', gpsLng:VS.gps?.lng||'', gpsAcc:VS.gps?.acc||'',
     gpsMapsUrl:VS.gps?`https://www.google.com/maps?q=${VS.gps.lat},${VS.gps.lng}`:'',
     frentePhoto:VS.frentePhoto||null,
@@ -4099,10 +4138,20 @@ function finalizarVistoria() {
   // simultâneas a /api/plano (Gemini), que causam timeout e travam a tela final.
   VS._registroParaEmail = (!CARGOS_EMAIL_LOJA.includes(currentUser.cargo||'')) ? registro : null;
 
-  // Render result
-  document.getElementById('starsDisplay').innerHTML = [1,2,3,4,5].map(s=>`<span class="star-big ${nota>=s-.5?'lit':''}">⭐</span>`).join('');
-  document.getElementById('scoreNum').textContent = (Math.round(nota*10)/10).toFixed(1)+' / 5.0';
-  document.getElementById('scoreClassif').textContent = classificar(nota);
+  // Render result — % puro e nota real com pesos/bonificações
+  const cor = corClassif(nota);
+  document.getElementById('scoreBaseVal').textContent = fmtNota(notaSemPesos);
+  const scoreNumEl = document.getElementById('scoreNum');
+  scoreNumEl.textContent = fmtNota(nota);
+  scoreNumEl.style.color = cor;
+  const deltaParts = [];
+  if (pesoTotalDesconto > 0) deltaParts.push(`<span style="color:#ff8a72">⬇ −${pesoTotalDesconto}% deduções</span>`);
+  if (pesoTotalBonus    > 0) deltaParts.push(`<span style="color:#7ed8a8">⬆ +${pesoTotalBonus}% bonificações</span>`);
+  document.getElementById('scoreDelta').innerHTML = deltaParts.join('  &nbsp;·&nbsp;  ');
+  const classifEl = document.getElementById('scoreClassif');
+  classifEl.textContent = classificar(nota);
+  classifEl.style.color = cor;
+  classifEl.style.fontWeight = '700';
   document.getElementById('rTotal').textContent=total;
   document.getElementById('rOk').textContent=conformes;
   document.getElementById('rNok').textContent=naoConformes;
@@ -4217,7 +4266,7 @@ async function gerarPlanoIA(forceRegen) {
     '',
     'Restaurante: '+(VS.restaurante||''),
     'Tipo de avaliação: '+(VS.tipoNome||''),
-    'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
+    'Nota geral: '+fmtNota(VS.nota||0),
     '',
     'NÃO CONFORMIDADES:',
     ncTxt||'(nenhuma)',
@@ -4343,7 +4392,7 @@ async function enviarParaLoja() {
     showToast('⚠️ Falha ao gerar PDF');
     return;
   }
-  const nota = typeof VS.nota === 'number' ? VS.nota.toFixed(1) : '–';
+  const nota = typeof VS.nota === 'number' ? fmtNota(VS.nota) : '–';
   const subject = `Relatório de Avaliação — ${VS.restaurante||''} (${VS.dataFim||''})`;
   const planoTxt = (VS.planoIA || '').trim() || '(plano de ação por IA não disponível — verifique no app)';
   const corpo =
@@ -4352,7 +4401,7 @@ async function enviarParaLoja() {
 Segue em anexo o relatório de avaliação realizado por ${VS.vistoriador||''} em ${VS.dataFim||''}.
 
 Tipo de avaliação: ${VS.tipoNome||'-'}
-Nota geral: ${nota} / 5
+Nota geral: ${nota}
 Conformes: ${VS.conformes||0} | Não conformes: ${VS.naoConformes||0} | Não avaliados: ${VS.naoAvaliados||0}
 
 PLANO DE AÇÃO SUGERIDO (gerado por IA):
@@ -4387,12 +4436,14 @@ async function buildPDFDoc() {
   const naoAvaliados=Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados=total-naoAvaliados;
   // Usa cálculo com pesos/penalidades quando aplicável (Geral/Semanal); senão, cálculo simples
-  let nota, calcPesos = null;
+  let nota, notaSemPesos, calcPesos = null;
   if (typeof tipoUsaPesos === 'function' && tipoUsaPesos() && typeof calcNotaComPesos === 'function') {
     calcPesos = calcNotaComPesos(cats, VS.respostas, VS.graus || {});
-    nota = calcPesos.nota;
+    nota = calcPesos.notaReal;
+    notaSemPesos = calcPesos.notaSemPesos;
   } else {
-    nota = avaliados>0?(conformes/avaliados)*5:0;
+    notaSemPesos = avaliados>0?(conformes/avaliados)*100:0;
+    nota = notaSemPesos;
   }
 
   // Header
@@ -4421,17 +4472,22 @@ async function buildPDFDoc() {
   if (VS.gps) { doc.setTextColor(42,125,82); doc.text(`GPS: ${VS.gps.lat}, ${VS.gps.lng}  (+-${VS.gps.acc}m)`, M+5, y+37); }
   y+=46;
 
-  // Score
-  doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
-  doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
-  doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
-  doc.text(`Classificacao: ${cl}`, M+5, y+21);
-  doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
+  // Score (em %)
+  doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,34,3,3,'F');
+  doc.setTextColor(200,200,200); doc.setFontSize(8);
+  doc.text(`Nota Total (sem pesos): ${fmtNota(notaSemPesos)}`, M+5, y+7);
+  const corR = nota<50?[192,57,43]:nota<70?[212,160,23]:nota<90?[232,114,42]:[42,125,82];
+  doc.setTextColor(...corR); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text(fmtNota(nota), M+5, y+19);
+  doc.setFontSize(8); doc.setTextColor(180,180,180); doc.setFont('helvetica','normal');
+  doc.text('Nota Real (com pesos e bonificacoes)', M+5, y+24);
+  doc.setFontSize(9); doc.setTextColor(...corR); doc.setFont('helvetica','bold');
+  const cl = nota<50?'Critico':nota<70?'Atencao':nota<90?'Regular':'Padrao';
+  doc.text(`Classificacao: ${cl}`, M+5, y+31);
+  doc.setTextColor(42,125,82); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
   doc.setTextColor(176,125,32); doc.text(`Nao aval.: ${naoAvaliados}`, W-M-55, y+25);
-  y+=36;
+  y+=42;
 
   // Por categoria
   doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(11);
@@ -4553,7 +4609,8 @@ async function buildPDFDocFromRegistro(v) {
   const naoAvaliados= Object.values(v.respostas||{}).filter(r=>r==='na').length;
   const total = v.total || (conformes+naoConformes+naoAvaliados);
   const avaliados = total - naoAvaliados;
-  const nota = v.nota || (avaliados>0?(conformes/avaliados)*5:0);
+  const nota = notaToPct(v.nota || (avaliados>0?(conformes/avaliados)*100:0));
+  const notaSemPesos = v.notaSemPesos != null ? Number(v.notaSemPesos) : (avaliados>0?(conformes/avaliados)*100:0);
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4574,17 +4631,22 @@ async function buildPDFDocFromRegistro(v) {
   if (v.gpsLat) { doc.setTextColor(42,125,82); doc.text(`GPS: ${v.gpsLat}, ${v.gpsLng}`, M+5, y+37); }
   y+=46;
 
-  // Score
-  doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,28,3,3,'F');
-  doc.setTextColor(232,82,42); doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text(nota.toFixed(1)+' / 5.0', M+5, y+12);
-  doc.setFontSize(9); doc.setTextColor(200,200,200);
-  const cl=nota>=4.5?'Excelente':nota>=3.5?'Bom':nota>=2.5?'Regular':nota>=1.5?'Ruim':'Critico';
-  doc.text(`Classificacao: ${cl}`, M+5, y+21);
-  doc.setTextColor(42,125,82); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
+  // Score (em %)
+  doc.setFillColor(24,24,32); doc.roundedRect(M,y,W-M*2,34,3,3,'F');
+  doc.setTextColor(200,200,200); doc.setFontSize(8);
+  doc.text(`Nota Total (sem pesos): ${fmtNota(notaSemPesos)}`, M+5, y+7);
+  const corR = nota<50?[192,57,43]:nota<70?[212,160,23]:nota<90?[232,114,42]:[42,125,82];
+  doc.setTextColor(...corR); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text(fmtNota(nota), M+5, y+19);
+  doc.setFontSize(8); doc.setTextColor(180,180,180); doc.setFont('helvetica','normal');
+  doc.text('Nota Real (com pesos e bonificacoes)', M+5, y+24);
+  doc.setFontSize(9); doc.setTextColor(...corR); doc.setFont('helvetica','bold');
+  const cl = nota<50?'Critico':nota<70?'Atencao':nota<90?'Regular':'Padrao';
+  doc.text(`Classificacao: ${cl}`, M+5, y+31);
+  doc.setTextColor(42,125,82); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(`Conformes: ${conformes}`, W-M-55, y+9);
   doc.setTextColor(192,57,43); doc.text(`Nao conf.: ${naoConformes}`, W-M-55, y+17);
   doc.setTextColor(176,125,32); doc.text(`Nao aval.: ${naoAvaliados}`, W-M-55, y+25);
-  y+=36;
+  y+=42;
 
   // Por categoria
   doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(11);
@@ -4697,7 +4759,7 @@ async function exportarHistorico(registroId, modo) {
       }
       doc.save(filename);
       const texto = encodeURIComponent(
-        `📋 *Relatório de Avaliação Operacional*\n\n🏪 *${v.restaurante}*\n👤 ${v.vistoriador}${v.cargo?' ('+v.cargo+')':''}\n📅 ${v.dataFim||v.dataInicio}\n⭐ Nota: ${(v.nota||0).toFixed(1)} / 5.0\n✅ Conformes: ${v.conformes||0}\n❌ Não conf.: ${v.naoConformes||0}\n\n_(PDF baixado — anexe no WhatsApp)_`
+        `📋 *Relatório de Avaliação Operacional*\n\n🏪 *${v.restaurante}*\n👤 ${v.vistoriador}${v.cargo?' ('+v.cargo+')':''}\n📅 ${v.dataFim||v.dataInicio}\n📊 Nota: ${fmtNota(notaToPct(v.nota||0))}\n✅ Conformes: ${v.conformes||0}\n❌ Não conf.: ${v.naoConformes||0}\n\n_(PDF baixado — anexe no WhatsApp)_`
       );
       hideLoading();
       setTimeout(()=>window.open('https://wa.me/?text='+texto,'_blank'),400);
@@ -4747,7 +4809,7 @@ async function gerarECompartilhar(modo) {
         `Restaurante: ${VS.restaurante}\n` +
         `Avaliador: ${VS.vistoriador}${VS.cargo?' ('+VS.cargo+')':''}\n` +
         `Data: ${VS.dataInicio}\n` +
-        `Nota: ${(VS.nota||0).toFixed(1)} / 5.0\n\n` +
+        `Nota: ${fmtNota(VS.nota||0)}\n\n` +
         `O PDF foi baixado automaticamente — por favor anexe ao e-mail.\n\n` +
         `Smart Check`
       );
@@ -4783,7 +4845,7 @@ async function gerarECompartilhar(modo) {
         `🏪 *${VS.restaurante}*\n` +
         `👤 ${VS.vistoriador}${VS.cargo?' ('+VS.cargo+')':''}\n` +
         `📅 ${VS.dataInicio}\n` +
-        `⭐ Nota: ${(VS.nota||0).toFixed(1)} / 5.0\n` +
+        `📊 Nota: ${fmtNota(VS.nota||0)}\n` +
         `✅ Conformes: ${VS.conformes||0}\n` +
         `❌ Não conf.: ${VS.naoConformes||0}\n\n` +
         `_(O PDF foi baixado — anexe no WhatsApp)_`
@@ -4892,7 +4954,7 @@ function renderNotifsSuperior() {
         ${n.tipo === 'finalizada' ? `Concluiu a avaliação <b>${n.tipoNome}</b>` : `Avaliação <b>${n.tipoNome}</b> está atrasada`}
         ${n.restaurante ? ` · ${n.restaurante}` : ''}
       </div>
-      ${n.tipo === 'finalizada' ? `<div style="font-size:12px;color:var(--ok);margin-top:2px">Nota: ${(n.nota||0).toFixed(1)} / 5.0</div>` : ''}
+      ${n.tipo === 'finalizada' ? `<div style="font-size:12px;color:var(--ok);margin-top:2px">Nota: ${fmtNota(notaToPct(n.nota||0))}</div>` : ''}
       <div style="font-size:11px;color:var(--muted);margin-top:2px">${n.dataAvaliacao}</div>
     </div>`).join('');
 }
@@ -4922,7 +4984,7 @@ async function enviarEmailIntranetSuperior(registro) {
     de: currentUser.nome,
     cargo: currentUser.cargo||'',
     assunto: `Avaliação finalizada: ${registro.tipoNome} — ${registro.restaurante}`,
-    corpo: `Avaliador: ${currentUser.nome} (${currentUser.cargo||''})\nRestaurante: ${registro.restaurante}\nTipo: ${registro.tipoNome}\nNota: ${(registro.nota||0).toFixed(1)}/5.0\nData: ${registro.dataFim}\n\nNÃO CONFORMIDADES:\n${ncs}\n\nPLANO DE AÇÃO (IA):\n${plano||'(não disponível — configure a chave GEMINI_API_KEY no servidor)'}`,
+    corpo: `Avaliador: ${currentUser.nome} (${currentUser.cargo||''})\nRestaurante: ${registro.restaurante}\nTipo: ${registro.tipoNome}\nNota: ${fmtNota(registro.nota||0)}\nData: ${registro.dataFim}\n\nNÃO CONFORMIDADES:\n${ncs}\n\nPLANO DE AÇÃO (IA):\n${plano||'(não disponível — configure a chave GEMINI_API_KEY no servidor)'}`,
     ts: Date.now()
   };
   // Salvar na caixa de entrada do superior (localStorage compartilhado via API)
@@ -6447,12 +6509,13 @@ function finalizarQuiz() {
   const novaPosicao = ranking.findIndex(r => r.userId === currentUser.id) + 1;
 
   // Preencher tela de resultado
-  const nEstrelas = Math.round(pct * 5);
-  document.getElementById('qrStars').innerHTML = [1,2,3,4,5].map(i =>
-    `<span class="star-big ${i <= nEstrelas ? 'lit' : ''}">⭐</span>`).join('');
+  const pctNum = Math.round(pct * 100);
+  const qrPctEl = document.getElementById('qrPctBig');
+  if (qrPctEl) { qrPctEl.textContent = pctNum + '%'; qrPctEl.style.color = corClassif(pctNum); }
   document.getElementById('qrNota').textContent = `${acertos} / ${total}`;
   const classifs = ['Precisa melhorar','Regular','Bom','Muito Bom','Excelente!'];
-  document.getElementById('qrClassif').textContent = classifs[Math.min(nEstrelas, 4)];
+  const idxC = pctNum<20?0:pctNum<50?1:pctNum<70?2:pctNum<90?3:4;
+  document.getElementById('qrClassif').textContent = classifs[idxC];
   document.getElementById('qrAcertos').textContent = acertos;
   document.getElementById('qrErros').textContent = total - acertos;
   document.getElementById('qrTempo').textContent = tempoStr;
@@ -6509,7 +6572,7 @@ function renderRankingQuiz() {
         <div class="rank-meta">${r.cargo||''} · ${r.acertos}/${r.total} acertos · ⏱ ${r.tempoStr}</div>
       </div>
       ${seta ? `<div class="rank-arrow ${setaCls}">${seta}</div>` : ''}
-      <div class="rank-score">${r.nota}★</div>
+      <div class="rank-score">${Math.round((r.pct||0)*100)}%</div>
     </div>`;
   }).join('');
 }
