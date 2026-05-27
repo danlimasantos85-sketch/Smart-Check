@@ -3540,15 +3540,22 @@ function renderChecklist() {
       else if (isNok) cls+=' nao-conform';
       else if (isNa) cls+=' nao-avaliado';
 
+      const isCriticoAuto = (VS.graus && VS.graus[key]) === 'critico-auto';
+      if (isCriticoAuto) cls += ' critico-auto';
+      const lockBanner = isCriticoAuto
+        ? `<div style="font-size:11px;font-weight:700;color:#6b2de8;background:rgba(107,45,232,.10);border:1px dashed #6b2de8;border-radius:7px;padding:7px 10px;margin:6px 0">🚨 Bloqueado — bloco zerado por NC Crítico. Clique para reavaliar.</div>`
+        : '';
+
       return `<div class="${cls}" id="item_${key}">
         <div class="check-header">
           <div class="check-question">${item}</div>
-          <div class="check-buttons">
+          <div class="check-buttons" style="${isCriticoAuto?'opacity:.55':''}">
             <button class="check-btn ok ${isSim?'selected':''}" onclick="responder('${key}','sim')">✓ Conforme</button>
-            <button class="check-btn nok ${isNok?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
-            <button class="check-btn na ${isNa?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
+            <button class="check-btn nok ${isNok&&!isCriticoAuto?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
+            <button class="check-btn na ${isNa&&!isCriticoAuto?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
           </div>
         </div>
+        ${lockBanner}
         <div class="resp-area area-sim ${isSim?'visible':''}" id="area_sim_${key}">
           <span class="area-label">📷 Foto (opcional)</span>
           <div class="photo-grid" id="pg_sim_${key}">
@@ -3629,6 +3636,31 @@ function removerFotoAcomp(key, idx) {
 }
 
 function responder(key, valor) {
+  // Se o item estava bloqueado por NC Crítico (auto-marcado), limpa o flag ao reavaliar manualmente
+  if (VS.graus && VS.graus[key] === 'critico-auto') {
+    delete VS.graus[key];
+    delete VS.motivos[key];
+  }
+  // Se este item era o CRÍTICO do bloco e o usuário mudou pra outra coisa, desbloqueia os demais
+  const eraCritico = VS.graus && VS.graus[key] === 'critico';
+  if (eraCritico && valor !== 'nao') {
+    delete VS.graus[key];
+    const cat = getCatsAtivas()[VS.catAtual];
+    if (cat) {
+      cat.itens.forEach((_, i) => {
+        const k = `${cat.id}_${i}`;
+        if (k === key) return;
+        if (VS.graus[k] === 'critico-auto') {
+          delete VS.respostas[k];
+          delete VS.motivos[k];
+          delete VS.graus[k];
+        }
+      });
+    }
+    VS.respostas[key] = valor;
+    renderChecklist(); renderNav(); updateProgress();
+    return;
+  }
   VS.respostas[key] = valor;
   const itemEl = document.getElementById(`item_${key}`);
   itemEl.className = `check-item ${valor==='sim'?'conform':valor==='nao'?'nao-conform':valor==='na'?'nao-avaliado':''}`;
@@ -3759,15 +3791,53 @@ function tipoUsaPesos() {
 // Seta grau da NC
 function setGrauNC(key, grau) {
   if (!VS.graus) VS.graus = {};
+  const grauAnterior = VS.graus[key];
   VS.graus[key] = grau;
-  // Re-renderiza só o item atual
+
   const catIdx = VS.catAtual;
   const cats = getCatsAtivas();
   const cat = cats[catIdx];
   if (!cat) return;
-  const idx = parseInt(key.split('_').pop());
-  const item = cat.itens[idx];
-  // Atualiza visual dos botões sem re-renderizar tudo
+
+  const MOTIVO_AUTO = 'Bloco zerado por NC Crítico — item não avaliado individualmente';
+
+  // Se virou CRÍTICO: bloqueia o restante do bloco auto-marcando como 'na' com motivo
+  if (grau === 'critico') {
+    cat.itens.forEach((_, i) => {
+      const k = `${cat.id}_${i}`;
+      if (k === key) return;
+      // Só auto-marca itens ainda sem resposta
+      if (VS.respostas[k] === undefined) {
+        VS.respostas[k] = 'na';
+        VS.motivos[k]   = MOTIVO_AUTO;
+        VS.graus[k]     = 'critico-auto';
+      }
+    });
+    renderChecklist();
+    renderNav();
+    updateProgress();
+    showToast('🚨 NC Crítico — bloco zerado. Demais itens marcados automaticamente.');
+    return;
+  }
+
+  // Se ANTES era crítico e agora não é mais: desfaz a auto-marcação dos demais
+  if (grauAnterior === 'critico' && grau !== 'critico') {
+    cat.itens.forEach((_, i) => {
+      const k = `${cat.id}_${i}`;
+      if (k === key) return;
+      if (VS.graus[k] === 'critico-auto') {
+        delete VS.respostas[k];
+        delete VS.motivos[k];
+        delete VS.graus[k];
+      }
+    });
+    renderChecklist();
+    renderNav();
+    updateProgress();
+    return;
+  }
+
+  // Caso comum (leve/medio sem transição crítica): atualiza só visual dos botões
   const cfg = getPConfigPesos();
   ['leve','medio','critico'].forEach(g => {
     const btn = document.getElementById(`grau_${g}_${key}`);
@@ -3777,25 +3847,19 @@ function setGrauNC(key, grau) {
     btn.style.background = ativo ? cores[g][0] : 'var(--surface)';
     btn.style.color = ativo ? '#fff' : cores[g][1];
   });
-  // Atualiza aviso de impacto
   const area = document.getElementById(`area_nok_${key}`);
   if (area) {
-    // Remove avisos antigos
     area.querySelectorAll('.grau-impacto').forEach(el => el.remove());
     const div = document.createElement('div');
     div.className = 'grau-impacto';
     div.style.cssText = 'font-size:11px;font-weight:600;border-radius:7px;padding:6px 10px;margin-bottom:6px';
-    if (grau === 'critico') {
-      div.style.cssText += ';color:#6b2de8;background:rgba(107,45,232,.08)';
-      div.textContent = '⚠️ NC Crítico — zera a nota desta categoria';
-    } else if (grau === 'leve') {
+    if (grau === 'leve') {
       div.style.cssText += ';color:#b07d20;background:rgba(176,125,32,.08)';
       div.textContent = `🟡 NC Leve — penalidade de ${cfg.penalidades.leve}% na categoria`;
     } else if (grau === 'medio') {
       div.style.cssText += ';color:#e8522a;background:rgba(232,82,42,.08)';
       div.textContent = `🔴 NC Médio — penalidade de ${cfg.penalidades.medio}% na categoria`;
     }
-    // Insere antes do label da foto
     const fotoLabel = area.querySelector('.area-label');
     if (fotoLabel) area.insertBefore(div, fotoLabel);
     else area.prepend(div);
@@ -4322,7 +4386,14 @@ async function buildPDFDoc() {
   const naoConformes=Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados=Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados=total-naoAvaliados;
-  const nota=avaliados>0?(conformes/avaliados)*5:0;
+  // Usa cálculo com pesos/penalidades quando aplicável (Geral/Semanal); senão, cálculo simples
+  let nota, calcPesos = null;
+  if (typeof tipoUsaPesos === 'function' && tipoUsaPesos() && typeof calcNotaComPesos === 'function') {
+    calcPesos = calcNotaComPesos(cats, VS.respostas, VS.graus || {});
+    nota = calcPesos.nota;
+  } else {
+    nota = avaliados>0?(conformes/avaliados)*5:0;
+  }
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4371,7 +4442,12 @@ async function buildPDFDoc() {
     const nok=cat.itens.filter((_,i)=>VS.respostas[`${cat.id}_${i}`]==='nao').length;
     const na=cat.itens.filter((_,i)=>VS.respostas[`${cat.id}_${i}`]==='na').length;
     const av=cat.itens.length-na;
-    const pct=av>0?Math.round((ok/av)*100):0;
+    let pct = av>0?Math.round((ok/av)*100):0;
+    let critTag = '';
+    if (calcPesos) {
+      const d = calcPesos.detalhes.find(x => x.cat && x.cat.id === cat.id);
+      if (d) { pct = Math.round(d.scoreCat); if (d.temCritico) critTag = ' [Zerado]'; }
+    }
     doc.setFillColor(230,230,228); doc.roundedRect(M,y,W-M*2,9,2,2,'F');
     doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(9);
     doc.text(cat.nome, M+4, y+6);
@@ -4379,7 +4455,7 @@ async function buildPDFDoc() {
     doc.setTextColor(42,125,82); doc.text(`OK:${ok}`, W-M-38, y+6);
     doc.setTextColor(192,57,43); doc.text(`NC:${nok}`, W-M-24, y+6);
     doc.setTextColor(176,125,32); doc.text(`NA:${na}`, W-M-12, y+6);
-    doc.setTextColor(80,80,80); doc.text(`${pct}%`, W-M-3, y+6);
+    doc.setTextColor(80,80,80); doc.text(`${pct}%${critTag}`, W-M-3, y+6);
     y+=12;
   }
   y+=4;
