@@ -286,6 +286,63 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 .notif-item:active{opacity:.8}
 /* Badge de notificação superior */
 #badgeNotifSuperior{background:var(--accent);color:#fff;border-radius:99px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;display:none;align-items:center;justify-content:center}
+/* NC prazo row */
+.prazo-nc-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:9px;border:1.5px solid var(--border)}
+.prazo-nc-row-title{flex:1;font-size:12px;font-weight:600;color:var(--dark);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prazo-nc-grau{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;flex-shrink:0}
+.prazo-nc-grau.critico{background:rgba(107,45,232,.1);color:#6b2de8}
+.prazo-nc-grau.medio{background:rgba(232,82,42,.1);color:var(--accent)}
+.prazo-nc-grau.leve{background:rgba(176,125,32,.1);color:var(--warn)}
+/* ── RETORNO DE VALIDAÇÃO (Parte 4) ── */
+#rRetornoValidacaoCard{display:none}
+.retorno-nc-row{display:flex;flex-direction:column;gap:5px;padding:11px 0;border-bottom:1px solid var(--border)}
+.retorno-nc-row:last-child{border-bottom:none}
+.retorno-nc-aprovada{background:rgba(42,125,82,.06);border:1.5px solid rgba(42,125,82,.2);border-radius:10px;padding:10px 13px}
+.retorno-nc-reprovada{background:rgba(192,57,43,.06);border:1.5px solid rgba(192,57,43,.2);border-radius:10px;padding:10px 13px}
+.retorno-nc-titulo{font-size:12px;font-weight:700;margin-bottom:3px;line-height:1.4}
+.retorno-nc-cat{font-size:10px;color:var(--muted)}
+.retorno-nc-msg{font-size:12px;line-height:1.5;margin-top:6px}
+.retorno-nc-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:4px}
+.retorno-nc-badge.aprovada{background:rgba(42,125,82,.12);color:var(--ok)}
+.retorno-nc-badge.reprovada{background:rgba(192,57,43,.12);color:var(--nok)}
+@keyframes pulseCard{0%,100%{box-shadow:0 0 0 0 rgba(232,82,42,.0)}50%{box-shadow:0 0 0 6px rgba(232,82,42,.15)}}
+.card-novo-retorno{animation:pulseCard 1.8s ease 2}
+
+/* ── RESOLUÇÃO DE NCs (Parte 3) ── */
+.nc-resolver-row{display:flex;flex-direction:column;gap:6px;padding:11px 0;border-bottom:1px solid var(--border)}
+.nc-resolver-row:last-child{border-bottom:none}
+.nc-resolver-header{display:flex;align-items:center;gap:8px}
+.nc-resolver-item{flex:1;font-size:12px;font-weight:600;color:var(--dark);line-height:1.4;min-width:0}
+.nc-resolver-cat{font-size:10px;color:var(--muted);margin-top:1px}
+.nc-resolver-prazo{font-size:11px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif;flex-shrink:0;text-align:right}
+.nc-resolver-prazo.vencida{color:var(--nok)}
+.nc-resolver-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;flex-shrink:0}
+.nc-resolver-status.pendente{background:rgba(176,125,32,.12);color:var(--warn)}
+.nc-resolver-status.enviada{background:rgba(42,125,82,.12);color:var(--ok)}
+.nc-resolver-status.reprovada{background:rgba(192,57,43,.12);color:var(--nok)}
+.btn-resolver{background:var(--dark);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:11px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:opacity .2s;flex-shrink:0}
+.btn-resolver:active{opacity:.8}
+.btn-resolver.reenviar{background:var(--nok)}
+.reprovada-motivo{background:rgba(192,57,43,.07);border:1.5px solid rgba(192,57,43,.2);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--nok);line-height:1.5;margin-top:4px}
+/* Modal resolução */
+#modalResolucaoNC{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:4000;display:none;align-items:flex-end;justify-content:center}
+#modalResolucaoNC.open{display:flex}
+.modal-resolucao-box{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 32px;display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow-y:auto}
+.modal-resolucao-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--dark)}
+.modal-resolucao-item{background:var(--surface2);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--dark);line-height:1.5;border-left:3px solid var(--accent)}
+.foto-resolucao-wrap{display:flex;flex-direction:column;gap:8px}
+.foto-resolucao-preview{width:100%;height:160px;object-fit:cover;border-radius:10px;display:none;border:1.5px solid var(--border)}
+.btn-foto-resolucao{background:var(--surface2);border:1.5px dashed var(--border);border-radius:10px;padding:18px;font-size:13px;color:var(--muted);cursor:pointer;text-align:center;width:100%;transition:border-color .2s,background .2s}
+.btn-foto-resolucao:hover{border-color:var(--dark);background:var(--border)}
+.btn-foto-resolucao.tem-foto{border-style:solid;border-color:var(--ok);color:var(--ok)}
+.modal-resolucao-actions{display:flex;gap:10px;margin-top:4px}
+/* Notif itens */
+.notif-item{padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.notif-item:last-child{border-bottom:none}
+.notif-nova{background:rgba(232,82,42,.03)}
+.notif-lida{opacity:.7}
+.notif-item-nc{background:rgba(196,160,80,.06);border:1.5px solid rgba(196,160,80,.2);border-radius:10px;padding:11px 13px;margin-top:6px;cursor:pointer;transition:background .15s}
+.notif-item-nc:hover{background:rgba(196,160,80,.12)}
 
 /* Avatar no header */
 .app-header-left{display:flex;align-items:center;gap:10px;cursor:pointer}
@@ -846,13 +903,45 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
   <!-- NOTIFICAÇÕES DE SUPERIOR -->
   <div class="tab-content page" id="tabNotifsSuperior">
     <div class="section-title">Avisos da Equipe</div>
-    <div class="section-sub">Notificações de avaliações concluídas ou atrasadas pelos seus subordinados.</div>
+    <div class="section-sub">Avaliações concluídas, NCs pendentes de prazo e resoluções aguardando validação.</div>
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
         <span>🔔 Notificações</span>
         <button class="btn-ghost" style="font-size:11px" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
       </div>
       <div id="notifsSuperiorList"><div class="empty-state"><span class="ei">🔔</span>Nenhuma notificação</div></div>
+    </div>
+
+    <!-- PAINEL DE PRAZOS -->
+    <div class="card" id="cardPrazosNC" style="display:none">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>📅 Definir Prazos para NCs</span>
+        <button class="btn-ghost" style="font-size:11px" onclick="fecharPainelPrazos()">✕ Fechar</button>
+      </div>
+      <div id="prazosNCInfo" style="background:var(--surface2);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--dark);margin-bottom:12px;line-height:1.6"></div>
+
+      <!-- Prazo global -->
+      <div style="background:rgba(0,119,204,.06);border:1.5px solid rgba(0,119,204,.2);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:#0077cc;margin-bottom:8px">⚡ Prazo global — aplica a todas as NCs desta avaliação</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="prazoGlobalInput" style="flex:1;min-width:140px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+          <button class="btn-sm" onclick="aplicarPrazoGlobal()">Aplicar a todas</button>
+        </div>
+      </div>
+
+      <!-- Prazos individuais -->
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">ou defina individualmente por NC:</div>
+      <div id="prazosIndividuaisLista" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px"></div>
+
+      <!-- Mensagem -->
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Mensagem ao avaliador (opcional)</label>
+        <textarea id="prazoMsgInput" rows="2" placeholder="Ex: Priorize os itens de Qualidade Assegurada. Acione o fornecedor imediatamente." style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;resize:none;width:100%"></textarea>
+      </div>
+
+      <button class="btn-primary" onclick="salvarPrazosNC()" style="background:var(--dark);color:#fff;border:none;border-radius:11px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;width:100%;cursor:pointer">
+        📨 Enviar prazos ao avaliador
+      </button>
     </div>
   </div>
 
@@ -1245,6 +1334,7 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
     <div class="card" id="rNcCard" style="display:none"><div class="card-title">Não Conformidades e Não Avaliados</div><div id="rNcList"></div></div>
     <div class="card" id="rPlanoCard" style="display:none">
       <div class="card-title">🤖 Plano de Ação (sugestão por IA)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">⚠️ Os prazos serão definidos pelo seu superior imediato após a análise das NCs.</div>
       <div id="rPlanoStatus" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
       <div id="rPlanoText" style="font-size:13px;line-height:1.55;white-space:pre-wrap"></div>
       <div id="rPlanoKeyWrap" style="display:none;margin-top:12px">
@@ -1254,6 +1344,26 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
       </div>
       <button class="btn-ghost" id="btnRegenPlano" onclick="gerarPlanoIA(true)" style="margin-top:10px;display:none">↻ Gerar de novo</button>
     </div>
+
+    <!-- Card de prazos recebidos do superior -->
+    <div class="card" id="rPrazosCard" style="display:none">
+      <div class="card-title">📅 Prazos definidos pelo superior</div>
+      <div id="rPrazosList"></div>
+    </div>
+    <!-- Card de resoluções de NCs (avaliador envia evidência) -->
+    <div class="card" id="rResolucoesCard" style="display:none">
+      <div class="card-title">✅ Resolver Não Conformidades</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Registre a resolução de cada NC com foto de evidência para enviar ao superior.</div>
+      <div id="rResolucoesLista"></div>
+    </div>
+
+    <!-- Card de retorno de validação (Parte 4) -->
+    <div class="card" id="rRetornoValidacaoCard">
+      <div class="card-title" id="rRetornoValidacaoTitle">🔔 Retorno do Superior</div>
+      <div id="rRetornoValidacaoLista"></div>
+      <button class="btn-ghost" onclick="marcarRetornosLidos()" style="margin-top:10px;width:100%;font-size:12px">Marcar tudo como lido</button>
+    </div>
+
     <div class="card">
       <div class="card-title">📤 Compartilhar Relatório</div>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -1451,12 +1561,8 @@ input.hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-event
 // ══════════════════════════════════════════
 // VERSÃO DO APP — edite apenas estas 2 linhas a cada atualização
 // ══════════════════════════════════════════
-const APP_VERSION = 5;
-const APP_CHANGELOG = `v5 — Plano de ação e NC Crítico:
-• Itens Não Avaliados (N/A) não geram mais plano de ação
-• IA gera plano somente para Não Conformidades (NCs)
-• Se IA falhar, plano interno cobre apenas as NCs automaticamente
-• NC Crítico zera o bloco e bloqueia demais questões`;
+const APP_VERSION = 7;
+const APP_CHANGELOG = `v7: Parte 4 do ciclo de NCs — avaliador recebe retorno de aprovação/reprovação com alerta visual e pode reenviar resolução.`;
 
 // ══════════════════════════════════════════
 // STORAGE
@@ -2392,7 +2498,14 @@ function entrarApp() {
   loadAvisos();
   startNotificationLoop();
   if (currentUser.role==='admin') { showScreen('screenAdmin'); carregarAdmin(); }
-  else { populateTipoSelector(); renderLembretes(); showScreen('screenStart'); }
+  else {
+    populateTipoSelector(); renderLembretes(); showScreen('screenStart');
+    // Avisa avaliador se há prazos novos do superior
+    renderBadgeNotifsAvaliador();
+    renderPrazosAvaliador();
+    // Avisa avaliador se há retornos de validação não lidos (Parte 4)
+    _verificarRetornosPendentesLogin();
+  }
   // Verificar se é primeiro login
   verificarPrimeiroLogin();
 }
@@ -3536,22 +3649,15 @@ function renderChecklist() {
       else if (isNok) cls+=' nao-conform';
       else if (isNa) cls+=' nao-avaliado';
 
-      const isCriticoAuto = (VS.graus && VS.graus[key]) === 'critico-auto';
-      if (isCriticoAuto) cls += ' critico-auto';
-      const lockBanner = isCriticoAuto
-        ? `<div style="font-size:11px;font-weight:700;color:#6b2de8;background:rgba(107,45,232,.10);border:1px dashed #6b2de8;border-radius:7px;padding:7px 10px;margin:6px 0">🚨 Bloqueado — bloco zerado por NC Crítico. Clique para reavaliar.</div>`
-        : '';
-
       return `<div class="${cls}" id="item_${key}">
         <div class="check-header">
           <div class="check-question">${item}</div>
-          <div class="check-buttons" style="${isCriticoAuto?'opacity:.55':''}">
+          <div class="check-buttons">
             <button class="check-btn ok ${isSim?'selected':''}" onclick="responder('${key}','sim')">✓ Conforme</button>
-            <button class="check-btn nok ${isNok&&!isCriticoAuto?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
-            <button class="check-btn na ${isNa&&!isCriticoAuto?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
+            <button class="check-btn nok ${isNok?'selected':''}" onclick="responder('${key}','nao')">✗ Não conforme</button>
+            <button class="check-btn na ${isNa?'selected':''}" onclick="responder('${key}','na')">— N/Aval.</button>
           </div>
         </div>
-        ${lockBanner}
         <div class="resp-area area-sim ${isSim?'visible':''}" id="area_sim_${key}">
           <span class="area-label">📷 Foto (opcional)</span>
           <div class="photo-grid" id="pg_sim_${key}">
@@ -3632,31 +3738,6 @@ function removerFotoAcomp(key, idx) {
 }
 
 function responder(key, valor) {
-  // Se o item estava bloqueado por NC Crítico (auto-marcado), limpa o flag ao reavaliar manualmente
-  if (VS.graus && VS.graus[key] === 'critico-auto') {
-    delete VS.graus[key];
-    delete VS.motivos[key];
-  }
-  // Se este item era o CRÍTICO do bloco e o usuário mudou pra outra coisa, desbloqueia os demais
-  const eraCritico = VS.graus && VS.graus[key] === 'critico';
-  if (eraCritico && valor !== 'nao') {
-    delete VS.graus[key];
-    const cat = getCatsAtivas()[VS.catAtual];
-    if (cat) {
-      cat.itens.forEach((_, i) => {
-        const k = `${cat.id}_${i}`;
-        if (k === key) return;
-        if (VS.graus[k] === 'critico-auto') {
-          delete VS.respostas[k];
-          delete VS.motivos[k];
-          delete VS.graus[k];
-        }
-      });
-    }
-    VS.respostas[key] = valor;
-    renderChecklist(); renderNav(); updateProgress();
-    return;
-  }
   VS.respostas[key] = valor;
   const itemEl = document.getElementById(`item_${key}`);
   itemEl.className = `check-item ${valor==='sim'?'conform':valor==='nao'?'nao-conform':valor==='na'?'nao-avaliado':''}`;
@@ -3787,53 +3868,15 @@ function tipoUsaPesos() {
 // Seta grau da NC
 function setGrauNC(key, grau) {
   if (!VS.graus) VS.graus = {};
-  const grauAnterior = VS.graus[key];
   VS.graus[key] = grau;
-
+  // Re-renderiza só o item atual
   const catIdx = VS.catAtual;
   const cats = getCatsAtivas();
   const cat = cats[catIdx];
   if (!cat) return;
-
-  const MOTIVO_AUTO = 'Bloco zerado por NC Crítico — item não avaliado individualmente';
-
-  // Se virou CRÍTICO: bloqueia o restante do bloco auto-marcando como 'na' com motivo
-  if (grau === 'critico') {
-    cat.itens.forEach((_, i) => {
-      const k = `${cat.id}_${i}`;
-      if (k === key) return;
-      // Só auto-marca itens ainda sem resposta
-      if (VS.respostas[k] === undefined) {
-        VS.respostas[k] = 'na';
-        VS.motivos[k]   = MOTIVO_AUTO;
-        VS.graus[k]     = 'critico-auto';
-      }
-    });
-    renderChecklist();
-    renderNav();
-    updateProgress();
-    showToast('🚨 NC Crítico — bloco zerado. Demais itens marcados automaticamente.');
-    return;
-  }
-
-  // Se ANTES era crítico e agora não é mais: desfaz a auto-marcação dos demais
-  if (grauAnterior === 'critico' && grau !== 'critico') {
-    cat.itens.forEach((_, i) => {
-      const k = `${cat.id}_${i}`;
-      if (k === key) return;
-      if (VS.graus[k] === 'critico-auto') {
-        delete VS.respostas[k];
-        delete VS.motivos[k];
-        delete VS.graus[k];
-      }
-    });
-    renderChecklist();
-    renderNav();
-    updateProgress();
-    return;
-  }
-
-  // Caso comum (leve/medio sem transição crítica): atualiza só visual dos botões
+  const idx = parseInt(key.split('_').pop());
+  const item = cat.itens[idx];
+  // Atualiza visual dos botões sem re-renderizar tudo
   const cfg = getPConfigPesos();
   ['leve','medio','critico'].forEach(g => {
     const btn = document.getElementById(`grau_${g}_${key}`);
@@ -3843,19 +3886,25 @@ function setGrauNC(key, grau) {
     btn.style.background = ativo ? cores[g][0] : 'var(--surface)';
     btn.style.color = ativo ? '#fff' : cores[g][1];
   });
+  // Atualiza aviso de impacto
   const area = document.getElementById(`area_nok_${key}`);
   if (area) {
+    // Remove avisos antigos
     area.querySelectorAll('.grau-impacto').forEach(el => el.remove());
     const div = document.createElement('div');
     div.className = 'grau-impacto';
     div.style.cssText = 'font-size:11px;font-weight:600;border-radius:7px;padding:6px 10px;margin-bottom:6px';
-    if (grau === 'leve') {
+    if (grau === 'critico') {
+      div.style.cssText += ';color:#6b2de8;background:rgba(107,45,232,.08)';
+      div.textContent = '⚠️ NC Crítico — zera a nota desta categoria';
+    } else if (grau === 'leve') {
       div.style.cssText += ';color:#b07d20;background:rgba(176,125,32,.08)';
       div.textContent = `🟡 NC Leve — penalidade de ${cfg.penalidades.leve}% na categoria`;
     } else if (grau === 'medio') {
       div.style.cssText += ';color:#e8522a;background:rgba(232,82,42,.08)';
       div.textContent = `🔴 NC Médio — penalidade de ${cfg.penalidades.medio}% na categoria`;
     }
+    // Insere antes do label da foto
     const fotoLabel = area.querySelector('.area-label');
     if (fotoLabel) area.insertBefore(div, fotoLabel);
     else area.prepend(div);
@@ -4160,23 +4209,14 @@ function finalizarVistoria() {
   // Snapshot dos pontos não atingidos para a IA e o e-mail à loja
   VS.registroId = registro.id;
   VS.planoNcSnapshot = [];
-  // NAs não entram no plano de ação — itens não avaliados não precisam de tratamento
-  VS.planoNaSnapshot = [];
+  VS.planoNaSnapshot = []; // mantido só para exibição no resultado, NÃO entra no plano
   cats.forEach(cat => {
     cat.itens.forEach((item, idx) => {
       const k = `${cat.id}_${idx}`;
       if (VS.respostas[k] === 'nao') {
-        const grauItem = VS.graus && VS.graus[k];
-        const isCriticoAuto = grauItem === 'critico-auto';
-        const grauLabel = grauItem === 'critico' ? 'Crítico' : grauItem === 'medio' ? 'Médio' : grauItem === 'leve' ? 'Leve' : isCriticoAuto ? 'Crítico (bloco zerado)' : '';
-        VS.planoNcSnapshot.push({
-          categoria: cat.nome, item,
-          observacao: isCriticoAuto ? '⚠️ Item zerado automaticamente — bloco com NC Crítico' : (VS.notas[k] || ''),
-          grau: grauLabel,
-          autoCritico: isCriticoAuto,
-        });
+        VS.planoNcSnapshot.push({ categoria: cat.nome, item, observacao: VS.notas[k] || '' });
       }
-      // NAs: registramos apenas para exibição no resultado, NÃO para plano de ação
+      // NAs: só para registro no resultado — sem plano de ação
       if (VS.respostas[k] === 'na') {
         VS.planoNaSnapshot.push({ categoria: cat.nome, item, motivo: VS.motivos[k] || '' });
       }
@@ -4185,6 +4225,8 @@ function finalizarVistoria() {
 
   showScreen('screenResult');
   gerarPlanoIA(false);
+  // Exibe prazos definidos pelo superior (se já houver)
+  setTimeout(renderPrazosAvaliador, 500);
   } catch(err) {
     console.error('finalizarVistoria error:', err);
     showToast('⚠️ Erro ao finalizar: ' + (err.message||err));
@@ -4205,7 +4247,7 @@ async function gerarPlanoIA(forceRegen) {
   text.textContent = '';
   status.textContent = '⏳ Gerando plano de ação com IA...';
 
-  // Apenas NCs entram no plano — NAs não precisam de tratamento
+  // Apenas NCs entram no plano — NAs não precisam de ação corretiva
   const ncs = (VS.planoNcSnapshot || []);
 
   if (!ncs.length) {
@@ -4217,31 +4259,32 @@ async function gerarPlanoIA(forceRegen) {
   }
 
   const ncTxt = ncs.map((n,i) =>
-    `${i+1}. [${n.categoria}]${n.grau ? ' (NC '+n.grau+')' : ''} ${n.item}${n.observacao && !n.autoCritico ? ' - Obs: '+n.observacao : ''}`
+    `${i+1}. [${n.categoria}] ${n.item}${n.observacao ? ' - Obs: '+n.observacao : ''}`
   ).join('\n');
 
   const prompt = [
-    'Você é um consultor especializado em operações de restaurantes. Gere um plano de ação objetivo, prático e prioritizado.',
+    'Você é um consultor especializado em operações de restaurantes.',
+    'Gere um plano de ação objetivo e prático para as não conformidades abaixo.',
+    'NÃO inclua prazos nem sugestões de prazo — os prazos serão definidos pelo superior imediato.',
+    'NÃO inclua itens não avaliados (N/A) — eles não requerem ação.',
     '',
     'Restaurante: '+(VS.restaurante||''),
     'Tipo de avaliação: '+(VS.tipoNome||''),
     'Nota geral: '+((VS.nota||0).toFixed(1))+' / 5.0',
     '',
-    'NÃO CONFORMIDADES (itens que precisam de ação corretiva):',
+    'NÃO CONFORMIDADES (apenas estas requerem ação):',
     ncTxt,
     '',
-    'Gere um plano de ação com:',
-    '1. Prioridade ALTA (itens críticos para segurança alimentar ou operação imediata)',
-    '2. Prioridade MÉDIA (melhorias importantes a curto prazo)',
-    '3. Prioridade BAIXA (ajustes e melhorias contínuas)',
+    'Para cada NC informe apenas:',
+    '- Ação corretiva detalhada',
+    '- Responsável sugerido',
     '',
-    'Para cada item informe: ação corretiva, responsável sugerido e prazo sugerido. Seja direto e prático.',
-    'Não inclua itens não avaliados (N/A) no plano — eles não requerem ação.'
+    'Agrupe por prioridade (ALTA / MÉDIA / BAIXA) conforme impacto operacional.'
   ].join('\n');
 
   try {
     const apiKey = (localStorage.getItem('gemini_api_key') || '').trim();
-    if (!apiKey) throw new Error('Chave GROQ não configurada');
+    if (!apiKey) throw new Error('Chave API não configurada nas configurações.');
 
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -4259,7 +4302,7 @@ async function gerarPlanoIA(forceRegen) {
     const planoGerado = ((data.choices||[])[0]?.message?.content || '').trim();
     if (!planoGerado) throw new Error('IA retornou resposta vazia');
 
-    // ✅ IA gerou com sucesso — usa o plano dela, não ativa o interno
+    // ✅ IA gerou com sucesso — usa só o plano dela, sem prazos
     VS.planoIA = planoGerado;
     status.textContent = '';
     text.textContent = VS.planoIA;
@@ -4273,7 +4316,8 @@ async function gerarPlanoIA(forceRegen) {
 
   } catch (e) {
     console.error('[PlanoIA]', e);
-    // ⚡ IA falhou — ativa plano interno apenas para as NCs
+
+    // ⚡ IA falhou — fallback interno só para NCs, sem prazos
     if (ncs.length) {
       VS.planoIA = gerarPlanoInternoNCs(ncs);
       status.textContent = '⚠️ IA indisponível — plano gerado automaticamente pelo sistema.';
@@ -4293,36 +4337,28 @@ async function gerarPlanoIA(forceRegen) {
   }
 }
 
-// ── Plano interno de fallback — só para NCs, nunca para NAs ──
+// Plano interno de fallback — só NCs, sem prazos (prazos são definidos pelo superior)
 function gerarPlanoInternoNCs(ncs) {
-  const prioMap = { 'Crítico': 'ALTA', 'critico': 'ALTA', 'Médio': 'ALTA', 'medio': 'ALTA', 'Leve': 'MÉDIA', 'leve': 'MÉDIA' };
-  const grupos = { ALTA: [], MÉDIA: [], BAIXA: [] };
+  const prioMap = {'Crítico':'ALTA','critico':'ALTA','Médio':'ALTA','medio':'ALTA','Leve':'MÉDIA','leve':'MÉDIA'};
+  const grupos = { ALTA:[], MÉDIA:[], BAIXA:[] };
 
   ncs.forEach((nc, i) => {
     const prio = prioMap[nc.grau] || 'MÉDIA';
-    const obs = nc.observacao && !nc.autoCritico ? `\n   Observação: ${nc.observacao}` : '';
+    const obs = nc.observacao ? `\n   Observação: ${nc.observacao}` : '';
     grupos[prio].push(
       `${i+1}. ${nc.item} [${nc.categoria}]${obs}\n` +
-      `   Ação: Identificar a causa raiz e corrigir imediatamente.\n` +
-      `   Responsável: Gerente da loja\n` +
-      `   Prazo: ${prio === 'ALTA' ? '24 horas' : prio === 'MÉDIA' ? '3 dias' : '7 dias'}`
+      `   Ação: Identificar a causa raiz e corrigir conforme orientação do superior imediato.\n` +
+      `   Responsável: Gerente da loja`
     );
   });
 
-  let plano = `PLANO DE AÇÃO — ${VS.restaurante || 'Restaurante'}\nGerado automaticamente | ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+  let plano = `PLANO DE AÇÃO — ${VS.restaurante || 'Restaurante'}\n` +
+    `Gerado automaticamente | ${new Date().toLocaleDateString('pt-BR')}\n` +
+    `⚠️ Prazos serão definidos pelo superior imediato.\n\n`;
 
-  if (grupos.ALTA.length) {
-    plano += `### PRIORIDADE ALTA (resolução em até 24h)\n`;
-    plano += grupos.ALTA.join('\n\n') + '\n\n';
-  }
-  if (grupos.MÉDIA.length) {
-    plano += `### PRIORIDADE MÉDIA (resolução em até 3 dias)\n`;
-    plano += grupos.MÉDIA.join('\n\n') + '\n\n';
-  }
-  if (grupos.BAIXA.length) {
-    plano += `### PRIORIDADE BAIXA (resolução em até 7 dias)\n`;
-    plano += grupos.BAIXA.join('\n\n') + '\n\n';
-  }
+  if (grupos.ALTA.length)  plano += `### PRIORIDADE ALTA\n${grupos.ALTA.join('\n\n')}\n\n`;
+  if (grupos.MÉDIA.length) plano += `### PRIORIDADE MÉDIA\n${grupos.MÉDIA.join('\n\n')}\n\n`;
+  if (grupos.BAIXA.length) plano += `### PRIORIDADE BAIXA\n${grupos.BAIXA.join('\n\n')}\n\n`;
 
   return plano.trim();
 }
@@ -4440,14 +4476,7 @@ async function buildPDFDoc() {
   const naoConformes=Object.values(VS.respostas).filter(v=>v==='nao').length;
   const naoAvaliados=Object.values(VS.respostas).filter(v=>v==='na').length;
   const avaliados=total-naoAvaliados;
-  // Usa cálculo com pesos/penalidades quando aplicável (Geral/Semanal); senão, cálculo simples
-  let nota, calcPesos = null;
-  if (typeof tipoUsaPesos === 'function' && tipoUsaPesos() && typeof calcNotaComPesos === 'function') {
-    calcPesos = calcNotaComPesos(cats, VS.respostas, VS.graus || {});
-    nota = calcPesos.nota;
-  } else {
-    nota = avaliados>0?(conformes/avaliados)*5:0;
-  }
+  const nota=avaliados>0?(conformes/avaliados)*5:0;
 
   // Header
   doc.setFillColor(24,24,32); doc.rect(0,0,W,46,'F');
@@ -4496,12 +4525,7 @@ async function buildPDFDoc() {
     const nok=cat.itens.filter((_,i)=>VS.respostas[`${cat.id}_${i}`]==='nao').length;
     const na=cat.itens.filter((_,i)=>VS.respostas[`${cat.id}_${i}`]==='na').length;
     const av=cat.itens.length-na;
-    let pct = av>0?Math.round((ok/av)*100):0;
-    let critTag = '';
-    if (calcPesos) {
-      const d = calcPesos.detalhes.find(x => x.cat && x.cat.id === cat.id);
-      if (d) { pct = Math.round(d.scoreCat); if (d.temCritico) critTag = ' [Zerado]'; }
-    }
+    const pct=av>0?Math.round((ok/av)*100):0;
     doc.setFillColor(230,230,228); doc.roundedRect(M,y,W-M*2,9,2,2,'F');
     doc.setTextColor(24,24,32); doc.setFont('helvetica','bold'); doc.setFontSize(9);
     doc.text(cat.nome, M+4, y+6);
@@ -4509,7 +4533,7 @@ async function buildPDFDoc() {
     doc.setTextColor(42,125,82); doc.text(`OK:${ok}`, W-M-38, y+6);
     doc.setTextColor(192,57,43); doc.text(`NC:${nok}`, W-M-24, y+6);
     doc.setTextColor(176,125,32); doc.text(`NA:${na}`, W-M-12, y+6);
-    doc.setTextColor(80,80,80); doc.text(`${pct}%${critTag}`, W-M-3, y+6);
+    doc.setTextColor(80,80,80); doc.text(`${pct}%`, W-M-3, y+6);
     y+=12;
   }
   y+=4;
@@ -4895,6 +4919,7 @@ function notificarSuperior(registro, tipo) {
   notifs.push({
     id: 'n' + Date.now(),
     superiorId: currentUser.superiorId,
+    avaliadorId: currentUser.id,
     de: currentUser.nome,
     cargo: currentUser.cargo || '',
     tipo,
@@ -4902,6 +4927,16 @@ function notificarSuperior(registro, tipo) {
     restaurante: registro.restaurante || '',
     nota: registro.nota || 0,
     dataAvaliacao: registro.dataFim || registro.dataInicio || '',
+    // ── NCs incluídas para o superior definir prazos ──
+    ncs: (VS.planoNcSnapshot || []).map(nc => ({
+      item:       nc.item,
+      categoria:  nc.categoria,
+      observacao: nc.observacao || '',
+      grau:       nc.grau || 'Leve',
+      prazo:      null,
+    })),
+    prazosDefinidos: false,
+    msgSuperior: '',
     lido: false,
     ts: Date.now()
   });
@@ -4936,19 +4971,175 @@ function renderNotifsSuperior() {
     el.innerHTML = '<div class="empty-state"><span class="ei">🔔</span>Nenhuma notificação</div>';
     return;
   }
-  el.innerHTML = notifs.map(n => `
-    <div class="notif-item ${n.lido ? 'notif-lida' : 'notif-nova'}" onclick="marcarNotifLida('${n.id}')">
+  el.innerHTML = notifs.map(n => {
+    // ── Tipo: resolucao-nc (avaliador enviou evidência de resolução) ──
+    if (n.tipo === 'resolucao-nc') {
+      const grauIcon = {Crítico:'🚨',Médio:'🔴',Leve:'🟡'};
+      return `<div class="notif-item ${n.lido ? 'notif-lida' : 'notif-nova'}" onclick="marcarNotifLida('${n.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-weight:600;font-size:13px">
+            📤 ${n.avaliadorNome}
+            <span style="font-size:11px;font-weight:400;color:var(--muted)">(${n.cargo})</span>
+          </div>
+          ${!n.lido?'<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;margin-top:4px"></span>':''}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Enviou resolução de NC para validação</div>
+        <div style="background:var(--surface2);border-radius:9px;padding:9px 11px;margin-top:7px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;font-weight:600;color:var(--dark)">${grauIcon[n.ncGrau]||'⚪'} ${n.ncItem}</div>
+          <div style="font-size:11px;color:var(--muted)">${n.ncCategoria}</div>
+          <div style="font-size:12px;color:var(--dark);line-height:1.5;border-top:1px solid var(--border);padding-top:6px">💬 ${n.descricao}</div>
+          ${n.foto?`<img src="${n.foto}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border);margin-top:4px" alt="Evidência"/>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn-primary" style="flex:1;background:var(--ok);padding:10px;font-size:12px" onclick="validarResolucaoNC('${n.id}','aprovada');event.stopPropagation()">✅ Aprovar</button>
+          <button class="btn-danger" style="flex:1;padding:10px;font-size:12px" onclick="validarResolucaoNC('${n.id}','reprovada');event.stopPropagation()">❌ Reprovar</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">${new Date(n.ts).toLocaleString('pt-BR')}</div>
+      </div>`;
+    }
+
+    // ── Tipos originais (finalizada / atrasada) ──
+    const ncsHtml = (n.ncs && n.ncs.length && !n.prazosDefinidos) ? `
+      <div class="notif-item-nc" onclick="abrirPainelPrazos('${n.id}')">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:5px">
+          ⏳ ${n.ncs.length} NC${n.ncs.length>1?'s':''} aguardando prazo — toque para definir
+        </div>
+        ${n.ncs.slice(0,3).map(nc=>`<div style="font-size:11px;color:var(--dark);line-height:1.6">• ${nc.item.substring(0,55)}${nc.item.length>55?'…':''}</div>`).join('')}
+        ${n.ncs.length>3?`<div style="font-size:11px;color:var(--muted);margin-top:2px">+${n.ncs.length-3} mais...</div>`:''}
+      </div>` : (n.prazosDefinidos ? `<div style="font-size:11px;color:var(--ok);font-weight:600;margin-top:5px">✅ Prazos definidos${n.msgSuperior?' · "'+n.msgSuperior.substring(0,40)+'"':''}</div>` : '');
+
+    return `<div class="notif-item ${n.lido ? 'notif-lida' : 'notif-nova'}" onclick="marcarNotifLida('${n.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="font-weight:600;font-size:13px">${n.tipo === 'finalizada' ? '✅' : '⚠️'} ${n.de} <span style="font-size:11px;font-weight:400;color:var(--muted)">(${n.cargo})</span></div>
-        ${!n.lido ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;margin-top:4px"></span>' : ''}
+        <div style="font-weight:600;font-size:13px">
+          ${n.tipo==='finalizada'?'✅':n.tipo==='atrasada'?'⚠️':'🔔'} ${n.de}
+          <span style="font-size:11px;font-weight:400;color:var(--muted)">(${n.cargo})</span>
+        </div>
+        ${!n.lido?'<span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;margin-top:4px"></span>':''}
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:3px">
-        ${n.tipo === 'finalizada' ? `Concluiu a avaliação <b>${n.tipoNome}</b>` : `Avaliação <b>${n.tipoNome}</b> está atrasada`}
-        ${n.restaurante ? ` · ${n.restaurante}` : ''}
+        ${n.tipo==='finalizada'?`Concluiu <b>${n.tipoNome}</b>`:n.tipo==='atrasada'?`Avaliação <b>${n.tipoNome}</b> está atrasada`:`Notificação: ${n.tipoNome||''}`}
+        ${n.restaurante?` · ${n.restaurante}`:''}
       </div>
-      ${n.tipo === 'finalizada' ? `<div style="font-size:12px;color:var(--ok);margin-top:2px">Nota: ${(n.nota||0).toFixed(1)} / 5.0</div>` : ''}
+      ${n.tipo==='finalizada'?`<div style="font-size:12px;color:var(--ok);margin-top:2px">Nota: ${(n.nota||0).toFixed(1)} / 5.0</div>`:''}
       <div style="font-size:11px;color:var(--muted);margin-top:2px">${n.dataAvaliacao}</div>
-    </div>`).join('');
+      ${ncsHtml}
+    </div>`;
+  }).join('');
+}
+
+// Valida ou reprova uma resolução de NC (ação do Superior)
+function validarResolucaoNC(notifId, decisao) {
+  if (decisao === 'reprovada') {
+    const motivo = prompt('Informe o motivo da reprovação (obrigatório):');
+    if (!motivo || !motivo.trim()) { showToast('⚠️ Motivo é obrigatório para reprovar', 'warn'); return; }
+    _aplicarValidacaoNC(notifId, 'reprovada', motivo.trim());
+  } else {
+    _aplicarValidacaoNC(notifId, 'aprovada', null);
+  }
+}
+
+function _aplicarValidacaoNC(notifId, status, motivo) {
+  // Atualiza na lista de resoluções
+  const notifsSup = LS.get('vo_notifs_superior') || [];
+  const notif     = notifsSup.find(n => n.id === notifId);
+  if (!notif) return;
+
+  const resolucoes = LS.get('vo_resolucoes_nc') || [];
+  const resIdx     = resolucoes.findIndex(r => r.chave === notif.chave);
+  if (resIdx >= 0) {
+    resolucoes[resIdx].status            = status;
+    resolucoes[resIdx].motivoReprovacao  = motivo || null;
+    resolucoes[resIdx].tsValidacao       = Date.now();
+    resolucoes[resIdx].validadoPor       = currentUser?.nome || '';
+    LS.set('vo_resolucoes_nc', resolucoes);
+  }
+
+  // Marca notificação como lida
+  notif.lido          = true;
+  notif.statusValidacao = status;
+  LS.set('vo_notifs_superior', notifsSup);
+
+  // Notifica o avaliador sobre a decisão
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  notifsAval.push({
+    id:          'val' + Date.now(),
+    avaliadorId: notif.avaliadorId || notif.avaliadorNome,
+    tipo:        status === 'aprovada' ? 'resolucao-aprovada' : 'resolucao-reprovada',
+    chave:       notif.chave,
+    ncItem:      notif.ncItem,
+    ncCategoria: notif.ncCategoria,
+    mensagem:    status === 'aprovada'
+      ? `✅ Sua resolução para "${notif.ncItem}" foi aprovada por ${currentUser?.nome||'superior'}.`
+      : `❌ Sua resolução para "${notif.ncItem}" foi reprovada. Motivo: ${motivo}`,
+    de:          currentUser?.nome || '',
+    lido:        false,
+    ts:          Date.now()
+  });
+  LS.set('vo_notifs_avaliador', notifsAval);
+
+  renderNotifsSuperior();
+  renderBadgeNotifSuperior();
+  showToast(status === 'aprovada' ? '✅ Resolução aprovada!' : '❌ Reprovada — avaliador será notificado', status === 'aprovada' ? 'ok' : 'warn');
+}
+
+function renderPrazosAvaliador() {
+  if (!currentUser) return;
+  const card  = document.getElementById('rPrazosCard');
+  const lista = document.getElementById('rPrazosList');
+  if (!card || !lista) return;
+
+  // Busca notificações de prazo destinadas a este avaliador
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const minhas = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+    n.tipo === 'prazo-definido' && n.ncs && n.ncs.length
+  );
+
+  if (!minhas.length) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  const ultima = minhas[minhas.length - 1]; // notificação mais recente
+
+  const grauIcon = {Crítico:'🚨', Médio:'🔴', Leve:'🟡'};
+
+  lista.innerHTML = [
+    ultima.mensagem ? `<div style="background:rgba(0,119,204,.07);border:1px solid rgba(0,119,204,.2);border-radius:9px;padding:10px 12px;font-size:12px;color:#0077cc;margin-bottom:10px;line-height:1.5">
+      💬 <b>${ultima.de}:</b> ${ultima.mensagem}</div>` : '',
+    ...ultima.ncs.map(nc => `
+      <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px;flex-shrink:0">${grauIcon[nc.grau]||'⚪'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--dark);line-height:1.4">${nc.item}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${nc.categoria}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${nc.prazo
+            ? `<div style="font-size:12px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${nc.prazo}</div><div style="font-size:10px;color:var(--muted)">prazo</div>`
+            : `<div style="font-size:11px;color:var(--muted)">Sem prazo</div>`}
+        </div>
+      </div>`),
+    `<div style="font-size:11px;color:var(--muted);margin-top:8px">Definido por ${ultima.de} · ${new Date(ultima.ts||Date.now()).toLocaleDateString('pt-BR')}</div>`
+  ].join('');
+
+  // Marca como lida
+  notifsAval.forEach(n => {
+    if (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) n.lido = true;
+  });
+  LS.set('vo_notifs_avaliador', notifsAval);
+}
+
+function renderBadgeNotifsAvaliador() {
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  if (!currentUser) return;
+  const naoLidas = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) && !n.lido
+  ).length;
+  // Reutiliza o badge do sino no header se existir
+  const bell = document.getElementById('bellBadge') || document.getElementById('badgeNotifSuperior');
+  if (bell && naoLidas > 0) {
+    bell.textContent = naoLidas;
+    bell.style.display = 'inline-flex';
+  }
 }
 
 function marcarTodasLidas() {
@@ -4959,6 +5150,108 @@ function marcarTodasLidas() {
   renderNotifsSuperior();
   renderBadgeNotifSuperior();
   showToast('✅ Todas marcadas como lidas');
+}
+
+// ── PRAZOS DE NCs ──────────────────────────────────────────
+// Abre o painel de prazos para uma notificação específica
+function abrirPainelPrazos(notifId) {
+  const notifs = LS.get('vo_notifs_superior') || [];
+  const notif  = notifs.find(n => n.id === notifId);
+  if (!notif || !notif.ncs || !notif.ncs.length) {
+    showToast('Nenhuma NC disponível para definir prazo');
+    return;
+  }
+
+  // Marca como lida
+  notif.lido = true;
+  LS.set('vo_notifs_superior', notifs);
+  renderBadgeNotifSuperior();
+
+  // Armazena notifId ativo para salvar depois
+  document.getElementById('cardPrazosNC').dataset.notifId = notifId;
+
+  // Info da avaliação
+  document.getElementById('prazosNCInfo').innerHTML =
+    `<b>${notif.de}</b> (${notif.cargo}) concluiu <b>${notif.tipoNome}</b>${notif.restaurante ? ' · ' + notif.restaurante : ''}<br>
+    Nota: <span style="color:var(--accent);font-weight:700">${(notif.nota||0).toFixed(1)} / 5.0</span> · ${notif.dataAvaliacao}`;
+
+  // Lista de NCs individuais
+  const grauIcon = {Crítico:'🚨',Médio:'🔴',Leve:'🟡'};
+  const grauCl   = {Crítico:'critico',Médio:'medio',Leve:'leve'};
+  document.getElementById('prazosIndividuaisLista').innerHTML = notif.ncs.map((nc, i) => `
+    <div class="prazo-nc-row">
+      <div class="prazo-nc-title" style="flex:1;min-width:0">
+        <div class="prazo-nc-row-title">${grauIcon[nc.grau]||'⚪'} ${nc.item}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${nc.categoria}</div>
+      </div>
+      <span class="prazo-nc-grau ${grauCl[nc.grau]||'leve'}">${nc.grau||'Leve'}</span>
+      <input type="date" id="prazoNC_${i}" data-idx="${i}"
+        style="width:130px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;flex-shrink:0"
+        value="${nc.prazo||''}">
+    </div>`).join('');
+
+  // Reseta campos globais
+  document.getElementById('prazoGlobalInput').value = '';
+  document.getElementById('prazoMsgInput').value    = notif.msgSuperior || '';
+
+  // Mostra o painel
+  document.getElementById('cardPrazosNC').style.display = 'block';
+  document.getElementById('cardPrazosNC').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function fecharPainelPrazos() {
+  document.getElementById('cardPrazosNC').style.display = 'none';
+}
+
+function aplicarPrazoGlobal() {
+  const v = document.getElementById('prazoGlobalInput').value;
+  if (!v) { showToast('⚠️ Selecione uma data primeiro', 'warn'); return; }
+  document.querySelectorAll('[id^="prazoNC_"]').forEach(el => el.value = v);
+  showToast('✅ Prazo aplicado a todas as NCs');
+}
+
+function salvarPrazosNC() {
+  const notifId = document.getElementById('cardPrazosNC').dataset.notifId;
+  if (!notifId) return;
+
+  const notifs = LS.get('vo_notifs_superior') || [];
+  const notif  = notifs.find(n => n.id === notifId);
+  if (!notif) return;
+
+  // Coleta prazos individuais
+  let algumPrazo = false;
+  notif.ncs.forEach((nc, i) => {
+    const val = document.getElementById('prazoNC_'+i)?.value;
+    if (val) { nc.prazo = val; algumPrazo = true; }
+  });
+
+  if (!algumPrazo) { showToast('⚠️ Defina pelo menos um prazo', 'warn'); return; }
+
+  notif.msgSuperior   = document.getElementById('prazoMsgInput').value.trim();
+  notif.prazosDefinidos = true;
+  LS.set('vo_notifs_superior', notifs);
+
+  // Cria notificação para o avaliador na lista de notificações do app
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  notifsAval.push({
+    id: 'na' + Date.now(),
+    avaliadorId: notif.avaliadorId || notif.de,
+    tipo: 'prazo-definido',
+    titulo: '📅 Prazos definidos pelo superior',
+    mensagem: notif.msgSuperior
+      ? `${notif.msgSuperior}`
+      : `${currentUser.nome} definiu prazos para as NCs da avaliação "${notif.tipoNome}".`,
+    ncs: notif.ncs,
+    de: currentUser.nome,
+    dataAvaliacao: notif.dataAvaliacao,
+    lido: false,
+    ts: Date.now()
+  });
+  LS.set('vo_notifs_avaliador', notifsAval);
+
+  fecharPainelPrazos();
+  renderNotifsSuperior();
+  showToast('📨 Prazos enviados ao avaliador!', 'ok');
 }
 
 async function enviarEmailIntranetSuperior(registro) {
@@ -7178,6 +7471,400 @@ window.carregarAdmin = async function(){
   if(_origCarregarAdmin) await _origCarregarAdmin();
   engAdmInit();
 };
+
+// ══════════════════════════════════════════════════════════════
+// PARTE 3 — RESOLUÇÃO DE NCs pelo Avaliador
+// ══════════════════════════════════════════════════════════════
+
+// Renderiza o card de resoluções na tela de resultado
+function renderResolucoesAvaliador() {
+  if (!currentUser) return;
+  const card  = document.getElementById('rResolucoesCard');
+  const lista = document.getElementById('rResolucoesLista');
+  if (!card || !lista) return;
+
+  // Busca notificações de prazo para este avaliador
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const minhas = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+    n.tipo === 'prazo-definido' && n.ncs && n.ncs.length
+  );
+
+  if (!minhas.length) { card.style.display = 'none'; return; }
+
+  // Pega a notificação mais recente
+  const ultima = minhas[minhas.length - 1];
+
+  // Lê resoluções já enviadas
+  const resolucoes = LS.get('vo_resolucoes_nc') || [];
+
+  const grauIcon = { Crítico:'🚨', Médio:'🔴', Leve:'🟡' };
+  const grauCl   = { Crítico:'critico', Médio:'medio', Leve:'leve' };
+
+  const hoje = new Date().toISOString().split('T')[0];
+
+  lista.innerHTML = ultima.ncs.map((nc, i) => {
+    const chave    = `${ultima.id}_${i}`;
+    const res      = resolucoes.find(r => r.chave === chave);
+    const vencida  = nc.prazo && nc.prazo < hoje;
+
+    let statusHtml = '';
+    let btnHtml    = '';
+    let motivoHtml = '';
+
+    if (!res) {
+      statusHtml = `<span class="nc-resolver-status pendente">⏳ Pendente</span>`;
+      btnHtml    = `<button class="btn-resolver" onclick="abrirModalResolucao('${ultima.id}',${i})">Resolver</button>`;
+    } else if (res.status === 'enviada') {
+      statusHtml = `<span class="nc-resolver-status enviada">📤 Aguardando validação</span>`;
+      btnHtml    = ``;
+    } else if (res.status === 'reprovada') {
+      statusHtml = `<span class="nc-resolver-status reprovada">❌ Reprovada</span>`;
+      motivoHtml = `<div class="reprovada-motivo">💬 Motivo: ${res.motivoReprovacao || '—'}</div>`;
+      btnHtml    = `<button class="btn-resolver reenviar" onclick="abrirModalResolucao('${ultima.id}',${i})">Reenviar</button>`;
+    } else if (res.status === 'aprovada') {
+      statusHtml = `<span class="nc-resolver-status enviada" style="background:rgba(42,125,82,.15);color:var(--ok)">✅ Aprovada</span>`;
+    }
+
+    const prazoHtml = nc.prazo
+      ? `<div class="nc-resolver-prazo ${vencida ? 'vencida' : ''}">${nc.prazo}${vencida ? ' ⚠️' : ''}</div>`
+      : '';
+
+    return `
+      <div class="nc-resolver-row" id="ncrow_${chave}">
+        <div class="nc-resolver-header">
+          <span style="font-size:15px;flex-shrink:0">${grauIcon[nc.grau] || '⚪'}</span>
+          <div style="flex:1;min-width:0">
+            <div class="nc-resolver-item">${nc.item}</div>
+            <div class="nc-resolver-cat">${nc.categoria}</div>
+          </div>
+          ${statusHtml}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          ${prazoHtml}
+          ${btnHtml}
+        </div>
+        ${motivoHtml}
+      </div>`;
+  }).join('');
+
+  card.style.display = 'block';
+}
+
+// Abre o modal de resolução para uma NC específica
+let _resAtiva = null; // { notifId, ncIdx, fotoBase64 }
+
+function abrirModalResolucao(notifId, ncIdx) {
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const notif = notifsAval.find(n => n.id === notifId);
+  if (!notif || !notif.ncs || !notif.ncs[ncIdx]) return;
+
+  const nc = notif.ncs[ncIdx];
+  _resAtiva = { notifId, ncIdx, fotoBase64: null };
+
+  // Popula o modal
+  const grauIcon = { Crítico:'🚨', Médio:'🔴', Leve:'🟡' };
+  document.getElementById('modalResNcItem').innerHTML =
+    `${grauIcon[nc.grau] || '⚪'} ${nc.item} <span style="font-size:10px;color:var(--muted);display:block;margin-top:3px">${nc.categoria}</span>`;
+
+  if (nc.prazo) {
+    const vencida = nc.prazo < new Date().toISOString().split('T')[0];
+    document.getElementById('modalResPrazo').innerHTML =
+      `📅 Prazo: <b style="color:${vencida ? 'var(--nok)' : 'var(--accent)'}">${nc.prazo}${vencida ? ' ⚠️' : ''}</b>`;
+    document.getElementById('modalResPrazo').style.display = 'block';
+  } else {
+    document.getElementById('modalResPrazo').style.display = 'none';
+  }
+
+  // Carrega resolução anterior se reprovada
+  const resolucoes = LS.get('vo_resolucoes_nc') || [];
+  const chave = `${notifId}_${ncIdx}`;
+  const resAnterior = resolucoes.find(r => r.chave === chave);
+
+  const descInput = document.getElementById('modalResDescricao');
+  const fotoPreview = document.getElementById('modalResFotoPreview');
+  const btnFoto = document.getElementById('btnFotoResolucao');
+
+  descInput.value = resAnterior?.descricao || '';
+  _resAtiva.fotoBase64 = resAnterior?.foto || null;
+
+  if (_resAtiva.fotoBase64) {
+    fotoPreview.src = _resAtiva.fotoBase64;
+    fotoPreview.style.display = 'block';
+    btnFoto.textContent = '📷 Trocar foto de evidência';
+    btnFoto.classList.add('tem-foto');
+  } else {
+    fotoPreview.style.display = 'none';
+    btnFoto.textContent = '📷 Tirar foto de evidência (obrigatório)';
+    btnFoto.classList.remove('tem-foto');
+  }
+
+  document.getElementById('modalResErro').style.display = 'none';
+  document.getElementById('modalResolucaoNC').classList.add('open');
+}
+
+function fecharModalResolucao() {
+  document.getElementById('modalResolucaoNC').classList.remove('open');
+  _resAtiva = null;
+}
+
+function tirarFotoResolucao() {
+  const input = document.getElementById('inputFotoResolucao');
+  input.value = '';
+  input.click();
+}
+
+function onFotoResolucaoChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    _resAtiva.fotoBase64 = ev.target.result;
+    const fotoPreview = document.getElementById('modalResFotoPreview');
+    fotoPreview.src = _resAtiva.fotoBase64;
+    fotoPreview.style.display = 'block';
+    const btnFoto = document.getElementById('btnFotoResolucao');
+    btnFoto.textContent = '✅ Foto adicionada — toque para trocar';
+    btnFoto.classList.add('tem-foto');
+  };
+  reader.readAsDataURL(file);
+}
+
+function enviarResolucaoNC() {
+  if (!_resAtiva) return;
+
+  const descricao = document.getElementById('modalResDescricao').value.trim();
+  const erroEl    = document.getElementById('modalResErro');
+
+  if (!descricao) {
+    erroEl.textContent = '⚠️ Descreva o que foi feito para resolver a NC.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  if (!_resAtiva.fotoBase64) {
+    erroEl.textContent = '📷 A foto de evidência é obrigatória.';
+    erroEl.style.display = 'block';
+    return;
+  }
+  erroEl.style.display = 'none';
+
+  const chave = `${_resAtiva.notifId}_${_resAtiva.ncIdx}`;
+  const resolucoes = LS.get('vo_resolucoes_nc') || [];
+  const idx = resolucoes.findIndex(r => r.chave === chave);
+
+  const registro = {
+    chave,
+    notifId:    _resAtiva.notifId,
+    ncIdx:      _resAtiva.ncIdx,
+    avaliadorId: currentUser.id || currentUser.nome,
+    avaliadorNome: currentUser.nome,
+    descricao,
+    foto:       _resAtiva.fotoBase64,
+    status:     'enviada',
+    tsEnvio:    Date.now(),
+    motivoReprovacao: null
+  };
+
+  if (idx >= 0) resolucoes[idx] = registro;
+  else resolucoes.push(registro);
+  LS.set('vo_resolucoes_nc', resolucoes);
+
+  // Cria notificação para o superior validar
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const notif      = notifsAval.find(n => n.id === _resAtiva.notifId);
+  const nc         = notif?.ncs?.[_resAtiva.ncIdx];
+
+  const notifsSup = LS.get('vo_notifs_superior') || [];
+  notifsSup.push({
+    id:          'res' + Date.now(),
+    tipo:        'resolucao-nc',
+    avaliadorId: currentUser.id || currentUser.nome,
+    avaliadorNome: currentUser.nome,
+    cargo:       currentUser.cargo || '',
+    superiorId:  currentUser.superiorId,
+    chave,
+    ncItem:      nc?.item || '',
+    ncCategoria: nc?.categoria || '',
+    ncGrau:      nc?.grau || '',
+    descricao,
+    foto:        _resAtiva.fotoBase64,
+    lido:        false,
+    ts:          Date.now()
+  });
+  LS.set('vo_notifs_superior', notifsSup);
+  renderBadgeNotifSuperior();
+
+  fecharModalResolucao();
+  renderResolucoesAvaliador();
+  showToast('📤 Resolução enviada ao superior para validação!', 'ok');
+}
+
+// Chama renderResolucoesAvaliador sempre que a tela de resultado for exibida
+const _origRenderPrazosAvaliador = renderPrazosAvaliador;
+function renderPrazosAvaliador() {
+  _origRenderPrazosAvaliador();
+  renderResolucoesAvaliador();
+  renderRetornoValidacaoAvaliador();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PARTE 4 — RETORNO DE VALIDAÇÃO para o Avaliador
+// ══════════════════════════════════════════════════════════════
+
+function renderRetornoValidacaoAvaliador() {
+  if (!currentUser) return;
+  const card   = document.getElementById('rRetornoValidacaoCard');
+  const lista  = document.getElementById('rRetornoValidacaoLista');
+  const titulo = document.getElementById('rRetornoValidacaoTitle');
+  if (!card || !lista) return;
+
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const retornos = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+    (n.tipo === 'resolucao-aprovada' || n.tipo === 'resolucao-reprovada')
+  ).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+  if (!retornos.length) { card.style.display = 'none'; return; }
+
+  const naoLidos = retornos.filter(n => !n.lido).length;
+
+  // Título com badge de não lidos
+  titulo.innerHTML = naoLidos > 0
+    ? `🔔 Retorno do Superior <span style="background:var(--accent);color:#fff;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px">${naoLidos} novo${naoLidos > 1 ? 's' : ''}</span>`
+    : '🔔 Retorno do Superior';
+
+  lista.innerHTML = retornos.map(n => {
+    const aprovada = n.tipo === 'resolucao-aprovada';
+    const novoCss  = !n.lido ? 'card-novo-retorno' : '';
+    return `
+      <div class="retorno-nc-row">
+        <div class="${aprovada ? 'retorno-nc-aprovada' : 'retorno-nc-reprovada'} ${novoCss}">
+          <span class="retorno-nc-badge ${aprovada ? 'aprovada' : 'reprovada'}">
+            ${aprovada ? '✅ Aprovada' : '❌ Reprovada'}
+          </span>
+          <div class="retorno-nc-titulo">${n.ncItem || '—'}</div>
+          <div class="retorno-nc-cat">${n.ncCategoria || ''}</div>
+          <div class="retorno-nc-msg">${n.mensagem || ''}</div>
+          ${!aprovada ? `<button class="btn-resolver reenviar" style="margin-top:8px;font-size:11px" onclick="abrirModalResolucaoRetorno('${n.chave}')">📷 Corrigir e reenviar</button>` : ''}
+          <div style="font-size:10px;color:var(--muted);margin-top:6px">
+            ${n.de ? `Por: ${n.de} · ` : ''}${n.ts ? new Date(n.ts).toLocaleString('pt-BR') : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  card.style.display = 'block';
+
+  // Atualiza badge do header
+  _atualizarBadgeAvaliador();
+}
+
+function _atualizarBadgeAvaliador() {
+  if (!currentUser) return;
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const naoLidos = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+    (n.tipo === 'resolucao-aprovada' || n.tipo === 'resolucao-reprovada' || n.tipo === 'prazo-definido') &&
+    !n.lido
+  ).length;
+
+  // Tenta usar o badge do superior reaproveitado, ou cria um dedicado se existir
+  const badge = document.getElementById('badgeRetornoAvaliador') || document.getElementById('badgeNotifSuperior');
+  if (badge && naoLidos > 0 && badge.id === 'badgeRetornoAvaliador') {
+    badge.textContent = naoLidos;
+    badge.style.display = 'inline-flex';
+  }
+}
+
+function marcarRetornosLidos() {
+  if (!currentUser) return;
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  notifsAval.forEach(n => {
+    if ((n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+        (n.tipo === 'resolucao-aprovada' || n.tipo === 'resolucao-reprovada')) {
+      n.lido = true;
+    }
+  });
+  LS.set('vo_notifs_avaliador', notifsAval);
+  renderRetornoValidacaoAvaliador();
+  showToast('✅ Retornos marcados como lidos');
+}
+
+// Abre o modal de resolução a partir de um retorno (reprovada) identificando pelo chave
+function abrirModalResolucaoRetorno(chave) {
+  if (!chave) return;
+  // Chave = notifId_ncIdx
+  const parts = chave.split('_');
+  const ncIdx  = parseInt(parts[parts.length - 1], 10);
+  const notifId = parts.slice(0, -1).join('_');
+  abrirModalResolucao(notifId, ncIdx);
+}
+
+// Toast no login quando há retornos não lidos
+function _verificarRetornosPendentesLogin() {
+  if (!currentUser) return;
+  const notifsAval = LS.get('vo_notifs_avaliador') || [];
+  const pendentes = notifsAval.filter(n =>
+    (n.avaliadorId === currentUser.id || n.avaliadorId === currentUser.nome) &&
+    (n.tipo === 'resolucao-aprovada' || n.tipo === 'resolucao-reprovada') &&
+    !n.lido
+  );
+  if (pendentes.length) {
+    const aprovadas  = pendentes.filter(n => n.tipo === 'resolucao-aprovada').length;
+    const reprovadas = pendentes.filter(n => n.tipo === 'resolucao-reprovada').length;
+    let msg = '🔔 Novo retorno do superior: ';
+    if (aprovadas)  msg += `${aprovadas} NC${aprovadas > 1 ? 's' : ''} aprovada${aprovadas > 1 ? 's' : ''}`;
+    if (aprovadas && reprovadas) msg += ' · ';
+    if (reprovadas) msg += `${reprovadas} NC${reprovadas > 1 ? 's' : ''} reprovada${reprovadas > 1 ? 's' : ''}`;
+    setTimeout(() => showToast(msg, reprovadas > 0 ? 'warn' : 'ok'), 1200);
+  }
+}
+
 </script>
+
+<!-- ════ MODAL RESOLUÇÃO DE NC (Parte 3) ════ -->
+<div id="modalResolucaoNC">
+  <div class="modal-resolucao-box">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="modal-resolucao-title">📝 Registrar Resolução</div>
+      <button onclick="fecharModalResolucao()" style="background:var(--surface2);border:none;border-radius:8px;padding:7px 12px;font-size:12px;color:var(--muted);cursor:pointer">✕ Fechar</button>
+    </div>
+
+    <!-- NC em questão -->
+    <div class="modal-resolucao-item" id="modalResNcItem"></div>
+    <div id="modalResPrazo" style="font-size:11px;color:var(--muted);display:none"></div>
+
+    <!-- Campo de descrição -->
+    <div class="form-group">
+      <label>O que foi feito para resolver? <span style="color:var(--accent)">*</span></label>
+      <textarea id="modalResDescricao" rows="4" placeholder="Descreva detalhadamente a ação corretiva realizada..."></textarea>
+    </div>
+
+    <!-- Foto de evidência -->
+    <div class="foto-resolucao-wrap">
+      <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">
+        Foto de evidência <span style="color:var(--accent)">*</span>
+      </label>
+      <img id="modalResFotoPreview" class="foto-resolucao-preview" alt="Preview da foto"/>
+      <button id="btnFotoResolucao" class="btn-foto-resolucao" onclick="tirarFotoResolucao()">
+        📷 Tirar foto de evidência (obrigatório)
+      </button>
+      <input type="file" id="inputFotoResolucao" accept="image/*" capture="environment"
+        style="display:none" onchange="onFotoResolucaoChange(event)">
+    </div>
+
+    <!-- Erro -->
+    <div id="modalResErro" style="display:none;background:rgba(192,57,43,.08);border:1.5px solid rgba(192,57,43,.2);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--nok);line-height:1.5"></div>
+
+    <!-- Ações -->
+    <div class="modal-resolucao-actions">
+      <button class="btn-ghost" onclick="fecharModalResolucao()" style="flex:1">Cancelar</button>
+      <button class="btn-primary" onclick="enviarResolucaoNC()" style="flex:2">
+        📤 Enviar para validação
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
